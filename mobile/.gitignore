@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Expo and generated native projects
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+uniwind-types.d.ts
+/android
+/ios
+
+# Local environment and build secrets
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Tooling
+.kotlin/
+.metro-health-check*
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.pem
