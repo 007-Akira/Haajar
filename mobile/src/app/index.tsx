@@ -1,6 +1,1 @@
-import { Redirect } from "expo-router";
-import type { JSX } from "react";
-
-export default function IndexRoute(): JSX.Element {
-  return <Redirect href="/sign-in" />;
-}
+export { SplashScreen as default } from "@/features/onboarding/screens/splash-screen";

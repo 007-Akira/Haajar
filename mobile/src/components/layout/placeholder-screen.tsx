@@ -1,23 +1,42 @@
-import { Typography } from "heroui-native";
-import type { JSX, ReactNode } from "react";
-import { View } from "react-native";
+import type { JSX } from "react";
+import { StyleSheet, Text } from "react-native";
 
-type PlaceholderScreenProps = {
+import { colors, spacing, typography } from "@/theme";
+
+import { ScreenContainer } from "./screen-container";
+
+export interface PlaceholderScreenProps {
   title: string;
   description: string;
-  children?: ReactNode;
-};
+  testID?: string;
+}
 
 export function PlaceholderScreen({
   title,
   description,
-  children,
+  testID,
 }: PlaceholderScreenProps): JSX.Element {
   return (
-    <View className="flex-1 justify-center gap-4 bg-background px-6">
-      <Typography.Heading type="h1">{title}</Typography.Heading>
-      <Typography.Paragraph>{description}</Typography.Paragraph>
-      {children}
-    </View>
+    <ScreenContainer contentContainerStyle={styles.content} showGrid testID={testID}>
+      <Text accessibilityRole="header" style={styles.title}>
+        {title}
+      </Text>
+      <Text style={styles.description}>{description}</Text>
+    </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    justifyContent: "center",
+    gap: spacing.xs,
+  },
+  title: {
+    ...typography.headingLarge,
+    color: colors.textPrimary,
+  },
+  description: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+});
