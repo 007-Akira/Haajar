@@ -1,1 +1,2 @@
-// Profile UI and business logic will live in this feature.
+export { ProfileCompletionGuard } from "./guards/profile-completion-guard";
+export { getProfile, saveProfile } from "./services/profile-service";

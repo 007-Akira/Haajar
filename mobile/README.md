@@ -1,8 +1,8 @@
 # Haajar Mobile
 
 The Android-first Haajar mobile application, built with React Native, Expo,
-TypeScript, Expo Router, and HeroUI Native. It is currently a navigation-only
-foundation with mock content and no backend integration.
+TypeScript, Expo Router, and HeroUI Native. Authentication and profile setup use
+Supabase; event, group, and attendance screens still use local mock data.
 
 The project is preconfigured with
 [HeroUI Native](https://heroui.com/docs/native), [Uniwind](https://docs.uniwind.dev)
@@ -27,6 +27,13 @@ From the repository root:
 
 2. Start the app
 
+   Copy the public Supabase environment template and fill it with the API values
+   from Supabase Dashboard → Project Settings → API:
+
+   ```bash
+   cp .env.example .env
+   ```
+
    ```bash
    npm run start
    ```
@@ -44,6 +51,32 @@ npm run format:check
 
 Routes live in `src/app`, shared components in `src/components`, and
 domain-oriented code in `src/features`.
+
+## Supabase and Google sign-in
+
+The mobile app expects:
+
+```text
+EXPO_PUBLIC_SUPABASE_URL
+EXPO_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Only the public anon key belongs in the Expo environment. Never add a Supabase
+service-role key, database password, or Google client secret to the mobile app.
+
+Before Google sign-in works:
+
+1. Create a Google OAuth web client.
+2. In Google Cloud, add Supabase's callback URL:
+   `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. Enable Google under Supabase Dashboard → Authentication → Providers and add
+   the Google client ID and secret there.
+4. Under Authentication → URL Configuration, add
+   `haajar://auth/callback` to the redirect allow list.
+5. Apply `../supabase/migrations/` to the linked Supabase project.
+
+Sessions are persisted in Expo SecureStore. The app uses the `haajar` scheme and
+the OAuth callback `haajar://auth/callback`.
 
 ## What's preconfigured
 

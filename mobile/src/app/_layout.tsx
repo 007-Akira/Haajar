@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import "../global.css";
 
+import { SessionProvider } from "@/features/auth";
 import { fontAssets } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -29,13 +30,17 @@ export default function RootLayout(): JSX.Element | null {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <HeroUINativeProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="sign-in" />
-          <Stack.Screen name="profile-setup" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-        <StatusBar style="auto" />
+        <SessionProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="sign-in" />
+            <Stack.Screen name="profile-setup" />
+            <Stack.Screen name="auth/callback" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="events" />
+          </Stack>
+          <StatusBar style="auto" />
+        </SessionProvider>
       </HeroUINativeProvider>
     </GestureHandlerRootView>
   );

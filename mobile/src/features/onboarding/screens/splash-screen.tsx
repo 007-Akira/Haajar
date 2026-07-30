@@ -5,18 +5,30 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { ScreenContainer } from "@/components";
 import { APP_NAME, APP_NAME_MALAYALAM, APP_TAGLINE, SPLASH_TRANSITION_MS } from "@/constants/app";
+import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
 
 export function SplashScreen(): JSX.Element {
   const router = useRouter();
+  const { loading, profile, profileLoading, session } = useSession();
 
   useEffect(() => {
+    if (loading || profileLoading) {
+      return undefined;
+    }
+
     const transition = setTimeout(() => {
-      router.replace("/sign-in");
+      if (!session) {
+        router.replace("/sign-in");
+      } else if (!profile?.profile_completed) {
+        router.replace("/profile-setup");
+      } else {
+        router.replace("/(tabs)");
+      }
     }, SPLASH_TRANSITION_MS);
 
     return () => clearTimeout(transition);
-  }, [router]);
+  }, [loading, profile, profileLoading, router, session]);
 
   return (
     <ScreenContainer contentContainerStyle={styles.content} showGrid testID="splash-screen">

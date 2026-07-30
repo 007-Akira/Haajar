@@ -1,13 +1,41 @@
 import { useRouter } from "expo-router";
 import type { JSX } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton, ScreenContainer } from "@/components";
 import { APP_NAME, APP_VERSION } from "@/constants/app";
+import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
 
 export function SignInScreen(): JSX.Element {
   const router = useRouter();
+  const { configurationError, loading, profile, profileLoading, session, signInWithGoogle } =
+    useSession();
+  const [submitting, setSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (loading || profileLoading || !session) {
+      return;
+    }
+    router.replace(profile?.profile_completed ? "/(tabs)" : "/profile-setup");
+  }, [loading, profile, profileLoading, router, session]);
+
+  async function handleGoogleSignIn(): Promise<void> {
+    setSubmitting(true);
+    setAuthError(null);
+    try {
+      const completed = await signInWithGoogle();
+      if (completed) {
+        router.replace("/profile-setup");
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Could not sign in with Google.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <ScreenContainer contentContainerStyle={styles.content} scroll showGrid testID="sign-in-screen">
@@ -23,14 +51,22 @@ export function SignInScreen(): JSX.Element {
 
       <View style={styles.actionBlock}>
         <PrimaryButton
-          accessibilityLabel="Continue with Google using a mock account"
+          accessibilityLabel="Continue with Google"
+          disabled={Boolean(configurationError)}
           fullWidth
           label="Continue with Google"
-          onPress={() => router.push("/profile-setup")}
+          loading={submitting}
+          onPress={() => void handleGoogleSignIn()}
           testID="continue-with-google-button"
         />
+        {authError || configurationError ? (
+          <Text accessibilityLiveRegion="polite" style={styles.error} testID="sign-in-error">
+            {authError ?? configurationError}
+          </Text>
+        ) : null}
         <Text style={styles.privacy}>
-          This prototype does not contact Google or save account information.
+          Google verifies your identity. Haajar stores only the account details needed for your
+          profile.
         </Text>
         <Text style={styles.version}>{`[ VERSION ${APP_VERSION} ]`}</Text>
       </View>
@@ -66,6 +102,11 @@ const styles = StyleSheet.create({
   privacy: {
     ...typography.caption,
     color: colors.textSecondary,
+    textAlign: "center",
+  },
+  error: {
+    ...typography.caption,
+    color: colors.danger,
     textAlign: "center",
   },
   version: {

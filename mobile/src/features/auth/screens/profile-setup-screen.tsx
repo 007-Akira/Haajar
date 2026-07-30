@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Redirect, useRouter } from "expo-router";
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { PageHeader, PhoneField, PrimaryButton, ScreenContainer, TextField } from "@/components";
-import { mockUser } from "@/features/home/data/mock-home";
+import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
 
 function isValidPhone(value: string): boolean {
@@ -14,21 +14,43 @@ function isValidPhone(value: string): boolean {
 
 export function ProfileSetupScreen(): JSX.Element {
   const router = useRouter();
+  const { loading, profile, profileLoading, saveProfile, session, user } = useSession();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profileLoading && profile?.profile_completed) {
+      router.replace("/(tabs)");
+    }
+  }, [profile, profileLoading, router]);
 
   const nameError = submitted && !fullName.trim() ? "Enter your full name." : undefined;
   const phoneError = submitted && !isValidPhone(phone) ? "Enter a valid phone number." : undefined;
 
-  function handleSubmit(): void {
+  async function handleSubmit(): Promise<void> {
     setSubmitted(true);
+    setSaveError(null);
 
     if (!fullName.trim() || !isValidPhone(phone)) {
       return;
     }
 
-    router.replace("/(tabs)");
+    setSaving(true);
+    try {
+      await saveProfile({ fullName, phone });
+      router.replace("/(tabs)");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!loading && !session) {
+    return <Redirect href="/sign-in" />;
   }
 
   return (
@@ -67,21 +89,27 @@ export function ProfileSetupScreen(): JSX.Element {
         />
         <TextField
           disabled
-          helperText="Verified by the mock Google account."
+          helperText="Verified by your Google account."
           label="Google email"
           onChangeText={() => undefined}
           testID="verified-email-field"
-          value={mockUser.verifiedEmail}
+          value={user?.email ?? ""}
         />
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.localNote}>[ SAVED LOCALLY FOR THIS SESSION ONLY ]</Text>
+        {saveError ? (
+          <Text accessibilityLiveRegion="polite" style={styles.error} testID="profile-save-error">
+            {saveError}
+          </Text>
+        ) : null}
+        <Text style={styles.localNote}>[ STORED SECURELY IN YOUR HAAJAR PROFILE ]</Text>
         <PrimaryButton
           accessibilityLabel="Save profile and continue to Home"
           fullWidth
           label="Save and Continue"
-          onPress={handleSubmit}
+          loading={saving || profileLoading}
+          onPress={() => void handleSubmit()}
           testID="save-profile-button"
         />
       </View>
@@ -103,6 +131,11 @@ const styles = StyleSheet.create({
   localNote: {
     ...typography.technicalLabel,
     color: colors.textSecondary,
+    textAlign: "center",
+  },
+  error: {
+    ...typography.caption,
+    color: colors.danger,
     textAlign: "center",
   },
 });
