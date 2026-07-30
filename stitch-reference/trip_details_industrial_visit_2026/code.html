@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-width=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Trip Details - Haajar</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&amp;family=JetBrains+Mono:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#454749",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#f9dcd4",
+                        "outline-variant": "#e3bfb3",
+                        "tertiary": "#605e5a",
+                        "on-tertiary-container": "#2e2d29",
+                        "on-background": "#271813",
+                        "tertiary-fixed-dim": "#c9c6c0",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#ffe2d9",
+                        "on-tertiary-fixed-variant": "#484742",
+                        "primary-fixed-dim": "#ffb59c",
+                        "on-secondary-fixed": "#1a1c1e",
+                        "secondary-fixed-dim": "#c6c6c9",
+                        "surface-dim": "#f0d4cc",
+                        "surface-container-low": "#fff1ed",
+                        "inverse-surface": "#3d2c27",
+                        "surface-container-highest": "#f9dcd4",
+                        "surface-container": "#ffe9e3",
+                        "on-tertiary-fixed": "#1c1c18",
+                        "on-secondary-container": "#636467",
+                        "inverse-on-surface": "#ffede8",
+                        "on-error-container": "#93000a",
+                        "background": "#fff8f6",
+                        "tertiary-fixed": "#e6e2dc",
+                        "on-primary-fixed": "#390c00",
+                        "on-primary-container": "#561700",
+                        "on-primary": "#ffffff",
+                        "secondary": "#5d5e61",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#5b4138",
+                        "primary-container": "#ff5f1f",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#271813",
+                        "secondary-fixed": "#e2e2e5",
+                        "tertiary-container": "#96948f",
+                        "surface-tint": "#ab3600",
+                        "primary": "#ab3600",
+                        "surface-bright": "#fff8f6",
+                        "primary-fixed": "#ffdbcf",
+                        "outline": "#8f7066",
+                        "secondary-container": "#e2e2e5",
+                        "error": "#ba1a1a",
+                        "surface": "#fff8f6",
+                        "inverse-primary": "#ffb59c",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#832700"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "48px",
+                        "gutter": "12px",
+                        "container-padding": "20px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md-mobile": ["Bricolage Grotesque"],
+                        "headline-md": ["Bricolage Grotesque"],
+                        "display-lg": ["Bricolage Grotesque"],
+                        "label-mono": ["JetBrains Mono"],
+                        "button-text": ["JetBrains Mono"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-mono": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "button-text": ["14px", { "lineHeight": "20px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .tech-grid {
+            background-image: linear-gradient(to right, #E8E4DE 1px, transparent 1px),
+                              linear-gradient(to bottom, #E8E4DE 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#f0ece5] text-[#1A1C1E] min-h-screen tech-grid relative pb-[80px]">
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-[#f0ece5]/90 backdrop-blur-md border-b border-[#1A1C1E]/10">
+<div class="flex justify-between items-center w-full px-container-padding h-[64px]">
+<button aria-label="Go back" class="flex items-center justify-center w-touch-target-min h-touch-target-min -ml-2 hover:bg-[#E8E4DE] rounded transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline-md-mobile text-headline-md-mobile tracking-tight flex-1 text-center truncate px-2">Industrial Visit 2026</h1>
+<button aria-label="More options" class="flex items-center justify-center w-touch-target-min h-touch-target-min -mr-2 hover:bg-[#E8E4DE] rounded transition-colors">
+<span class="material-symbols-outlined text-[24px]">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-container-padding pt-6 pb-24 space-y-8 max-w-2xl mx-auto">
+<!-- Main Summary Card (Inverted High Contrast) -->
+<section class="bg-[#2D2F31] rounded-lg p-6 relative overflow-hidden text-[#fffff0] shadow-[4px_4px_0px_0px_rgba(45,47,49,0.2)]">
+<div class="absolute top-4 right-4 bg-[#fffff0] text-[#1A1C1E] px-2 py-1 rounded-sm border border-[#1A1C1E]">
+<span class="font-label-mono text-label-mono">[ ORGANISER ]</span>
+</div>
+<div class="mt-2 space-y-6">
+<div>
+<h2 class="font-display-lg text-display-lg leading-tight mb-2">Industrial Visit<br/>2026</h2>
+<p class="font-label-mono text-label-mono opacity-80">[ TR-2026-IV ]</p>
+</div>
+<div class="flex items-center space-x-6 border-t border-[#fffff0]/20 pt-4">
+<div>
+<span class="font-display-lg text-[24px] font-bold">45</span>
+<span class="font-label-mono text-[10px] block opacity-70 tracking-wider">PARTICIPANTS</span>
+</div>
+<div>
+<span class="font-display-lg text-[24px] font-bold">4</span>
+<span class="font-label-mono text-[10px] block opacity-70 tracking-wider">GROUPS</span>
+</div>
+</div>
+<div class="flex items-center bg-[#1A1C1E] px-3 py-2 rounded-md border border-[#fffff0]/10 w-max">
+<div class="w-2 h-2 rounded-full bg-[#FF5F1F] mr-3 animate-pulse"></div>
+<span class="font-label-mono text-label-mono text-[#FF5F1F]">[ ROLL CALL ACTIVE ]</span>
+</div>
+</div>
+</section>
+<!-- Quick Actions -->
+<section class="flex flex-col sm:flex-row gap-4">
+<button class="flex-1 bg-[#1A1C1E] text-[#fffff0] h-[56px] rounded flex items-center justify-center space-x-2 border border-[#1A1C1E] hover:bg-[#2D2F31] active:translate-y-0.5 transition-all shadow-[2px_2px_0px_0px_rgba(45,47,49,0.2)]">
+<span class="material-symbols-outlined text-[20px]">fact_check</span>
+<span class="font-button-text text-button-text">[ START ROLL CALL ]</span>
+</button>
+<button class="flex-1 bg-transparent text-[#1A1C1E] h-[56px] rounded flex items-center justify-center space-x-2 border border-[#1A1C1E] hover:bg-[#E8E4DE] active:translate-y-0.5 transition-all">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span class="font-button-text text-button-text">[ + ADD GROUP ]</span>
+</button>
+</section>
+<!-- Main Group Section -->
+<section class="border border-[#1A1C1E] rounded-lg bg-[#fffff0] p-5 shadow-[2px_2px_0px_0px_rgba(45,47,49,0.1)] hover:bg-[#E8E4DE] transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md-mobile text-headline-md-mobile mb-1">Main Group / Everyone</h3>
+<p class="font-label-mono text-label-mono text-[#1A1C1E]/70">45 TOTAL MEMBERS</p>
+</div>
+<div class="bg-[#1A1C1E] text-[#fffff0] px-2 py-1 rounded-sm">
+<span class="font-label-mono text-label-mono">[ ALL ]</span>
+</div>
+</div>
+<div class="flex items-center justify-between border-t border-[#1A1C1E]/10 pt-3 mt-2">
+<span class="font-button-text text-button-text text-[#FF5F1F] group-hover:underline">[ VIEW ALL MEMBERS ]</span>
+<span class="material-symbols-outlined text-[#FF5F1F] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</section>
+<!-- Groups List -->
+<section class="space-y-4">
+<div class="flex justify-between items-end border-b border-[#1A1C1E] pb-2">
+<h3 class="font-headline-md-mobile text-headline-md-mobile">Groups</h3>
+<button class="font-label-mono text-label-mono hover:text-[#FF5F1F] transition-colors">[ VIEW ALL ]</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Group Card: Bus 2 -->
+<div class="border border-[#E8E4DE] rounded-lg bg-[#fffff0] p-4 relative hover:border-[#1A1C1E] transition-colors cursor-pointer group flex flex-col justify-between min-h-[120px]">
+<div class="absolute top-3 right-3 bg-[#1A1C1E] text-[#fffff0] px-2 py-1 rounded-sm border border-[#1A1C1E]">
+<span class="font-label-mono text-[10px] leading-tight">[ LEAD ]</span>
+</div>
+<div>
+<h4 class="font-headline-md-mobile text-[18px] font-bold mb-1 pr-16">Bus 2</h4>
+<p class="font-label-mono text-label-mono text-[#1A1C1E]/60">22 MEMBERS</p>
+</div>
+<div class="flex justify-end mt-4">
+<span class="material-symbols-outlined text-[20px] text-[#1A1C1E]/40 group-hover:text-[#1A1C1E] transition-colors">arrow_forward</span>
+</div>
+</div>
+<!-- Group Card: Compartment B4 -->
+<div class="border border-[#E8E4DE] rounded-lg bg-[#fffff0] p-4 relative hover:border-[#1A1C1E] transition-colors cursor-pointer group flex flex-col justify-between min-h-[120px]">
+<div class="absolute top-3 right-3 bg-[#fffff0] text-[#1A1C1E] px-2 py-1 rounded-sm border border-[#1A1C1E]">
+<span class="font-label-mono text-[10px] leading-tight">[ MEMBER ]</span>
+</div>
+<div>
+<h4 class="font-headline-md-mobile text-[18px] font-bold mb-1 pr-16">Compartment B4</h4>
+<p class="font-label-mono text-label-mono text-[#1A1C1E]/60">8 MEMBERS</p>
+</div>
+<div class="flex justify-end mt-4">
+<span class="material-symbols-outlined text-[20px] text-[#1A1C1E]/40 group-hover:text-[#1A1C1E] transition-colors">arrow_forward</span>
+</div>
+</div>
+<!-- Group Card: Room 203 -->
+<div class="border border-[#E8E4DE] rounded-lg bg-[#fffff0] p-4 relative hover:border-[#1A1C1E] transition-colors cursor-pointer group flex flex-col justify-between min-h-[120px]">
+<div class="absolute top-3 right-3 bg-[#fffff0] text-[#1A1C1E] px-2 py-1 rounded-sm border border-[#1A1C1E]">
+<span class="font-label-mono text-[10px] leading-tight">[ MEMBER ]</span>
+</div>
+<div>
+<h4 class="font-headline-md-mobile text-[18px] font-bold mb-1 pr-16">Room 203</h4>
+<p class="font-label-mono text-label-mono text-[#1A1C1E]/60">4 MEMBERS</p>
+</div>
+<div class="flex justify-end mt-4">
+<span class="material-symbols-outlined text-[20px] text-[#1A1C1E]/40 group-hover:text-[#1A1C1E] transition-colors">arrow_forward</span>
+</div>
+</div>
+<!-- Group Card: Activity Team C -->
+<div class="border border-[#E8E4DE] rounded-lg bg-[#fffff0] p-4 relative hover:border-[#1A1C1E] transition-colors cursor-pointer group flex flex-col justify-between min-h-[120px]">
+<div class="absolute top-3 right-3 bg-[#2D2F31] text-[#fffff0] px-2 py-1 rounded-sm border border-[#2D2F31]">
+<span class="font-label-mono text-[10px] leading-tight">[ CO-ORDINATOR ]</span>
+</div>
+<div>
+<h4 class="font-headline-md-mobile text-[18px] font-bold mb-1 pr-24">Activity Team C</h4>
+<p class="font-label-mono text-label-mono text-[#1A1C1E]/60">11 MEMBERS</p>
+</div>
+<div class="flex justify-end mt-4">
+<span class="material-symbols-outlined text-[20px] text-[#1A1C1E]/40 group-hover:text-[#1A1C1E] transition-colors">arrow_forward</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Semantic Shell: Suppressed for Details Page) -->
+<!-- As per the "Shell Visibility & Relevance (THE FILTER)" rule:
+         "Suppress the navigation shell if the page intent is... Task-Focused: Any sub-page featuring a 'Close' or 'Back' action that implies a temporary departure from the main navigation flow."
+         Since this is a "Trip Details" screen with a "Back button", it is a sub-page.
+         Therefore, the BottomNavBar is intentionally excluded to prioritize the content canvas. -->
+</body></html>

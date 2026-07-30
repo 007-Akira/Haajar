@@ -6,6 +6,8 @@ export { SecondaryButton } from "./actions/secondary-button";
 export type { SecondaryButtonProps } from "./actions/secondary-button";
 export { EventCard } from "./cards/event-card";
 export type { EventCardProps } from "./cards/event-card";
+export { GroupCard } from "./cards/group-card";
+export type { GroupCardProps } from "./cards/group-card";
 export { EmptyState } from "./feedback/empty-state";
 export type { EmptyStateProps } from "./feedback/empty-state";
 export { LoadingSkeleton } from "./feedback/loading-skeleton";

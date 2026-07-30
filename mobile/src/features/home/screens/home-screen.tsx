@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -17,6 +18,7 @@ import { ActiveRollCallNotice } from "../components/active-roll-call-notice";
 import { mockActiveRollCall, mockTrips, mockUser } from "../data/mock-home";
 
 export function HomeScreen(): JSX.Element {
+  const router = useRouter();
   const [activityMessage, setActivityMessage] = useState("");
 
   return (
@@ -87,7 +89,12 @@ export function HomeScreen(): JSX.Element {
               eventName={trip.name}
               groupCount={trip.groupCount}
               key={trip.id}
-              onPress={() => setActivityMessage(`${trip.name} selected.`)}
+              onPress={() =>
+                router.push({
+                  pathname: "/events/[eventId]",
+                  params: { eventId: trip.id },
+                })
+              }
               participantCount={trip.participantCount}
               testID={`trip-card-${trip.id}`}
               userRole={trip.role}

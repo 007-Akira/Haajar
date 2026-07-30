@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Haajar - Splash Screen</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&amp;family=JetBrains+Mono:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#fff8f6",
+                        "on-surface": "#271813",
+                        "outline": "#8f7066",
+                        "tertiary-container": "#96948f",
+                        "surface-dim": "#f0d4cc",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#f9dcd4",
+                        "on-secondary-fixed": "#1a1c1e",
+                        "secondary-fixed": "#e2e2e5",
+                        "on-primary-fixed": "#390c00",
+                        "secondary-container": "#e2e2e5",
+                        "inverse-primary": "#ffb59c",
+                        "on-primary-fixed-variant": "#832700",
+                        "tertiary": "#605e5a",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fff8f6",
+                        "secondary-fixed-dim": "#c6c6c9",
+                        "on-tertiary-fixed-variant": "#484742",
+                        "on-tertiary-fixed": "#1c1c18",
+                        "secondary": "#5d5e61",
+                        "surface-container-low": "#fff1ed",
+                        "tertiary-fixed-dim": "#c9c6c0",
+                        "primary-container": "#ff5f1f",
+                        "on-primary-container": "#561700",
+                        "surface-tint": "#ab3600",
+                        "surface-container": "#ffe9e3",
+                        "primary": "#ab3600",
+                        "on-tertiary-container": "#2e2d29",
+                        "background": "#fff8f6",
+                        "on-secondary-container": "#636467",
+                        "primary-fixed-dim": "#ffb59c",
+                        "surface-variant": "#f9dcd4",
+                        "on-secondary-fixed-variant": "#454749",
+                        "primary-fixed": "#ffdbcf",
+                        "tertiary-fixed": "#e6e2dc",
+                        "inverse-surface": "#3d2c27",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#ffede8",
+                        "outline-variant": "#e3bfb3",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#271813",
+                        "surface-container-high": "#ffe2d9",
+                        "on-surface-variant": "#5b4138",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding": "20px",
+                        "touch-target-min": "48px",
+                        "base": "8px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Bricolage Grotesque"],
+                        "button-text": ["JetBrains Mono"],
+                        "headline-md-mobile": ["Bricolage Grotesque"],
+                        "label-mono": ["JetBrains Mono"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Bricolage Grotesque"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "button-text": ["14px", { "lineHeight": "20px", "fontWeight": "700" }],
+                        "headline-md-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "label-mono": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        /* Custom loader animation for the technical aesthetic */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .animate-scanline {
+            animation: scanline 2s linear infinite;
+        }
+        @keyframes pulse-width {
+            0%, 100% { width: 10%; opacity: 0.5; }
+            50% { width: 40%; opacity: 1; }
+        }
+        .animate-pulse-width {
+            animation: pulse-width 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface h-screen w-screen overflow-hidden flex flex-col items-center justify-center relative selection:bg-primary-container selection:text-white">
+<!-- Faint Technical Grid Background -->
+<svg class="absolute inset-0 w-full h-full opacity-40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern height="24" id="tech-grid" patternunits="userSpaceOnUse" width="24">
+<path class="text-outline-variant" d="M 24 0 L 0 0 0 24" fill="none" stroke="currentColor" stroke-width="0.5"></path>
+</pattern>
+</defs>
+<rect fill="url(#tech-grid)" height="100%" width="100%"></rect>
+</svg>
+<!-- Scanline Overlay -->
+<div class="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.03]">
+<div class="w-full h-1/3 bg-gradient-to-b from-transparent via-on-surface to-transparent animate-scanline"></div>
+</div>
+<!-- Main Content Container -->
+<main class="relative z-10 flex flex-col items-center px-container-padding text-center">
+<!-- Logo Structure (QR Corners + Checkmark) -->
+<div class="relative w-32 h-32 mb-10 flex items-center justify-center">
+<!-- Top Left Corner -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-on-surface transition-transform duration-700 hover:-translate-x-1 hover:-translate-y-1"></div>
+<!-- Top Right Corner -->
+<div class="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-on-surface transition-transform duration-700 hover:translate-x-1 hover:-translate-y-1"></div>
+<!-- Bottom Left Corner -->
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-on-surface transition-transform duration-700 hover:-translate-x-1 hover:translate-y-1"></div>
+<!-- Bottom Right Corner (Accent) -->
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-primary-container transition-transform duration-700 hover:translate-x-1 hover:translate-y-1"></div>
+<!-- Central Checkmark -->
+<span class="material-symbols-outlined text-on-surface" style="font-size: 64px; font-variation-settings: 'FILL' 1;">check</span>
+<!-- Subtle internal grid piece -->
+<div class="absolute inset-4 border border-outline-variant opacity-20 border-dashed"></div>
+</div>
+<!-- Typography Cluster -->
+<div class="flex flex-col items-center space-y-1">
+<h1 class="font-display-lg text-display-lg text-on-surface uppercase tracking-tight">Haajar</h1>
+<h2 class="font-headline-md text-headline-md text-on-surface-variant">ഹാജർ</h2>
+<!-- Tagline with Bracketed Mono Styling -->
+<div class="mt-6 pt-4 border-t border-outline-variant/50 w-full max-w-[280px]">
+<p class="font-label-mono text-label-mono text-tertiary">
+<span class="text-primary-container opacity-50 mr-1">[</span> 
+                    എല്ലാവരും ഉണ്ടെന്ന് ഉറപ്പാക്കാം 
+                    <span class="text-primary-container opacity-50 ml-1">]</span>
+</p>
+</div>
+</div>
+</main>
+<!-- Technical Loading Indicator -->
+<div class="absolute bottom-12 w-full px-container-padding flex flex-col items-center">
+<!-- Status Label -->
+<div class="font-label-mono text-label-mono text-on-surface-variant mb-3 flex items-center gap-2">
+<span class="w-2 h-2 bg-primary-container rounded-none animate-pulse"></span>
+<span>SYSTEM_INIT: <span class="text-on-surface font-bold">LOADING</span></span>
+</div>
+<!-- Progress Bar Track -->
+<div class="w-full max-w-[240px] h-[2px] bg-surface-container-high relative overflow-hidden">
+<!-- Active Progress -->
+<div class="absolute top-0 left-0 h-full bg-primary-container animate-pulse-width"></div>
+</div>
+</div>
+</body></html>

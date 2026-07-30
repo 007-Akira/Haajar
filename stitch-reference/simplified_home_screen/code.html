@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Haajar - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&amp;family=JetBrains+Mono:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface": "#fff8f6",
+                      "on-surface": "#271813",
+                      "outline": "#8f7066",
+                      "tertiary-container": "#96948f",
+                      "surface-dim": "#f0d4cc",
+                      "on-secondary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "surface-container-highest": "#f9dcd4",
+                      "on-secondary-fixed": "#1a1c1e",
+                      "secondary-fixed": "#e2e2e5",
+                      "on-primary-fixed": "#390c00",
+                      "secondary-container": "#e2e2e5",
+                      "inverse-primary": "#ffb59c",
+                      "on-primary-fixed-variant": "#832700",
+                      "tertiary": "#605e5a",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#fff8f6",
+                      "secondary-fixed-dim": "#c6c6c9",
+                      "on-tertiary-fixed-variant": "#484742",
+                      "on-tertiary-fixed": "#1c1c18",
+                      "secondary": "#5d5e61",
+                      "surface-container-low": "#fff1ed",
+                      "tertiary-fixed-dim": "#c9c6c0",
+                      "primary-container": "#ff5f1f",
+                      "on-primary-container": "#561700",
+                      "surface-tint": "#ab3600",
+                      "surface-container": "#ffe9e3",
+                      "primary": "#ab3600",
+                      "on-tertiary-container": "#2e2d29",
+                      "background": "#fff8f6",
+                      "on-secondary-container": "#636467",
+                      "primary-fixed-dim": "#ffb59c",
+                      "surface-variant": "#f9dcd4",
+                      "on-secondary-fixed-variant": "#454749",
+                      "primary-fixed": "#ffdbcf",
+                      "tertiary-fixed": "#e6e2dc",
+                      "inverse-surface": "#3d2c27",
+                      "error": "#ba1a1a",
+                      "inverse-on-surface": "#ffede8",
+                      "outline-variant": "#e3bfb3",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#271813",
+                      "surface-container-high": "#ffe2d9",
+                      "on-surface-variant": "#5b4138",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-padding": "20px",
+                      "touch-target-min": "48px",
+                      "base": "8px",
+                      "gutter": "12px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Bricolage Grotesque"
+                      ],
+                      "button-text": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-md-mobile": [
+                              "Bricolage Grotesque"
+                      ],
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "display-lg": [
+                              "Bricolage Grotesque"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "button-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "800"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #E8E4DE;
+            background-image: 
+                linear-gradient(to right, rgba(26, 28, 30, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(26, 28, 30, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .hard-shadow {
+            box-shadow: 2px 2px 0px 0px rgba(26, 28, 30, 0.2);
+        }
+        .hard-shadow-lg {
+            box-shadow: 4px 4px 0px 0px rgba(26, 28, 30, 0.2);
+        }
+        .card-outline {
+            border: 1px solid #1A1C1E;
+        }
+        .card-outline-light {
+            border: 1px solid #E8E4DE;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-surface antialiased pb-24 md:pb-0">
+<!-- TopAppBar (Mobile & Web Context Mapping) -->
+<header class="bg-surface dark:bg-surface border-b border-on-surface dark:border-outline docked full-width top-0 sticky z-40 hidden md:flex">
+<div class="flex justify-between items-center w-full px-container-padding h-touch-target-min">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed" data-icon="grid_view">grid_view</span>
+<h1 class="font-label-mono text-label-mono font-bold text-primary dark:text-primary-fixed tracking-tight">[ HAAJAR_SYS ]</h1>
+</div>
+<div class="flex items-center gap-6 hidden md:flex">
+<a class="text-primary font-bold hover:bg-surface-container-high transition-colors px-2 py-1 active:scale-95 duration-150" href="#">[ DASH ]</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-2 py-1 active:scale-95 duration-150" href="#">[ SCAN ]</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-2 py-1 active:scale-95 duration-150" href="#">[ GROUPS ]</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-2 py-1 active:scale-95 duration-150" href="#">[ LOG ]</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<img alt="User Avatar" class="w-8 h-8 rounded-full object-cover card-outline" data-alt="A small, circular avatar portrait of a young professional in a technical environment, crisp and high contrast, modern technical retro style. Close up." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7tMbbByhisw2dEAQt65iIosjZQWWo0J5X1ecIMs-iSqGpEn1ZoPn9Z7XMX5VI3sUoHlVsgcWrfAPUkerSH3XDoz85hNuTGMYlhWmo5CMyS8R9uQivP5cYQLcAP7aJIyqgzCYjdRRlAt_koi-eGim9ZUOc5AobspooFC_QREp0fmxmJEYNgGwx-_8cn5qpTw3Npu_KLTwH3zT5D82Gc-p--TJOLVwtKQdBbbCnxRyXZLVX2wBxW3ZCtg"/>
+</div>
+</div>
+</header>
+<main class="w-full max-w-4xl mx-auto px-container-padding pt-6 flex flex-col gap-8">
+<!-- Header Section (Mobile Context) -->
+<section class="flex flex-col gap-2 md:hidden">
+<div class="flex justify-between items-center h-touch-target-min">
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono text-tertiary">[ 24 JAN 2026 ]</span>
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface">Good evening, Mathews</h2>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined hover:text-primary transition-colors cursor-pointer" data-icon="notifications">notifications</span>
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover card-outline" data-alt="A small, circular avatar portrait of a young professional in a technical environment, crisp and high contrast, modern technical retro style. Close up." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4BDryuojYveI8o9GrR_F05_71ngiJ34NQwGg_pRARnGrzYZ4vz2yxX_vGKDI7cgmAtuY0F-4pOwgbfD1yz9_G_w7BbxO-Gv2hg9UoRSTF8RdPPpx4tHQqUUMTEVlUzNKPlvWngMtnWOONZraBc-D8PnsD3LIUPMZfOGIy2Bp4_G04ojacfnMOe7pNRI5pTopZYwDnomY1jRBpCUa2xcU65bYqRYKatm2SCWH0kBDLdMyVUE_SOpb_Jg"/>
+</div>
+</div>
+</section>
+<!-- Primary Focus: Active Roll-Call Card (Inversion) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Quick Actions (Bento style) -->
+<section class="flex flex-col gap-4 col-span-1 md:col-span-2">
+<div class="grid grid-cols-2 gap-4"><button class="bg-[#1A1C1E] text-[#E8E4DE] font-button-text text-button-text h-touch-target-min rounded flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90"><span class="material-symbols-outlined text-sm">group_add</span> [ JOIN TRIP ] </button><button class="bg-transparent card-outline text-[#1A1C1E] font-button-text text-button-text h-touch-target-min rounded flex items-center justify-center gap-2 hover:bg-[#E8E4DE] active:scale-95 transition-transform"><span class="material-symbols-outlined text-sm">add_box</span> [ CREATE TRIP ] </button></div>
+</section>
+<!-- Events Section -->
+<!-- Groups Section -->
+<section class="flex flex-col gap-6 col-span-1 md:col-span-2"><div class="flex justify-between items-center border-b border-[#1A1C1E] pb-2"><h3 class="font-headline-md-mobile text-headline-md-mobile text-on-surface">Trips</h3><span class="font-label-mono text-label-mono text-on-surface-variant cursor-pointer hover:text-primary">[ VIEW ALL ]</span></div><div class="bg-primary-container/10 border border-primary/20 rounded-lg p-4 flex items-center justify-between"><div class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><div class="flex flex-col"><span class="font-label-mono text-[10px] text-primary">[ ACTIVE ROLL-CALL ]</span><span class="font-body-md text-on-surface font-bold">After boarding the train</span></div></div><a class="font-label-mono text-label-mono text-primary underline" href="#">[ VIEW ]</a></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="bg-surface card-outline rounded-lg p-6 flex flex-col gap-4 hover:hard-shadow transition-shadow cursor-pointer relative"><div class="flex justify-between items-start"><div class="bg-surface text-[#1A1C1E] card-outline font-label-mono text-label-mono px-2 py-0.5 rounded-sm">[ ORGANISER ]</div><div class="text-primary font-label-mono text-label-mono">[ ACTIVE ]</div></div><h4 class="font-headline-md text-headline-md-mobile">Industrial Visit 2026</h4><div class="flex items-center gap-6 text-on-surface-variant font-label-mono text-label-mono"><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">group</span> 45</div><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">account_tree</span> 4 GROUPS</div></div></div><div class="bg-surface card-outline rounded-lg p-6 flex flex-col gap-4 hover:hard-shadow transition-shadow cursor-pointer relative"><div class="flex justify-between items-start"><div class="bg-surface text-[#1A1C1E] card-outline font-label-mono text-label-mono px-2 py-0.5 rounded-sm">[ MEMBER ]</div><div class="text-tertiary font-label-mono text-label-mono">[ UPCOMING ]</div></div><h4 class="font-headline-md text-headline-md-mobile">College Tour</h4><div class="flex items-center gap-6 text-on-surface-variant font-label-mono text-label-mono"><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">group</span> 120</div><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">account_tree</span> 12 GROUPS</div></div></div><div class="bg-surface card-outline rounded-lg p-6 flex flex-col gap-4 hover:hard-shadow transition-shadow cursor-pointer relative"><div class="flex justify-between items-start"><div class="bg-surface text-[#1A1C1E] card-outline font-label-mono text-label-mono px-2 py-0.5 rounded-sm">[ MEMBER ]</div><div class="text-tertiary font-label-mono text-label-mono">[ COMPLETED ]</div></div><h4 class="font-headline-md text-headline-md-mobile">Tech Camp</h4><div class="flex items-center gap-6 text-on-surface-variant font-label-mono text-label-mono"><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">group</span> 85</div><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">account_tree</span> 8 GROUPS</div></div></div></div></section></div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="bg-surface dark:bg-surface border-t border-on-surface dark:border-outline fixed bottom-0 w-full z-50 md:hidden pb-safe">
+<div class="flex justify-around items-center w-full bg-surface h-[64px]">
+<a class="flex flex-col items-center justify-center border-t-2 border-primary text-primary pt-2 pb-1 w-1/4 h-full bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-mono text-[10px] mt-1">[ DASH ]</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-2 pb-1 w-1/4 h-full hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="qr_code_scanner">qr_code_scanner</span>
+<span class="font-label-mono text-[10px] mt-1">[ SCAN ]</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-2 pb-1 w-1/4 h-full hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-mono text-[10px] mt-1">[ GROUPS ]</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-2 pb-1 w-1/4 h-full hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-mono text-[10px] mt-1">[ LOG ]</span>
+</a>
+</div>
+</nav>
+</body></html>
