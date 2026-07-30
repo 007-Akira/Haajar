@@ -16,11 +16,6 @@ export interface MockActiveRollCall {
   label: string;
 }
 
-export const mockUser = {
-  firstName: "Mathews",
-  verifiedEmail: "mathews@example.com",
-} as const;
-
 export const mockTrips: MockTrip[] = [
   {
     id: "industrial-visit-2026",

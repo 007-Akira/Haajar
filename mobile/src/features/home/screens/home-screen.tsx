@@ -12,14 +12,17 @@ import {
   SecondaryButton,
   SectionHeader,
 } from "@/components";
+import { useSession } from "@/features/auth";
 import { colors, layout, spacing, typography } from "@/theme";
 
 import { ActiveRollCallNotice } from "../components/active-roll-call-notice";
-import { mockActiveRollCall, mockTrips, mockUser } from "../data/mock-home";
+import { mockActiveRollCall, mockTrips } from "../data/mock-home";
 
 export function HomeScreen(): JSX.Element {
   const router = useRouter();
+  const { profile } = useSession();
   const [activityMessage, setActivityMessage] = useState("");
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "there";
 
   return (
     <ScreenContainer contentContainerStyle={styles.content} scroll showGrid testID="home-screen">
@@ -27,7 +30,7 @@ export function HomeScreen(): JSX.Element {
         <View style={styles.greetingGroup}>
           <Text style={styles.eyebrow}>[ HAAJAR HOME ]</Text>
           <Text accessibilityRole="header" style={styles.greeting}>
-            {`Good evening, ${mockUser.firstName}`}
+            {`Good evening, ${firstName}`}
           </Text>
         </View>
         <IconButton
