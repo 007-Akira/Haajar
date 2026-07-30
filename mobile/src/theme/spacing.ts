@@ -24,6 +24,8 @@ export const layout = {
   statusDotSize: spacing.xs,
   inputHeight: 56,
   tabBarHeight: spacing["5xl"],
+  qrPlaceholderSize: 240,
+  qrGridDimension: 21,
   badgeMinHeight: 24,
   borderWidth: 1,
   focusedBorderWidth: 2,

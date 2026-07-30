@@ -54,7 +54,7 @@ const industrialVisit: MockEventDetails = {
       id: "activity-team-c",
       name: "Activity Team C",
       memberCount: 18,
-      userRole: "member",
+      userRole: "super organiser",
     },
   ],
 };

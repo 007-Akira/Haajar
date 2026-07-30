@@ -111,7 +111,12 @@ export function TripDetailsScreen(): JSX.Element {
       <View style={styles.section}>
         <SectionHeader description="The complete trip roster." title="Main Group" />
         <MainGroupCard
-          onViewMembers={() => showMockMessage("Main Group members selected.")}
+          onViewMembers={() =>
+            router.push({
+              pathname: "/events/[eventId]/members",
+              params: { eventId: event.id },
+            })
+          }
           onViewRollCalls={() => showMockMessage("Main Group roll calls selected.")}
           participantCount={event.participantCount}
           testID="main-group-card"

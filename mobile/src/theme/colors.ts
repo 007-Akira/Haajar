@@ -43,6 +43,7 @@ export const colors = {
   offline: palette.slate,
   pending: palette.warning,
   transparent: "transparent",
+  scrim: "rgba(26, 28, 30, 0.72)",
 } as const;
 
 export type PaletteColor = keyof typeof palette;
