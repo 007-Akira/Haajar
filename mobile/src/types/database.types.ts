@@ -8,6 +8,70 @@ export type Database = {
   };
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          created_at: string;
+          entity_id: string;
+          entity_type: string;
+          event_id: string | null;
+          group_id: string | null;
+          id: string;
+          metadata: Json;
+          new_data: Json | null;
+          old_data: Json | null;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          created_at?: string;
+          entity_id: string;
+          entity_type: string;
+          event_id?: string | null;
+          group_id?: string | null;
+          id?: string;
+          metadata?: Json;
+          new_data?: Json | null;
+          old_data?: Json | null;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          created_at?: string;
+          entity_id?: string;
+          entity_type?: string;
+          event_id?: string | null;
+          group_id?: string | null;
+          id?: string;
+          metadata?: Json;
+          new_data?: Json | null;
+          old_data?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_logs_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_logs_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_members: {
         Row: {
           created_at: string;
@@ -194,6 +258,61 @@ export type Database = {
           },
         ];
       };
+      join_requests: {
+        Row: {
+          group_id: string;
+          id: string;
+          rejection_reason: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          submitted_at: string;
+          user_id: string;
+        };
+        Insert: {
+          group_id: string;
+          id?: string;
+          rejection_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          submitted_at?: string;
+          user_id: string;
+        };
+        Update: {
+          group_id?: string;
+          id?: string;
+          rejection_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          submitted_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "join_requests_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "join_requests_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "join_requests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           created_at: string;
@@ -223,6 +342,217 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      qr_credentials: {
+        Row: {
+          group_membership_id: string;
+          id: string;
+          issued_at: string;
+          revoked_at: string | null;
+          status: string;
+          token_hash: string;
+          version: number;
+        };
+        Insert: {
+          group_membership_id: string;
+          id?: string;
+          issued_at?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash: string;
+          version?: number;
+        };
+        Update: {
+          group_membership_id?: string;
+          id?: string;
+          issued_at?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "qr_credentials_group_membership_id_fkey";
+            columns: ["group_membership_id"];
+            isOneToOne: false;
+            referencedRelation: "group_memberships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      registration_answers: {
+        Row: {
+          answer_json: Json;
+          corrected_at: string | null;
+          corrected_by: string | null;
+          created_at: string;
+          id: string;
+          join_request_id: string;
+          question_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          answer_json: Json;
+          corrected_at?: string | null;
+          corrected_by?: string | null;
+          created_at?: string;
+          id?: string;
+          join_request_id: string;
+          question_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          answer_json?: Json;
+          corrected_at?: string | null;
+          corrected_by?: string | null;
+          created_at?: string;
+          id?: string;
+          join_request_id?: string;
+          question_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "registration_answers_corrected_by_fkey";
+            columns: ["corrected_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_answers_join_request_id_fkey";
+            columns: ["join_request_id"];
+            isOneToOne: false;
+            referencedRelation: "join_requests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_answers_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "registration_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      registration_forms: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          group_id: string;
+          id: string;
+          published_at: string | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          group_id: string;
+          id?: string;
+          published_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          group_id?: string;
+          id?: string;
+          published_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "registration_forms_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_forms_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: true;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      registration_options: {
+        Row: {
+          created_at: string;
+          id: string;
+          label: string;
+          position: number;
+          question_id: string;
+          value: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          label: string;
+          position: number;
+          question_id: string;
+          value: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          label?: string;
+          position?: number;
+          question_id?: string;
+          value?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "registration_options_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "registration_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      registration_questions: {
+        Row: {
+          created_at: string;
+          form_id: string;
+          id: string;
+          is_required: boolean;
+          label: string;
+          position: number;
+          question_type: string;
+        };
+        Insert: {
+          created_at?: string;
+          form_id: string;
+          id?: string;
+          is_required?: boolean;
+          label: string;
+          position: number;
+          question_type: string;
+        };
+        Update: {
+          created_at?: string;
+          form_id?: string;
+          id?: string;
+          is_required?: boolean;
+          label?: string;
+          position?: number;
+          question_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "registration_questions_form_id_fkey";
+            columns: ["form_id"];
+            isOneToOne: false;
+            referencedRelation: "registration_forms";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {
