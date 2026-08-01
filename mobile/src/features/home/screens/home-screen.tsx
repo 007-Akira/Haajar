@@ -77,7 +77,7 @@ export function HomeScreen(): JSX.Element {
           <PrimaryButton
             fullWidth
             label="Create Trip"
-            onPress={() => setActivityMessage("Create Trip selected.")}
+            onPress={() => router.push("/events/create")}
             testID="create-trip-button"
           />
         </View>
