@@ -31,5 +31,23 @@ export const queryKeys = {
       ["memberships", "current", "event", eventId, userId] as const,
     currentGroup: (groupId: string, userId: string) =>
       ["memberships", "current", "group", groupId, userId] as const,
+    affectedByApproval: (eventId: string, groupId: string, userId: string) =>
+      ["memberships", "approval", eventId, groupId, userId] as const,
+  },
+  registration: {
+    all: ["registration"] as const,
+    form: (groupId: string, userId: string) => ["registration", "form", groupId, userId] as const,
+  },
+  joinRequests: {
+    all: ["join-requests"] as const,
+    status: (groupId: string, userId: string) =>
+      ["join-requests", "status", groupId, userId] as const,
+    pending: (groupId: string, userId: string) =>
+      ["join-requests", "pending", groupId, userId] as const,
+  },
+  qr: {
+    all: ["membership-qr"] as const,
+    membership: (membershipId: string, userId: string) =>
+      ["membership-qr", membershipId, userId] as const,
   },
 } as const;

@@ -3,6 +3,7 @@ import type { JSX, ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { getSupabaseClient, type Profile } from "@/lib/supabase";
+import { queryClient, queryKeys } from "@/lib/query";
 import {
   getProfile,
   saveProfile as persistProfile,
@@ -24,6 +25,11 @@ interface SessionContextValue {
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
+
+function clearSessionSensitiveCaches(): void {
+  queryClient.removeQueries({ queryKey: queryKeys.qr.all });
+  queryClient.getMutationCache().clear();
+}
 
 export interface SessionProviderProps {
   children: ReactNode;
@@ -88,6 +94,7 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
       if (nextSession) {
         void loadProfile(nextSession.user.id);
       } else {
+        clearSessionSensitiveCaches();
         setProfile(null);
       }
     });
@@ -129,6 +136,7 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
     }
     setSession(null);
     setProfile(null);
+    clearSessionSensitiveCaches();
   }, []);
 
   const value = useMemo<SessionContextValue>(

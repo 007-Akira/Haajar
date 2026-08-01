@@ -11,8 +11,8 @@ interface SupabaseErrorLike {
 }
 
 const permissionCodes = new Set(["42501", "PGRST301"]);
-const notFoundCodes = new Set(["PGRST116"]);
-const conflictCodes = new Set(["23505"]);
+const notFoundCodes = new Set(["PGRST116", "P0002"]);
+const conflictCodes = new Set(["23505", "55000"]);
 const validationCodes = new Set(["22023", "23502", "23503", "23514", "22P02"]);
 
 function asSupabaseError(error: unknown): SupabaseErrorLike {
