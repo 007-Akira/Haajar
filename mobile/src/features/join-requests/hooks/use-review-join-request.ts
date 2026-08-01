@@ -30,6 +30,33 @@ export function useReviewJoinRequest() {
         queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.memberships.all }),
         queryClient.invalidateQueries({
+          queryKey: queryKeys.events.members(variables.eventId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.events.detail(variables.eventId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.events.groups(variables.eventId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.groups.members(variables.groupId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.groups.detail(variables.groupId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.memberships.currentEvent(
+            variables.eventId,
+            variables.applicantUserId
+          ),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.memberships.currentGroup(
+            variables.groupId,
+            variables.applicantUserId
+          ),
+        }),
+        queryClient.invalidateQueries({
           queryKey: queryKeys.memberships.affectedByApproval(
             variables.eventId,
             variables.groupId,

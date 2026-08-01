@@ -653,6 +653,10 @@ export type Database = {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;
       };
+      list_group_join_requests: {
+        Args: { request_status?: string; target_group_id: string };
+        Returns: Json;
+      };
       issue_membership_qr: {
         Args: { target_membership_id: string };
         Returns: {

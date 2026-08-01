@@ -11,6 +11,21 @@ export interface JoinRequestAnswer {
   correctedAt: string | null;
 }
 
+export interface JoinRequestDisplayAnswer {
+  id: string;
+  questionId: string;
+  label: string;
+  questionType: string;
+  position: number;
+  answer: Json;
+}
+
+export interface JoinRequestApplicant {
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+}
+
 export interface JoinRequest {
   id: string;
   groupId: string;
@@ -21,6 +36,8 @@ export interface JoinRequest {
   reviewedAt: string | null;
   rejectionReason: string | null;
   answers: JoinRequestAnswer[];
+  applicant?: JoinRequestApplicant;
+  displayAnswers?: JoinRequestDisplayAnswer[];
 }
 
 export interface JoinRequestReviewResult {
@@ -29,6 +46,18 @@ export interface JoinRequestReviewResult {
   qrCredentialId: string | null;
   qrToken: string | null;
   qrVersion: number | null;
+}
+
+export function canReviewJoinRequests(role?: string, status?: string): boolean {
+  return status === "active" && (role === "organiser" || role === "super_organiser");
+}
+
+export function formatRegistrationAnswer(answer: Json): string {
+  if (Array.isArray(answer)) return answer.map(String).join(", ");
+  if (typeof answer === "boolean") return answer ? "Yes" : "No";
+  if (answer === null || answer === "") return "Not answered";
+  if (typeof answer === "object") return Object.values(answer).map(String).join(", ");
+  return String(answer);
 }
 
 export type JoinRequestRow = Tables<"join_requests">;

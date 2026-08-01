@@ -46,6 +46,8 @@ export const queryKeys = {
       ["join-requests", "status", groupId, userId] as const,
     pending: (groupId: string, userId: string) =>
       ["join-requests", "pending", groupId, userId] as const,
+    list: (groupId: string, status: string, userId: string) =>
+      ["join-requests", "list", groupId, status, userId] as const,
   },
   qr: {
     all: ["membership-qr"] as const,

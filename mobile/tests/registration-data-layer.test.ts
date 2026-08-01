@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mapJoinRequestReview } from "../src/features/join-requests/types/join-request-models";
+import {
+  canReviewJoinRequests,
+  formatRegistrationAnswer,
+  mapJoinRequestReview,
+} from "../src/features/join-requests/types/join-request-models";
 import { safeAuthReturnTo } from "../src/features/auth/services/auth-return";
 import {
   mapQrCredentialResult,
@@ -106,9 +110,27 @@ test("scopes sensitive query keys by authenticated user", () => {
     queryKeys.joinRequests.pending("group-1", "manager-b")
   );
   assert.notDeepEqual(
+    queryKeys.joinRequests.list("group-1", "accepted", "manager-a"),
+    queryKeys.joinRequests.list("group-1", "accepted", "manager-b")
+  );
+  assert.notDeepEqual(
     queryKeys.qr.membership("membership-1", "user-a"),
     queryKeys.qr.membership("membership-1", "user-b")
   );
+});
+
+test("join-request dashboard permissions require an active manager role", () => {
+  assert.equal(canReviewJoinRequests("organiser", "active"), true);
+  assert.equal(canReviewJoinRequests("super_organiser", "active"), true);
+  assert.equal(canReviewJoinRequests("co_organiser", "active"), false);
+  assert.equal(canReviewJoinRequests("organiser", "inactive"), false);
+});
+
+test("registration answers format long and multiple-choice values safely", () => {
+  assert.equal(formatRegistrationAnswer(["Bus A", "Room 203"]), "Bus A, Room 203");
+  assert.equal(formatRegistrationAnswer(true), "Yes");
+  assert.equal(formatRegistrationAnswer("A detailed answer"), "A detailed answer");
+  assert.equal(formatRegistrationAnswer(null), "Not answered");
 });
 
 test("normalises join links and resumes only safe join routes after authentication", () => {

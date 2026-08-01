@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(29);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -217,6 +217,28 @@ select set_config(
      and user_id = '10000000-0000-4000-8000-000000000002'),
   true
 );
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+set local role authenticated;
+select throws_ok(
+  $$select public.list_group_join_requests(
+    current_setting('haajar.lifecycle_group_id')::uuid, 'pending'
+  )$$,
+  '42501',
+  'an unrelated user cannot list group join requests'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  jsonb_array_length(public.list_group_join_requests(
+    current_setting('haajar.lifecycle_group_id')::uuid, 'pending'
+  )),
+  1,
+  'a manager can list pending applicants with their submitted answers'
+);
+reset role;
 
 insert into public.join_requests (id, group_id, user_id)
 values (
