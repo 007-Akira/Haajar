@@ -40,6 +40,7 @@ export default function RootLayout(): JSX.Element | null {
               <Stack.Screen name="auth/callback" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="events" />
+              <Stack.Screen name="join" />
             </Stack>
             <StatusBar style="auto" />
           </SessionProvider>

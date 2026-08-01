@@ -258,6 +258,51 @@ export type Database = {
           },
         ];
       };
+      group_invitations: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          group_id: string;
+          id: string;
+          revoked_at: string | null;
+          status: string;
+          token_hash: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          group_id: string;
+          id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          group_id?: string;
+          id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_invitations_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_invitations_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       join_requests: {
         Row: {
           group_id: string;
@@ -588,6 +633,10 @@ export type Database = {
         Args: { target_group_id: string };
         Returns: string;
       };
+      create_group_invitation: {
+        Args: { target_group_id: string };
+        Returns: { invitation_id: string; invitation_token: string }[];
+      };
       is_active_event_member: {
         Args: { target_event_id: string; target_user_id?: string };
         Returns: boolean;
@@ -634,6 +683,10 @@ export type Database = {
           qr_token: string | null;
           qr_version: number | null;
         }[];
+      };
+      resolve_group_invitation: {
+        Args: { invitation_token: string };
+        Returns: Json;
       };
       review_join_request: {
         Args: {

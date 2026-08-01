@@ -1,7 +1,9 @@
 import { throwSupabaseError } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
+import type { Json } from "@/types/database.types";
 
 import type {
+  GroupInvitationPreview,
   RegistrationForm,
   RegistrationFormRow,
   RegistrationOptionRow,
@@ -53,4 +55,57 @@ export async function getRegistrationForm(groupId: string): Promise<Registration
 
   if (error) throwSupabaseError(error, "getRegistrationForm");
   return data ? mapRegistrationForm(data as RegistrationFormQueryRow) : null;
+}
+
+function invitationObject(data: Json): Record<string, Json | undefined> {
+  if (!data || Array.isArray(data) || typeof data !== "object") return {};
+  return data;
+}
+
+export async function resolveGroupInvitation(token: string): Promise<GroupInvitationPreview> {
+  const { data, error } = await getSupabaseClient().rpc("resolve_group_invitation", {
+    invitation_token: token,
+  });
+  if (error) throwSupabaseError(error, "resolveGroupInvitation");
+  const value = invitationObject(data);
+  const rawQuestions = Array.isArray(value.questions) ? value.questions : [];
+  return {
+    groupId: String(value.group_id ?? ""),
+    groupName: String(value.group_name ?? "Group"),
+    groupDescription: typeof value.group_description === "string" ? value.group_description : null,
+    groupStatus: String(value.group_status ?? "active"),
+    eventName: String(value.event_name ?? "Trip"),
+    organiserName: typeof value.organiser_name === "string" ? value.organiser_name : null,
+    formId: typeof value.form_id === "string" ? value.form_id : null,
+    requiresRegistration: value.requires_registration === true,
+    questions: rawQuestions.map((raw, index) => {
+      const question = invitationObject(raw);
+      const options = Array.isArray(question.options) ? question.options : [];
+      return {
+        id: String(question.id ?? ""),
+        label: String(question.label ?? "Question"),
+        questionType: String(question.question_type ?? "short_text") as RegistrationQuestionType,
+        isRequired: question.is_required === true,
+        position: Number(question.position ?? index),
+        options: options.map((rawOption, optionIndex) => {
+          const option = invitationObject(rawOption);
+          return {
+            id: String(option.id ?? ""),
+            label: String(option.label ?? "Option"),
+            value: String(option.value ?? ""),
+            position: Number(option.position ?? optionIndex),
+          };
+        }),
+      };
+    }),
+    membershipStatus: typeof value.membership_status === "string" ? value.membership_status : null,
+    requestId: typeof value.request_id === "string" ? value.request_id : null,
+    requestStatus:
+      typeof value.request_status === "string"
+        ? (value.request_status as GroupInvitationPreview["requestStatus"])
+        : null,
+    requestSubmittedAt:
+      typeof value.request_submitted_at === "string" ? value.request_submitted_at : null,
+    rejectionReason: typeof value.rejection_reason === "string" ? value.rejection_reason : null,
+  };
 }

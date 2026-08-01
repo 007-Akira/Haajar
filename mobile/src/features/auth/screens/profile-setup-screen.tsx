@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { PageHeader, PhoneField, PrimaryButton, ScreenContainer, TextField } from "@/components";
 import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
+import { safeAuthReturnTo } from "../services/auth-return";
 
 function isValidPhone(value: string): boolean {
   const digits = value.replace(/\D/g, "");
@@ -14,6 +15,8 @@ function isValidPhone(value: string): boolean {
 
 export function ProfileSetupScreen(): JSX.Element {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const safeReturnTo = safeAuthReturnTo(returnTo);
   const { loading, profile, profileLoading, saveProfile, session, user } = useSession();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -23,9 +26,9 @@ export function ProfileSetupScreen(): JSX.Element {
 
   useEffect(() => {
     if (!profileLoading && profile?.profile_completed) {
-      router.replace("/(tabs)");
+      router.replace(safeReturnTo as never);
     }
-  }, [profile, profileLoading, router]);
+  }, [profile, profileLoading, router, safeReturnTo]);
 
   const nameError = submitted && !fullName.trim() ? "Enter your full name." : undefined;
   const phoneError = submitted && !isValidPhone(phone) ? "Enter a valid phone number." : undefined;
@@ -41,7 +44,7 @@ export function ProfileSetupScreen(): JSX.Element {
     setSaving(true);
     try {
       await saveProfile({ fullName, phone });
-      router.replace("/(tabs)");
+      router.replace(safeReturnTo as never);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save your profile.");
     } finally {

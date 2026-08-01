@@ -13,6 +13,20 @@ export const registrationQuestionTypes = [
 export type RegistrationQuestionType = (typeof registrationQuestionTypes)[number];
 export type RegistrationFormStatus = "draft" | "published";
 
+export function normalizeJoinTokenInput(value: string): string {
+  const match = value.trim().match(/(?:haajar:\/\/)?join\/([a-zA-Z0-9-]+)/i);
+  return (match?.[1] ?? value).replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+}
+
+export function fingerprintJoinToken(token: string): string {
+  let hash = 2166136261;
+  for (const character of normalizeJoinTokenInput(token)) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
 export function canManageRegistrationForm(
   role: string | null | undefined,
   membershipStatus: string | null | undefined
@@ -45,6 +59,23 @@ export interface RegistrationForm {
   createdAt: string;
   updatedAt: string;
   questions: RegistrationQuestion[];
+}
+
+export interface GroupInvitationPreview {
+  groupId: string;
+  groupName: string;
+  groupDescription: string | null;
+  groupStatus: string;
+  eventName: string;
+  organiserName: string | null;
+  formId: string | null;
+  requiresRegistration: boolean;
+  questions: RegistrationQuestion[];
+  membershipStatus: string | null;
+  requestId: string | null;
+  requestStatus: "pending" | "accepted" | "rejected" | "cancelled" | null;
+  requestSubmittedAt: string | null;
+  rejectionReason: string | null;
 }
 
 export interface RegistrationDraftOptionInput {

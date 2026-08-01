@@ -37,6 +37,8 @@ export const queryKeys = {
   registration: {
     all: ["registration"] as const,
     form: (groupId: string, userId: string) => ["registration", "form", groupId, userId] as const,
+    invitation: (tokenFingerprint: string, userId: string) =>
+      ["registration", "invitation", tokenFingerprint, userId] as const,
   },
   joinRequests: {
     all: ["join-requests"] as const,

@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(27);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -117,6 +117,24 @@ select is(
   'published',
   'publishing changes the form status'
 );
+select set_config(
+  'haajar.invitation_token',
+  (select invitation_token from public.create_group_invitation(
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  true
+);
+select is(
+  length(current_setting('haajar.invitation_token')),
+  24,
+  'a manager can create a 96-bit join token'
+);
+select isnt(
+  (select token_hash from public.group_invitations
+   where group_id = current_setting('haajar.lifecycle_group_id')::uuid and status = 'active'),
+  current_setting('haajar.invitation_token'),
+  'the invitation token is stored only as a hash'
+);
 select throws_ok(
   $$select public.save_registration_form_draft(
     current_setting('haajar.lifecycle_form_id')::uuid,
@@ -124,6 +142,28 @@ select throws_ok(
   )$$,
   '55000',
   'published form structure cannot be edited'
+);
+select throws_ok(
+  $$select public.submit_join_request(
+    current_setting('haajar.lifecycle_group_id')::uuid,
+    '[]'::jsonb
+  )$$,
+  '23505',
+  'an active member cannot submit another join request'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '', true);
+set local role anon;
+select is(
+  public.resolve_group_invitation(current_setting('haajar.invitation_token')) ->> 'group_name',
+  'Registration Lifecycle Group',
+  'an anonymous holder can safely preview the invited group'
+);
+select throws_ok(
+  $$select public.resolve_group_invitation('000000000000000000000000')$$,
+  'P0002',
+  'an invalid invitation cannot expose group data'
 );
 reset role;
 

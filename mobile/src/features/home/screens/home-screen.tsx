@@ -68,8 +68,8 @@ export function HomeScreen(): JSX.Element {
         <View style={styles.quickAction}>
           <SecondaryButton
             fullWidth
-            label="Join Trip"
-            onPress={() => setActivityMessage("Join Trip selected.")}
+            label="Join Group"
+            onPress={() => router.push("/join" as never)}
             testID="join-trip-button"
           />
         </View>

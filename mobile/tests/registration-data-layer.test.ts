@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { mapJoinRequestReview } from "../src/features/join-requests/types/join-request-models";
+import { safeAuthReturnTo } from "../src/features/auth/services/auth-return";
 import {
   mapQrCredentialResult,
   redactQrToken,
@@ -10,6 +11,8 @@ import {
 import {
   type RegistrationQuestion,
   canManageRegistrationForm,
+  fingerprintJoinToken,
+  normalizeJoinTokenInput,
   validateRegistrationAnswers,
   validateRegistrationDraftQuestions,
 } from "../src/features/registration/types/registration-models";
@@ -105,6 +108,17 @@ test("scopes sensitive query keys by authenticated user", () => {
   assert.notDeepEqual(
     queryKeys.qr.membership("membership-1", "user-a"),
     queryKeys.qr.membership("membership-1", "user-b")
+  );
+});
+
+test("normalises join links and resumes only safe join routes after authentication", () => {
+  const token = "a1b2c3d4e5f60718293a4b5c";
+  assert.equal(normalizeJoinTokenInput(`haajar://join/${token}`), token);
+  assert.equal(safeAuthReturnTo(`/join/${token}`), `/join/${token}`);
+  assert.equal(safeAuthReturnTo("https://untrusted.example"), "/(tabs)");
+  assert.equal(
+    queryKeys.registration.invitation(fingerprintJoinToken(token), "anonymous").includes(token),
+    false
   );
 });
 
