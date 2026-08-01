@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -258,7 +258,7 @@ export function TripDetailsScreen(): JSX.Element {
 
       {event.status === "active" && canManageEvent(membershipQuery.data.role) ? (
         <OrganiserActions
-          onAddGroup={() => showMockMessage("Add Group selected.")}
+          onAddGroup={() => router.push(`/events/${event.id}/create-group` as Href)}
           onManageMembers={() => showMockMessage("Manage Members selected.")}
           onStartRollCall={() => showMockMessage("Start Roll Call selected.")}
           testID="organiser-actions"
