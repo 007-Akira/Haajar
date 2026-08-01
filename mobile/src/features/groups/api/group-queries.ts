@@ -4,6 +4,7 @@ import type { Tables } from "@/types/database.types";
 
 import type {
   EventGroupSummary,
+  GroupDetail,
   GroupMember,
   GroupSummary,
   UserGroupSummary,
@@ -19,8 +20,7 @@ export interface ListUserGroupsParameters {
   userId: string;
 }
 
-export interface GetGroupDetailParameters {
-  eventId: string;
+export interface GetGroupParameters {
   groupId: string;
 }
 
@@ -124,19 +124,25 @@ export async function listUserGroups({
   }));
 }
 
-export async function getGroupDetail({
-  eventId,
-  groupId,
-}: GetGroupDetailParameters): Promise<GroupSummary> {
-  const { data, error } = await getSupabaseClient()
-    .from("groups")
-    .select("*")
-    .eq("id", groupId)
-    .eq("event_id", eventId)
-    .single();
+export async function getGroup({ groupId }: GetGroupParameters): Promise<GroupDetail | null> {
+  const supabase = getSupabaseClient();
+  const groupResult = await supabase.from("groups").select("*").eq("id", groupId).maybeSingle();
 
-  if (error) throwSupabaseError(error, "getGroupDetail");
-  return toSummary(data);
+  if (groupResult.error) throwSupabaseError(groupResult.error, "getGroup.group");
+  if (!groupResult.data) return null;
+
+  const eventResult = await supabase
+    .from("events")
+    .select("name, status")
+    .eq("id", groupResult.data.event_id)
+    .maybeSingle();
+
+  if (eventResult.error) throwSupabaseError(eventResult.error, "getGroup.event");
+  return {
+    ...toSummary(groupResult.data),
+    eventName: eventResult.data?.name ?? null,
+    eventStatus: eventResult.data?.status ?? null,
+  };
 }
 
 export async function listGroupMembers({

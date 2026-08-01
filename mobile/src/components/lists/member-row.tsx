@@ -10,7 +10,7 @@ import { RoleBadge, type UserRole } from "../status/role-badge";
 export interface MemberRowProps {
   name: string;
   phone: string;
-  internalGroupCount: number;
+  internalGroupCount?: number;
   role?: UserRole;
   onCall: () => void;
   accessibilityLabel?: string;
@@ -30,7 +30,7 @@ export function MemberRow({
     <View
       accessibilityLabel={
         accessibilityLabel ??
-        `${name}, ${phone}, ${internalGroupCount} internal groups${role ? `, ${role}` : ""}`
+        `${name}, ${phone}${internalGroupCount !== undefined ? `, ${internalGroupCount} internal groups` : ""}${role ? `, ${role}` : ""}`
       }
       style={styles.container}
       testID={testID}
@@ -38,9 +38,11 @@ export function MemberRow({
       <View style={styles.copy}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.phone}>{phone}</Text>
-        <Text style={styles.groupCount}>
-          {`${internalGroupCount} INTERNAL ${internalGroupCount === 1 ? "GROUP" : "GROUPS"}`}
-        </Text>
+        {internalGroupCount !== undefined ? (
+          <Text style={styles.groupCount}>
+            {`${internalGroupCount} INTERNAL ${internalGroupCount === 1 ? "GROUP" : "GROUPS"}`}
+          </Text>
+        ) : null}
         {role ? <RoleBadge role={role} /> : null}
       </View>
       <IconButton

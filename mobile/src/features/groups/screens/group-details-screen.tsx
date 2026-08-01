@@ -6,55 +6,140 @@ import { StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
+  LoadingSkeleton,
   MemberRow,
   PageHeader,
-  RecentRollCallRow,
   RoleBadge,
   ScreenContainer,
   SectionHeader,
   StatusBadge,
 } from "@/components";
+import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
+import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { GroupPrimaryActions } from "../components/group-primary-actions";
 import type { GroupActionId } from "../config/group-action-config";
-import { getMockGroupDetails } from "../data/mock-group-details";
+import { useGroup } from "../hooks/use-group";
+import { useGroupMembers } from "../hooks/use-group-members";
+import { useGroupMembership } from "../hooks/use-group-membership";
 
 export function GroupDetailsScreen(): JSX.Element {
   const router = useRouter();
-  const { eventId, groupId } = useLocalSearchParams<{
-    eventId: string;
-    groupId: string;
-  }>();
+  const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const [activityMessage, setActivityMessage] = useState("");
-  const group = getMockGroupDetails(eventId, groupId);
+  const groupQuery = useGroup(groupId);
+  const membershipQuery = useGroupMembership(groupId);
+  const membersQuery = useGroupMembers(groupId);
+  const backAction = {
+    accessibilityLabel: "Go back to trip details",
+    icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
+    onPress: () => router.back(),
+    testID: "group-details-back-button",
+  };
+  const isInitialLoading =
+    groupQuery.isLoading ||
+    membershipQuery.isLoading ||
+    membershipQuery.sessionLoading ||
+    (membershipQuery.data?.status === "active" && membersQuery.isLoading);
 
-  if (!group) {
+  if (isInitialLoading) {
     return (
-      <ScreenContainer showGrid testID="group-details-error">
-        <PageHeader
-          leadingAction={{
-            accessibilityLabel: "Go back",
-            icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
-            onPress: () => router.back(),
-          }}
-          title="Group"
-        />
+      <ScreenContainer
+        contentContainerStyle={styles.content}
+        scroll
+        showGrid
+        testID="group-details-loading"
+      >
+        <PageHeader leadingAction={backAction} title="Group" />
+        <LoadingSkeleton lines={layout.skeletonDefaultLines} />
+        <LoadingSkeleton lines={layout.skeletonDefaultLines} />
+      </ScreenContainer>
+    );
+  }
+
+  const failedQuery = [groupQuery, membershipQuery, membersQuery].find((query) => query.isError);
+  if (failedQuery) {
+    return (
+      <ScreenContainer contentContainerStyle={styles.content} showGrid testID="group-details-error">
+        <PageHeader leadingAction={backAction} title="Group" />
         <EmptyState
-          actionLabel="Go Back"
-          description="This mock group could not be found."
-          onActionPress={() => router.back()}
-          title="Group unavailable"
+          actionLabel="Retry"
+          description={
+            isAppError(failedQuery.error)
+              ? failedQuery.error.message
+              : userSafeErrorMessages.UNKNOWN_ERROR
+          }
+          onActionPress={() => {
+            void groupQuery.refetch();
+            void membershipQuery.refetch();
+            void membersQuery.refetch();
+          }}
+          testID="group-details-error-state"
+          title="Could not load group"
         />
       </ScreenContainer>
     );
   }
 
-  function showMockMessage(message: string): void {
-    setActivityMessage(message);
+  if (
+    membershipQuery.sessionMissing ||
+    !membershipQuery.data ||
+    membershipQuery.data.status !== "active"
+  ) {
+    return (
+      <ScreenContainer
+        contentContainerStyle={styles.content}
+        showGrid
+        testID="group-details-unauthorised"
+      >
+        <PageHeader leadingAction={backAction} title="Group" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="You need an active membership to view this group."
+          onActionPress={() => router.back()}
+          testID="group-details-unauthorised-state"
+          title="Not a group member"
+        />
+      </ScreenContainer>
+    );
   }
 
+  if (!groupQuery.data) {
+    return (
+      <ScreenContainer
+        contentContainerStyle={styles.content}
+        showGrid
+        testID="group-details-missing"
+      >
+        <PageHeader leadingAction={backAction} title="Group" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="This group no longer exists."
+          onActionPress={() => router.back()}
+          testID="group-details-missing-state"
+          title="Group not found"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  const group = groupQuery.data;
+  const members = membersQuery.data ?? [];
+  const userRole = toGroupDisplayRole(membershipQuery.data.role);
+  const isArchived = group.status === "archived";
   const groupRouteParams = { eventId: group.eventId, groupId: group.id };
+  const isRefreshing = [groupQuery, membershipQuery, membersQuery].some(
+    (query) => query.isRefetching
+  );
+
+  function refresh(): void {
+    void Promise.all([groupQuery.refetch(), membershipQuery.refetch(), membersQuery.refetch()]);
+  }
+
+  function showPrototypeMessage(message: string): void {
+    setActivityMessage(message);
+  }
 
   function handleGroupAction(actionId: GroupActionId): void {
     if (actionId === "show-my-qr") {
@@ -74,10 +159,7 @@ export function GroupDetailsScreen(): JSX.Element {
     }
 
     if (actionId === "active-roll-call" || actionId === "scan-qr") {
-      const rollCallParams = {
-        ...groupRouteParams,
-        rollCallId: "morning-assembly",
-      };
+      const rollCallParams = { ...groupRouteParams, rollCallId: "morning-assembly" };
       router.push({
         pathname:
           actionId === "scan-qr"
@@ -90,54 +172,65 @@ export function GroupDetailsScreen(): JSX.Element {
 
     router.push({
       pathname: "/events/[eventId]/groups/[groupId]/actions/[action]",
-      params: {
-        ...groupRouteParams,
-        action: actionId,
-      },
+      params: { ...groupRouteParams, action: actionId },
     });
   }
 
   return (
     <ScreenContainer
       contentContainerStyle={styles.content}
+      onRefresh={refresh}
+      refreshing={isRefreshing}
       scroll
       showGrid
       testID="group-details-screen"
     >
       <PageHeader
-        leadingAction={{
-          accessibilityLabel: "Go back to trip details",
-          icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
-          onPress: () => router.back(),
-          testID: "group-details-back-button",
-        }}
-        subtitle={group.eventName}
+        leadingAction={backAction}
+        subtitle={group.eventName ?? "Trip"}
+        testID="group-details-header"
         title={group.name}
       />
+
+      {isArchived ? (
+        <View accessibilityRole="alert" style={styles.archivedNotice} testID="group-archived-state">
+          <Text style={styles.archivedTitle}>[ ARCHIVED GROUP ]</Text>
+          <Text style={styles.archivedDescription}>
+            Group actions are unavailable while this group is archived.
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.summary} testID="group-summary">
         <View style={styles.summaryHeader}>
           <View style={styles.summaryCopy}>
             <Text style={styles.groupName}>{group.name}</Text>
-            <Text style={styles.description}>{group.description}</Text>
+            {group.description ? <Text style={styles.description}>{group.description}</Text> : null}
           </View>
-          <RoleBadge role={group.userRole} />
+          <RoleBadge role={userRole} />
         </View>
-        <Text style={styles.memberCount}>{`${group.memberCount} MEMBERS`}</Text>
-        {group.activeRollCallLabel ? (
-          <View style={styles.activeStatus}>
-            <StatusBadge status="active" />
-            <Text style={styles.activeLabel}>{group.activeRollCallLabel}</Text>
-          </View>
-        ) : null}
+        <View style={styles.summaryMetadata}>
+          <StatusBadge status={isArchived ? "archived" : "active"} />
+          <Text style={styles.memberCount}>{`${members.length} ACTIVE MEMBERS`}</Text>
+          <Text style={styles.membershipStatus}>[ MEMBERSHIP ACTIVE ]</Text>
+        </View>
       </View>
 
-      <GroupPrimaryActions
-        activeRollCall={group.activeRollCall}
-        onActionPress={handleGroupAction}
-        role={group.userRole}
-        testID="group-primary-actions"
-      />
+      {!isArchived ? (
+        <>
+          <View style={styles.prototypeNotice} testID="group-actions-prototype-notice">
+            <Text style={styles.prototypeTitle}>[ PROTOTYPE ACTIONS ]</Text>
+            <Text style={styles.prototypeDescription}>
+              Attendance, QR, join-request, offline, and export actions still use mock data.
+            </Text>
+          </View>
+          <GroupPrimaryActions
+            onActionPress={handleGroupAction}
+            role={userRole}
+            testID="group-primary-actions"
+          />
+        </>
+      ) : null}
 
       {activityMessage ? (
         <Text accessibilityLiveRegion="polite" style={styles.activityMessage}>
@@ -147,64 +240,32 @@ export function GroupDetailsScreen(): JSX.Element {
 
       <View style={styles.section}>
         <SectionHeader
-          description={`${group.memberCount} members belong to this group.`}
+          description={`${members.length} active members belong to this group.`}
           title="Members"
         />
-        <View style={styles.list}>
-          {group.members.map((member) => (
-            <MemberRow
-              internalGroupCount={member.internalGroupCount}
-              key={member.id}
-              name={member.name}
-              onCall={() => showMockMessage(`Call action selected for ${member.name}.`)}
-              phone={member.phone}
-              role={member.eventRole}
-              testID={`group-member-${member.id}`}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <SectionHeader
-          description="Recent attendance sessions for this group."
-          title="Recent roll calls"
-        />
-        {group.recentRollCalls.length > 0 ? (
+        {members.length > 0 ? (
           <View style={styles.list}>
-            {group.recentRollCalls.map((rollCall) => (
-              <RecentRollCallRow
-                attendanceLabel={rollCall.attendanceLabel}
-                date={rollCall.date}
-                key={rollCall.id}
-                name={rollCall.name}
-                status={rollCall.status}
-                testID={`recent-roll-call-${rollCall.id}`}
-              />
-            ))}
+            {members.map((member) => {
+              const memberName = member.profile?.full_name?.trim() || "Unnamed member";
+              return (
+                <MemberRow
+                  key={member.membershipId}
+                  name={memberName}
+                  onCall={() => showPrototypeMessage(`Call action selected for ${memberName}.`)}
+                  phone={member.profile?.phone ?? "Phone unavailable"}
+                  role={toGroupDisplayRole(member.role)}
+                  testID={`group-member-${member.membershipId}`}
+                />
+              );
+            })}
           </View>
         ) : (
           <EmptyState
-            description="Completed and active roll calls will appear here."
-            testID="group-roll-calls-empty"
-            title="No roll calls yet"
+            description="Active members added to this group will appear here."
+            testID="group-members-empty"
+            title="No active members"
           />
         )}
-      </View>
-
-      <View style={styles.section}>
-        <SectionHeader
-          description="Shared details collected for this group."
-          title="Group information"
-        />
-        <View style={styles.informationCard}>
-          {group.information.map((item) => (
-            <View key={item.label} style={styles.informationRow}>
-              <Text style={styles.informationLabel}>{item.label.toUpperCase()}</Text>
-              <Text style={styles.informationValue}>{item.value}</Text>
-            </View>
-          ))}
-        </View>
       </View>
     </ScreenContainer>
   );
@@ -232,6 +293,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.half,
   },
+  summaryMetadata: {
+    alignItems: "flex-start",
+    gap: spacing.xs,
+  },
   groupName: {
     ...typography.headingMedium,
     color: colors.textPrimary,
@@ -244,15 +309,9 @@ const styles = StyleSheet.create({
     ...typography.technicalLabel,
     color: colors.textSecondary,
   },
-  activeStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  activeLabel: {
-    ...typography.caption,
-    flex: 1,
-    color: colors.textSecondary,
+  membershipStatus: {
+    ...typography.technicalLabel,
+    color: colors.success,
   },
   activityMessage: {
     ...typography.caption,
@@ -264,24 +323,33 @@ const styles = StyleSheet.create({
   list: {
     gap: spacing.sm,
   },
-  informationCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+  archivedNotice: {
+    gap: spacing.half,
+    padding: spacing.md,
+    backgroundColor: colors.gridLine,
+  },
+  archivedTitle: {
+    ...typography.technicalLabel,
+    color: colors.textPrimary,
+  },
+  archivedDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  prototypeNotice: {
+    gap: spacing.half,
+    padding: spacing.md,
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
     borderWidth: layout.borderWidth,
     borderRadius: radii.sm,
   },
-  informationRow: {
-    gap: spacing.half,
-    padding: spacing.md,
-    borderBottomColor: colors.gridLine,
-    borderBottomWidth: layout.borderWidth,
-  },
-  informationLabel: {
+  prototypeTitle: {
     ...typography.technicalLabel,
-    color: colors.textSecondary,
-  },
-  informationValue: {
-    ...typography.bodyMedium,
     color: colors.textPrimary,
+  },
+  prototypeDescription: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 });

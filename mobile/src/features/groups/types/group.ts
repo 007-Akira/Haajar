@@ -26,6 +26,11 @@ export interface EventGroupSummary extends GroupSummary {
   activeMemberCount: number;
 }
 
+export interface GroupDetail extends GroupSummary {
+  eventName: EventRow["name"] | null;
+  eventStatus: EventRow["status"] | null;
+}
+
 export interface GroupMember {
   membershipId: GroupMembershipRow["id"];
   userId: GroupMembershipRow["user_id"];
