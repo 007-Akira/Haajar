@@ -15,6 +15,19 @@ export interface EventSummary {
   currentRole: EventMembershipRow["role"];
 }
 
+export type EventCardRole = "member" | "super organiser";
+
+export interface HomeEvent {
+  id: EventRow["id"];
+  name: EventRow["name"];
+  description: EventRow["description"];
+  status: EventRow["status"];
+  currentRole: EventCardRole;
+  activeMemberCount: number;
+  internalGroupCount: number;
+  createdAt: EventRow["created_at"];
+}
+
 export type EventDetail = EventSummary;
 
 export interface EventMember {

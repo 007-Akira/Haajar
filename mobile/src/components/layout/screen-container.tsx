@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -18,6 +19,8 @@ export interface ScreenContainerProps {
   showGrid?: boolean;
   keyboardSafe?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  refreshing?: boolean;
+  onRefresh?: () => void;
   testID?: string;
 }
 
@@ -48,12 +51,24 @@ export function ScreenContainer({
   showGrid = false,
   keyboardSafe = false,
   contentContainerStyle,
+  refreshing = false,
+  onRefresh,
   testID,
 }: ScreenContainerProps): JSX.Element {
   const content = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
       keyboardShouldPersistTaps="handled"
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            colors={[colors.accent]}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+            tintColor={colors.accent}
+          />
+        ) : undefined
+      }
       showsVerticalScrollIndicator={false}
     >
       {children}

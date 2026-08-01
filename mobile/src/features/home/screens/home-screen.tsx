@@ -5,27 +5,44 @@ import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import {
+  EmptyState,
   EventCard,
   IconButton,
+  LoadingSkeleton,
   PrimaryButton,
   ScreenContainer,
   SecondaryButton,
   SectionHeader,
 } from "@/components";
 import { useSession } from "@/features/auth";
+import { useEvents } from "@/features/events/hooks/use-events";
+import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
 
-import { ActiveRollCallNotice } from "../components/active-roll-call-notice";
-import { mockActiveRollCall, mockTrips } from "../data/mock-home";
+function formatCreatedDate(createdAt: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(createdAt));
+}
 
 export function HomeScreen(): JSX.Element {
   const router = useRouter();
   const { profile } = useSession();
+  const eventsQuery = useEvents();
   const [activityMessage, setActivityMessage] = useState("");
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "there";
 
   return (
-    <ScreenContainer contentContainerStyle={styles.content} scroll showGrid testID="home-screen">
+    <ScreenContainer
+      contentContainerStyle={styles.content}
+      onRefresh={eventsQuery.sessionMissing ? undefined : () => void eventsQuery.refetch()}
+      refreshing={eventsQuery.isRefetching && !eventsQuery.isLoading}
+      scroll
+      showGrid
+      testID="home-screen"
+    >
       <View style={styles.header}>
         <View style={styles.greetingGroup}>
           <Text style={styles.eyebrow}>[ HAAJAR HOME ]</Text>
@@ -72,37 +89,59 @@ export function HomeScreen(): JSX.Element {
         </Text>
       ) : null}
 
-      <ActiveRollCallNotice
-        label={mockActiveRollCall.label}
-        onPress={() => setActivityMessage(`${mockActiveRollCall.tripName} roll call selected.`)}
-        testID="active-roll-call-notice"
-        tripName={mockActiveRollCall.tripName}
-      />
-
       <View style={styles.tripsSection}>
         <SectionHeader
           description="Select a trip to see its groups and attendance."
           title="Your trips"
         />
         <View style={styles.tripList}>
-          {mockTrips.map((trip) => (
-            <EventCard
-              active={trip.active}
-              date={trip.dateOrStatus}
-              eventName={trip.name}
-              groupCount={trip.groupCount}
-              key={trip.id}
-              onPress={() =>
-                router.push({
-                  pathname: "/events/[eventId]",
-                  params: { eventId: trip.id },
-                })
-              }
-              participantCount={trip.participantCount}
-              testID={`trip-card-${trip.id}`}
-              userRole={trip.role}
+          {eventsQuery.sessionLoading || eventsQuery.isLoading ? (
+            <LoadingSkeleton lines={5} testID="home-events-loading" />
+          ) : eventsQuery.sessionMissing ? (
+            <EmptyState
+              description="Your session is unavailable. Sign in again to load your trips."
+              testID="home-events-session-missing"
+              title="Sign in required"
             />
-          ))}
+          ) : eventsQuery.isError ? (
+            <EmptyState
+              actionAccessibilityLabel="Retry loading trips"
+              actionLabel="Retry"
+              description={
+                isAppError(eventsQuery.error)
+                  ? eventsQuery.error.message
+                  : userSafeErrorMessages.UNKNOWN_ERROR
+              }
+              onActionPress={() => void eventsQuery.refetch()}
+              testID="home-events-error"
+              title="Trips could not be loaded"
+            />
+          ) : eventsQuery.data?.length === 0 ? (
+            <EmptyState
+              description="Trips you join or create will appear here."
+              testID="home-events-empty"
+              title="No trips yet"
+            />
+          ) : (
+            eventsQuery.data?.map((event) => (
+              <EventCard
+                active={event.status === "active"}
+                date={`Created ${formatCreatedDate(event.createdAt)}`}
+                eventName={event.name}
+                groupCount={event.internalGroupCount}
+                key={event.id}
+                onPress={() =>
+                  router.push({
+                    pathname: "/events/[eventId]",
+                    params: { eventId: event.id },
+                  })
+                }
+                participantCount={event.activeMemberCount}
+                testID={`trip-card-${event.id}`}
+                userRole={event.currentRole}
+              />
+            ))
+          )}
         </View>
       </View>
     </ScreenContainer>

@@ -2,7 +2,7 @@ import { throwSupabaseError } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Tables } from "@/types/database.types";
 
-import type { EventDetail, EventMember, EventSummary } from "../types/event";
+import type { EventDetail, EventMember, EventSummary, HomeEvent } from "../types/event";
 
 export interface ListEventsParameters {
   userId: string;
@@ -55,6 +55,66 @@ export async function listEvents({ userId }: ListEventsParameters): Promise<Even
   if (eventsResult.error) throwSupabaseError(eventsResult.error, "listEvents.events");
 
   return eventsResult.data.map((event) => toSummary(event, rolesByEvent.get(event.id) ?? "member"));
+}
+
+export async function listHomeEvents({ userId }: ListEventsParameters): Promise<HomeEvent[]> {
+  const supabase = getSupabaseClient();
+  const membershipsResult = await supabase
+    .from("event_members")
+    .select("event_id, role")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (membershipsResult.error) {
+    throwSupabaseError(membershipsResult.error, "listHomeEvents.memberships");
+  }
+  if (membershipsResult.data.length === 0) return [];
+
+  const rolesByEvent = new Map(
+    membershipsResult.data.map((membership) => [membership.event_id, membership.role])
+  );
+  const eventIds = [...rolesByEvent.keys()];
+  const [eventsResult, memberCountsResult, groupCountsResult] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, name, description, status, created_at")
+      .in("id", eventIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("event_members")
+      .select("event_id")
+      .in("event_id", eventIds)
+      .eq("status", "active"),
+    supabase.from("groups").select("event_id").in("event_id", eventIds).eq("status", "active"),
+  ]);
+
+  if (eventsResult.error) throwSupabaseError(eventsResult.error, "listHomeEvents.events");
+  if (memberCountsResult.error) {
+    throwSupabaseError(memberCountsResult.error, "listHomeEvents.memberCounts");
+  }
+  if (groupCountsResult.error) {
+    throwSupabaseError(groupCountsResult.error, "listHomeEvents.groupCounts");
+  }
+
+  const memberCounts = new Map<string, number>();
+  for (const membership of memberCountsResult.data) {
+    memberCounts.set(membership.event_id, (memberCounts.get(membership.event_id) ?? 0) + 1);
+  }
+  const groupCounts = new Map<string, number>();
+  for (const group of groupCountsResult.data) {
+    groupCounts.set(group.event_id, (groupCounts.get(group.event_id) ?? 0) + 1);
+  }
+
+  return eventsResult.data.map((event) => ({
+    id: event.id,
+    name: event.name,
+    description: event.description,
+    status: event.status,
+    currentRole: rolesByEvent.get(event.id) === "super_organiser" ? "super organiser" : "member",
+    activeMemberCount: memberCounts.get(event.id) ?? 0,
+    internalGroupCount: groupCounts.get(event.id) ?? 0,
+    createdAt: event.created_at,
+  }));
 }
 
 export async function getEventDetail({
