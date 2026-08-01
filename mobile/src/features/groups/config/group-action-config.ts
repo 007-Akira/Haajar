@@ -11,6 +11,7 @@ export type GroupActionId =
   | "start-roll-call"
   | "manual-attendance"
   | "manage-members"
+  | "registration-form"
   | "join-requests"
   | "assign-roles"
   | "export-attendance";
@@ -38,6 +39,7 @@ const actions: Record<GroupActionId, GroupActionDefinition> = {
   "start-roll-call": { id: "start-roll-call", label: "Start Roll Call" },
   "manual-attendance": { id: "manual-attendance", label: "Manual Attendance" },
   "manage-members": { id: "manage-members", label: "Manage Members" },
+  "registration-form": { id: "registration-form", label: "Registration Form" },
   "join-requests": { id: "join-requests", label: "Join Requests" },
   "assign-roles": { id: "assign-roles", label: "Assign Roles" },
   "export-attendance": { id: "export-attendance", label: "Export Attendance" },
@@ -68,7 +70,14 @@ const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
     defaultPrimary: "start-roll-call",
     activePrimary: "active-roll-call",
     priority: ["scan-qr", "manual-attendance"],
-    more: ["absentees", "manage-members", "join-requests", "offline-roster", "attendance-history"],
+    more: [
+      "absentees",
+      "manage-members",
+      "registration-form",
+      "join-requests",
+      "offline-roster",
+      "attendance-history",
+    ],
     showsRollCallState: true,
   },
   "super organiser": {
@@ -78,6 +87,7 @@ const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
     more: [
       "absentees",
       "manage-members",
+      "registration-form",
       "join-requests",
       "assign-roles",
       "offline-roster",

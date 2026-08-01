@@ -9,7 +9,9 @@ import {
 } from "../src/features/qr/types/qr-models";
 import {
   type RegistrationQuestion,
+  canManageRegistrationForm,
   validateRegistrationAnswers,
+  validateRegistrationDraftQuestions,
 } from "../src/features/registration/types/registration-models";
 import { queryKeys } from "../src/lib/query/query-keys";
 
@@ -63,6 +65,32 @@ test("validates dynamic registration answers without weakening server validation
     new Set(invalid.issues.map((issue) => issue.questionId)),
     new Set(["name", "batch", "unknown"])
   );
+});
+
+test("blocks publication of invalid option questions", () => {
+  const errors = validateRegistrationDraftQuestions(
+    [
+      {
+        clientId: "choice-1",
+        label: "Choose a bus",
+        questionType: "single_choice",
+        isRequired: true,
+        position: 0,
+        options: [{ label: "Bus 1", value: "bus_1", position: 0 }],
+      },
+    ],
+    true
+  );
+
+  assert.equal(errors["choice-1"], "Choice questions need at least two options.");
+});
+
+test("restricts the registration builder to active organisers", () => {
+  assert.equal(canManageRegistrationForm("member", "active"), false);
+  assert.equal(canManageRegistrationForm("co_organiser", "active"), false);
+  assert.equal(canManageRegistrationForm("organiser", "inactive"), false);
+  assert.equal(canManageRegistrationForm("organiser", "active"), true);
+  assert.equal(canManageRegistrationForm("super_organiser", "active"), true);
 });
 
 test("scopes sensitive query keys by authenticated user", () => {

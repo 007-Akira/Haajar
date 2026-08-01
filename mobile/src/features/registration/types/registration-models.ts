@@ -13,6 +13,13 @@ export const registrationQuestionTypes = [
 export type RegistrationQuestionType = (typeof registrationQuestionTypes)[number];
 export type RegistrationFormStatus = "draft" | "published";
 
+export function canManageRegistrationForm(
+  role: string | null | undefined,
+  membershipStatus: string | null | undefined
+): boolean {
+  return membershipStatus === "active" && (role === "organiser" || role === "super_organiser");
+}
+
 export interface RegistrationOption {
   id: string;
   label: string;
@@ -52,6 +59,38 @@ export interface RegistrationDraftQuestionInput {
   isRequired: boolean;
   position: number;
   options: RegistrationDraftOptionInput[];
+}
+
+export interface EditableRegistrationQuestion extends RegistrationDraftQuestionInput {
+  clientId: string;
+}
+
+export type RegistrationDraftErrors = Record<string, string>;
+
+export function validateRegistrationDraftQuestions(
+  questions: EditableRegistrationQuestion[],
+  requireQuestion: boolean
+): RegistrationDraftErrors {
+  const errors: RegistrationDraftErrors = {};
+  if (requireQuestion && questions.length === 0) errors.form = "Add at least one question.";
+
+  for (const question of questions) {
+    if (!question.label.trim()) {
+      errors[question.clientId] = "Question label is required.";
+      continue;
+    }
+    if (["single_choice", "multiple_choice", "dropdown"].includes(question.questionType)) {
+      const values = question.options.map((option) => option.value.trim());
+      if (question.options.length < 2) {
+        errors[question.clientId] = "Choice questions need at least two options.";
+      } else if (question.options.some((option) => !option.label.trim() || !option.value.trim())) {
+        errors[question.clientId] = "Every option needs a label.";
+      } else if (new Set(values).size !== values.length) {
+        errors[question.clientId] = "Option values must be unique.";
+      }
+    }
+  }
+  return errors;
 }
 
 export interface RegistrationAnswerInput {

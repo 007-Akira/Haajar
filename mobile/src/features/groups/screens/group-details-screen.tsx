@@ -190,6 +190,14 @@ export function GroupDetailsScreen(): JSX.Element {
       return;
     }
 
+    if (actionId === "registration-form") {
+      router.push({
+        pathname: "/events/[eventId]/groups/[groupId]/registration-form" as never,
+        params: groupRouteParams,
+      });
+      return;
+    }
+
     if (actionId === "active-roll-call" || actionId === "scan-qr") {
       const rollCallParams = { ...groupRouteParams, rollCallId: "morning-assembly" };
       router.push({
@@ -253,7 +261,8 @@ export function GroupDetailsScreen(): JSX.Element {
           <View style={styles.prototypeNotice} testID="group-actions-prototype-notice">
             <Text style={styles.prototypeTitle}>[ PROTOTYPE ACTIONS ]</Text>
             <Text style={styles.prototypeDescription}>
-              Attendance, QR, join-request, offline, and export actions still use mock data.
+              Attendance, QR, join-request, offline, and export actions still use mock data. The
+              registration form uses live Supabase data.
             </Text>
           </View>
           <GroupPrimaryActions
