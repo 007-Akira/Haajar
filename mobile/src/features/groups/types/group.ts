@@ -21,6 +21,38 @@ export interface UserGroupSummary extends GroupSummary {
   currentRole: GroupMembershipRow["role"];
 }
 
+export interface ActiveUserGroup {
+  membershipId: string;
+  groupId: string;
+  groupName: string;
+  groupStatus: string;
+  eventId: string;
+  eventName: string;
+  eventStatus: string;
+  role: GroupMembershipRow["role"];
+  memberCount: number;
+  qrAvailable: boolean;
+}
+
+export interface UserGroupRequest {
+  requestId: string;
+  groupId: string;
+  groupName: string;
+  groupStatus: string;
+  eventId: string;
+  eventName: string;
+  eventStatus: string;
+  status: "pending" | "accepted" | "rejected";
+  submittedAt: string;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+}
+
+export interface UserGroupOverview {
+  activeGroups: ActiveUserGroup[];
+  requests: UserGroupRequest[];
+}
+
 export interface EventGroupSummary extends GroupSummary {
   currentRole: GroupMembershipRow["role"];
   activeMemberCount: number;

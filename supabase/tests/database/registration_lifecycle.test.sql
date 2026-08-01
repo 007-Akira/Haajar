@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(33);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -289,6 +289,22 @@ select is(
   'active',
   'acceptance creates or activates group membership'
 );
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select is(
+  jsonb_array_length(public.list_my_group_overview() -> 'active_groups'),
+  1,
+  'the member overview returns the caller active group under its event context'
+);
+reset role;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+set local role authenticated;
+select is(
+  jsonb_array_length(public.list_my_group_overview() -> 'active_groups'),
+  0,
+  'the member overview does not expose unrelated active groups'
+);
+reset role;
 select is(
   (select count(*)::integer from public.qr_credentials as credential
    join public.group_memberships as membership

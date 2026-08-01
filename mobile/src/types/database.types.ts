@@ -668,6 +668,10 @@ export type Database = {
         Args: { request_status?: string; target_group_id: string };
         Returns: Json;
       };
+      list_my_group_overview: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
       issue_membership_qr: {
         Args: { target_membership_id: string };
         Returns: {

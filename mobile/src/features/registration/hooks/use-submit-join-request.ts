@@ -19,6 +19,7 @@ export function useSubmitJoinRequest(groupId: string) {
           queryKey: queryKeys.joinRequests.status(groupId, user.id),
         }),
         queryClient.invalidateQueries({ queryKey: queryKeys.joinRequests.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
       ]);
     },
   });

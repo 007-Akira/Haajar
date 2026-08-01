@@ -41,6 +41,7 @@ export default function RootLayout(): JSX.Element | null {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="events" />
               <Stack.Screen name="join" />
+              <Stack.Screen name="group-requests" />
             </Stack>
             <StatusBar style="auto" />
           </SessionProvider>
