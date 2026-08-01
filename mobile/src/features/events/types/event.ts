@@ -2,7 +2,6 @@ import type { Tables } from "@/types/database.types";
 
 type EventRow = Tables<"events">;
 type EventMembershipRow = Tables<"event_members">;
-type ProfileRow = Tables<"profiles">;
 
 export interface EventSummary {
   id: EventRow["id"];
@@ -39,8 +38,10 @@ export interface EventMember {
   membershipId: EventMembershipRow["id"];
   userId: EventMembershipRow["user_id"];
   role: EventMembershipRow["role"];
-  status: EventMembershipRow["status"];
-  joinedAt: EventMembershipRow["created_at"];
   internalGroupCount: number;
-  profile: Pick<ProfileRow, "id" | "full_name" | "phone"> | null;
+  profile: {
+    id: string;
+    full_name: string | null;
+    phone: string | null;
+  };
 }

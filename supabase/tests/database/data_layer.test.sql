@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(18);
 
 insert into auth.users (
   instance_id,
@@ -42,7 +42,27 @@ values
     '{"full_name":"Account B"}',
     now(),
     now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    'authenticated',
+    'authenticated',
+    'account-c@haajar.local',
+    '',
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Account C"}',
+    now(),
+    now()
   );
+
+update public.profiles
+set phone = case id
+  when 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' then '+910000000001'
+  when 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' then '+910000000002'
+  else '+910000000003'
+end;
 
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
 set local role authenticated;
@@ -58,6 +78,14 @@ select set_config(
   true
 );
 
+insert into public.event_members (event_id, user_id, role, status)
+values (
+  current_setting('haajar.test_event_id')::uuid,
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  'member',
+  'active'
+);
+
 select is(
   (select role from public.event_members where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
   'super_organiser',
@@ -69,17 +97,79 @@ select is(
   'create_event activates the creator membership'
 );
 
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
+set local role authenticated;
+select is(
+  (
+    select full_name
+    from public.list_event_member_directory(current_setting('haajar.test_event_id')::uuid)
+    where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  ),
+  'Account B',
+  'Account A reads Account B name through the event directory without a shared group'
+);
+select is(
+  (
+    select phone
+    from public.list_event_member_directory(current_setting('haajar.test_event_id')::uuid)
+    where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  ),
+  '+910000000002',
+  'Account A reads Account B phone through the event directory'
+);
+reset role;
+
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', true);
 set local role authenticated;
 select is(
+  (
+    select full_name
+    from public.list_event_member_directory(current_setting('haajar.test_event_id')::uuid)
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  ),
+  'Account A',
+  'Account B reads Account A through shared event membership'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.profiles
+    where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  ),
+  0,
+  'The directory does not broaden direct profile-table visibility'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', true);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.list_event_member_directory(
+    current_setting('haajar.test_event_id')::uuid
+  )$$,
+  '42501'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.profiles
+    where id in (
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    )
+  ),
+  0,
+  'An unrelated account cannot read either event-member profile directly'
+);
+select is(
   (select count(*)::integer from public.events where name = 'Account A Trip'),
   0,
-  'Account B cannot query an unrelated event'
+  'Account C cannot query an unrelated event'
 );
 select is(
   (select count(*)::integer from public.event_members),
   0,
-  'Account B cannot read unrelated event members'
+  'Account C cannot read unrelated event members'
 );
 reset role;
 
@@ -117,7 +207,7 @@ select is(
   'create_group places the group under the requested event'
 );
 
-select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', true);
+select set_config('request.jwt.claim.sub', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', true);
 set local role authenticated;
 select throws_ok(
   $$select public.create_group(
@@ -131,7 +221,7 @@ select throws_ok(
   $$insert into public.group_memberships (group_id, user_id, role, status)
     values (
       current_setting('haajar.test_group_id')::uuid,
-      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       'super_organiser',
       'active'
     )$$,
@@ -140,12 +230,12 @@ select throws_ok(
 select is(
   (select count(*)::integer from public.groups where name = 'Account A Group'),
   0,
-  'Account B cannot read the unrelated group'
+  'Account C cannot read the unrelated group'
 );
 select is(
   (select count(*)::integer from public.group_memberships),
   0,
-  'Account B cannot read unrelated group members'
+  'Account C cannot read unrelated group members'
 );
 reset role;
 

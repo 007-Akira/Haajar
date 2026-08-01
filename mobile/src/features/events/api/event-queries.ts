@@ -176,68 +176,20 @@ export async function getEventDetail({
 export async function listEventMembers({
   eventId,
 }: ListEventMembersParameters): Promise<EventMember[]> {
-  const supabase = getSupabaseClient();
-  const membershipsResult = await supabase
-    .from("event_members")
-    .select("*")
-    .eq("event_id", eventId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
+  const { data, error } = await getSupabaseClient().rpc("list_event_member_directory", {
+    target_event_id: eventId,
+  });
 
-  if (membershipsResult.error) {
-    throwSupabaseError(membershipsResult.error, "listEventMembers.memberships");
-  }
-  if (membershipsResult.data.length === 0) return [];
-
-  const profilesResult = await supabase
-    .from("profiles")
-    .select("id, full_name, phone")
-    .in(
-      "id",
-      membershipsResult.data.map((membership) => membership.user_id)
-    );
-
-  if (profilesResult.error) {
-    throwSupabaseError(profilesResult.error, "listEventMembers.profiles");
-  }
-
-  const groupsResult = await supabase.from("groups").select("id").eq("event_id", eventId);
-  if (groupsResult.error) {
-    throwSupabaseError(groupsResult.error, "listEventMembers.groups");
-  }
-
-  const groupMembershipsResult =
-    groupsResult.data.length > 0
-      ? await supabase
-          .from("group_memberships")
-          .select("user_id")
-          .in(
-            "user_id",
-            membershipsResult.data.map((membership) => membership.user_id)
-          )
-          .in(
-            "group_id",
-            groupsResult.data.map((group) => group.id)
-          )
-          .eq("status", "active")
-      : { data: [], error: null };
-
-  if (groupMembershipsResult.error) {
-    throwSupabaseError(groupMembershipsResult.error, "listEventMembers.groupMemberships");
-  }
-
-  const groupCountsByUser = new Map<string, number>();
-  for (const membership of groupMembershipsResult.data) {
-    groupCountsByUser.set(membership.user_id, (groupCountsByUser.get(membership.user_id) ?? 0) + 1);
-  }
-  const profilesById = new Map(profilesResult.data.map((profile) => [profile.id, profile]));
-  return membershipsResult.data.map((membership) => ({
-    membershipId: membership.id,
-    userId: membership.user_id,
-    role: membership.role,
-    status: membership.status,
-    joinedAt: membership.created_at,
-    internalGroupCount: groupCountsByUser.get(membership.user_id) ?? 0,
-    profile: profilesById.get(membership.user_id) ?? null,
+  if (error) throwSupabaseError(error, "listEventMembers");
+  return data.map((member) => ({
+    membershipId: member.membership_id,
+    userId: member.user_id,
+    role: member.event_role,
+    internalGroupCount: Number(member.active_internal_group_count),
+    profile: {
+      id: member.user_id,
+      full_name: member.full_name,
+      phone: member.phone,
+    },
   }));
 }

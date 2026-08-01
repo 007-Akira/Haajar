@@ -257,6 +257,17 @@ export type Database = {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;
       };
+      list_event_member_directory: {
+        Args: { target_event_id: string };
+        Returns: {
+          active_internal_group_count: number;
+          event_role: string;
+          full_name: string | null;
+          membership_id: string;
+          phone: string | null;
+          user_id: string;
+        }[];
+      };
       shares_active_group: {
         Args: { other_user_id: string; target_user_id?: string };
         Returns: boolean;
