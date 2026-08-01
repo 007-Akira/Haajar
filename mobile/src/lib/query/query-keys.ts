@@ -14,6 +14,8 @@ export const queryKeys = {
       ["events", "detail", eventId, userId ?? "anonymous"] as const,
     members: (eventId: string, userId?: string) =>
       ["events", eventId, "members", userId ?? "anonymous"] as const,
+    memberDetail: (eventId: string, memberId: string, userId: string) =>
+      ["events", eventId, "members", memberId, userId] as const,
     groups: (eventId: string, userId?: string) =>
       ["events", eventId, "groups", userId ?? "anonymous"] as const,
   },
@@ -44,6 +46,8 @@ export const queryKeys = {
     all: ["join-requests"] as const,
     status: (groupId: string, userId: string) =>
       ["join-requests", "status", groupId, userId] as const,
+    detail: (requestId: string, userId: string) =>
+      ["join-requests", "detail", requestId, userId] as const,
     pending: (groupId: string, userId: string) =>
       ["join-requests", "pending", groupId, userId] as const,
     list: (groupId: string, status: string, userId: string) =>

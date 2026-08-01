@@ -1,10 +1,11 @@
 import { throwSupabaseError } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
-import type { Tables } from "@/types/database.types";
+import type { Json, Tables } from "@/types/database.types";
 
 import type {
   EventDetail,
   EventMember,
+  EventMemberDetail,
   EventRecord,
   EventSummary,
   HomeEvent,
@@ -25,6 +26,53 @@ export interface GetEventParameters {
 
 export interface ListEventMembersParameters {
   eventId: string;
+}
+
+function jsonObject(value: Json): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+export async function getEventMemberDetail(
+  eventId: string,
+  memberId: string
+): Promise<EventMemberDetail> {
+  const { data, error } = await getSupabaseClient().rpc("get_event_member_details", {
+    target_event_id: eventId,
+    target_user_id: memberId,
+  });
+  if (error) throwSupabaseError(error, "getEventMemberDetail");
+  const value = jsonObject(data);
+  const memberships = Array.isArray(value.memberships) ? value.memberships : [];
+  const answers = Array.isArray(value.answers) ? value.answers : [];
+  return {
+    userId: String(value.user_id ?? memberId),
+    fullName: String(value.full_name ?? "Unnamed member"),
+    phone: typeof value.phone === "string" ? value.phone : null,
+    email: typeof value.email === "string" ? value.email : null,
+    eventRole: String(value.event_role ?? "member") as EventMemberDetail["eventRole"],
+    joinedAt: String(value.joined_at ?? ""),
+    memberships: memberships.map((raw) => {
+      const row = jsonObject(raw);
+      return {
+        membershipId: String(row.membership_id ?? ""),
+        groupId: String(row.group_id ?? ""),
+        groupName: String(row.group_name ?? "Group"),
+        role: String(row.role ?? "member"),
+        status: String(row.status ?? "active"),
+        joinedAt: String(row.joined_at ?? ""),
+      };
+    }),
+    answers: answers.map((raw) => {
+      const row = jsonObject(raw);
+      return {
+        id: String(row.answer_id ?? ""),
+        groupId: String(row.group_id ?? ""),
+        groupName: String(row.group_name ?? "Group"),
+        label: String(row.label ?? "Question"),
+        answer: row.answer ?? null,
+      };
+    }),
+  };
 }
 
 export async function getEvent({ eventId }: GetEventParameters): Promise<EventRecord | null> {

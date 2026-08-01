@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { IconButton } from "../actions/icon-button";
+import { InitialsBadge } from "../status/initials-badge";
 import { RoleBadge, type UserRole } from "../status/role-badge";
 
 export interface MemberRowProps {
@@ -14,6 +15,7 @@ export interface MemberRowProps {
   role?: UserRole;
   statusLabel?: string;
   onCall: () => void;
+  onPress?: () => void;
   accessibilityLabel?: string;
   testID?: string;
 }
@@ -25,6 +27,7 @@ export function MemberRow({
   role,
   statusLabel,
   onCall,
+  onPress,
   accessibilityLabel,
   testID,
 }: MemberRowProps): JSX.Element {
@@ -37,6 +40,7 @@ export function MemberRow({
       style={styles.container}
       testID={testID}
     >
+      <InitialsBadge name={name} />
       <View style={styles.copy}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.phone}>{phone}</Text>
@@ -56,6 +60,16 @@ export function MemberRow({
         onPress={onCall}
         testID={testID ? `${testID}-call` : undefined}
       />
+      {onPress ? (
+        <IconButton
+          accessibilityLabel={`Open ${name} details`}
+          icon={
+            <Ionicons color={colors.textPrimary} name="chevron-forward" size={layout.iconSize} />
+          }
+          onPress={onPress}
+          testID={testID ? `${testID}-open` : undefined}
+        />
+      ) : null}
     </View>
   );
 }

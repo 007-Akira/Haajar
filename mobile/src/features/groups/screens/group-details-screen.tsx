@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -20,6 +20,8 @@ import {
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { openPhoneLink } from "@/lib/native/open-phone-link";
+import { useCreateGroupInvitation } from "@/features/registration/hooks/use-create-group-invitation";
+import { usePendingGroupRequests } from "@/features/join-requests/hooks/use-join-requests";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { GroupPrimaryActions } from "../components/group-primary-actions";
@@ -41,6 +43,11 @@ export function GroupDetailsScreen(): JSX.Element {
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
+  const invitationMutation = useCreateGroupInvitation(groupId);
+  const canManageRequests =
+    membershipQuery.data?.status === "active" &&
+    (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
+  const pendingRequestsQuery = usePendingGroupRequests(groupId, canManageRequests);
   const backAction = {
     accessibilityLabel: "Go back to trip details",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -173,10 +180,34 @@ export function GroupDetailsScreen(): JSX.Element {
     }
   }
 
+  async function shareInvitation(): Promise<void> {
+    if (invitationMutation.isPending) return;
+    setActivityMessage("");
+    try {
+      const invitation = await invitationMutation.mutateAsync();
+      await Share.share({
+        message: `Join this Haajar group: haajar://join/${invitation.invitationToken}`,
+      });
+      invitationMutation.reset();
+    } catch (error) {
+      setActivityMessage(
+        isAppError(error) ? error.message : "Could not create the invitation. Try again."
+      );
+    }
+  }
+
   function handleGroupAction(actionId: GroupActionId): void {
     if (actionId === "show-my-qr") {
       router.push({
         pathname: "/events/[eventId]/groups/[groupId]/qr",
+        params: groupRouteParams,
+      });
+      return;
+    }
+
+    if (actionId === "view-members") {
+      router.push({
+        pathname: "/events/[eventId]/groups/[groupId]/members" as never,
         params: groupRouteParams,
       });
       return;
@@ -203,6 +234,11 @@ export function GroupDetailsScreen(): JSX.Element {
         pathname: "/events/[eventId]/groups/[groupId]/join-requests" as never,
         params: groupRouteParams,
       });
+      return;
+    }
+
+    if (actionId === "share-invitation") {
+      void shareInvitation();
       return;
     }
 
@@ -263,6 +299,38 @@ export function GroupDetailsScreen(): JSX.Element {
           <Text style={styles.membershipStatus}>[ MEMBERSHIP ACTIVE ]</Text>
         </View>
       </View>
+
+      <View style={styles.ticketPreview} testID="membership-ticket-preview">
+        <View style={styles.ticketCopy}>
+          <Text style={styles.prototypeTitle}>YOUR MEMBERSHIP TICKET</Text>
+          <Text style={styles.description}>{group.eventName ?? "Trip"}</Text>
+          <Text
+            style={styles.memberCount}
+          >{`REF ${membershipQuery.data.id.slice(0, 8).toUpperCase()}`}</Text>
+        </View>
+        <SecondaryButton
+          accessibilityLabel="Open your membership QR"
+          label="Show QR"
+          onPress={() => handleGroupAction("show-my-qr")}
+          testID="membership-ticket-open-qr"
+        />
+      </View>
+
+      {canManageRequests && (pendingRequestsQuery.data?.length ?? 0) > 0 ? (
+        <View style={styles.requestNotice} testID="pending-request-count">
+          <Text style={styles.prototypeTitle}>REQUESTS NEED REVIEW</Text>
+          <Text
+            style={styles.description}
+          >{`${pendingRequestsQuery.data!.length} pending application${pendingRequestsQuery.data!.length === 1 ? "" : "s"}`}</Text>
+          <SecondaryButton
+            accessibilityLabel="Review pending join requests"
+            fullWidth
+            label="Review Requests"
+            onPress={() => handleGroupAction("join-requests")}
+            testID="review-pending-requests"
+          />
+        </View>
+      ) : null}
 
       {!isArchived ? (
         <>
@@ -434,5 +502,24 @@ const styles = StyleSheet.create({
   prototypeDescription: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  ticketPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.md,
+  },
+  ticketCopy: { flex: 1, gap: spacing.xs },
+  requestNotice: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
   },
 });

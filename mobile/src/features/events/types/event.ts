@@ -1,4 +1,4 @@
-import type { Tables } from "@/types/database.types";
+import type { Json, Tables } from "@/types/database.types";
 
 type EventRow = Tables<"events">;
 type EventMembershipRow = Tables<"event_members">;
@@ -44,4 +44,22 @@ export interface EventMember {
     full_name: string | null;
     phone: string | null;
   };
+}
+
+export interface EventMemberDetail {
+  userId: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  eventRole: EventMembershipRow["role"];
+  joinedAt: string;
+  memberships: {
+    membershipId: string;
+    groupId: string;
+    groupName: string;
+    role: string;
+    status: string;
+    joinedAt: string;
+  }[];
+  answers: { id: string; groupId: string; groupName: string; label: string; answer: Json }[];
 }

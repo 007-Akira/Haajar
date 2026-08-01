@@ -1,4 +1,4 @@
-import type { UserRole } from "@/components";
+export type GroupDisplayRole = "member" | "co-organiser" | "organiser" | "super organiser";
 
 export type GroupActionId =
   | "show-my-qr"
@@ -13,6 +13,7 @@ export type GroupActionId =
   | "manage-members"
   | "registration-form"
   | "join-requests"
+  | "share-invitation"
   | "assign-roles"
   | "export-attendance";
 
@@ -41,6 +42,7 @@ const actions: Record<GroupActionId, GroupActionDefinition> = {
   "manage-members": { id: "manage-members", label: "Manage Members" },
   "registration-form": { id: "registration-form", label: "Registration Form" },
   "join-requests": { id: "join-requests", label: "Join Requests" },
+  "share-invitation": { id: "share-invitation", label: "Share Invitation" },
   "assign-roles": { id: "assign-roles", label: "Assign Roles" },
   "export-attendance": { id: "export-attendance", label: "Export Attendance" },
 };
@@ -53,7 +55,7 @@ interface RoleActionConfiguration {
   showsRollCallState: boolean;
 }
 
-const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
+const roleActionConfiguration: Record<GroupDisplayRole, RoleActionConfiguration> = {
   member: {
     defaultPrimary: "show-my-qr",
     priority: [],
@@ -75,6 +77,7 @@ const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
       "manage-members",
       "registration-form",
       "join-requests",
+      "share-invitation",
       "offline-roster",
       "attendance-history",
     ],
@@ -89,6 +92,7 @@ const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
       "manage-members",
       "registration-form",
       "join-requests",
+      "share-invitation",
       "assign-roles",
       "offline-roster",
       "attendance-history",
@@ -99,7 +103,7 @@ const roleActionConfiguration: Record<UserRole, RoleActionConfiguration> = {
 };
 
 export function getGroupActionSections(
-  role: UserRole,
+  role: GroupDisplayRole,
   hasActiveRollCall: boolean
 ): GroupActionSections {
   const configuration = roleActionConfiguration[role];

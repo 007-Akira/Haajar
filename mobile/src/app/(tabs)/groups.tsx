@@ -7,6 +7,7 @@ import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
+  PrimaryButton,
   RoleBadge,
   ScreenContainer,
   SecondaryButton,
@@ -94,14 +95,27 @@ export default function GroupsRoute(): JSX.Element {
       showGrid
       testID="groups-tab"
     >
-      <PageHeader subtitle="Across your trips" title="Groups" />
-      <SecondaryButton
-        accessibilityLabel="Join another group"
-        fullWidth
-        label="Join Group"
-        onPress={() => router.push("/join" as never)}
-        testID="groups-join-action"
-      />
+      <PageHeader subtitle="Groups you’re part of" title="My Groups" />
+      <View style={styles.quickActions}>
+        <View style={styles.quickAction}>
+          <PrimaryButton
+            accessibilityLabel="Create a new trip"
+            fullWidth
+            label="Create Trip"
+            onPress={() => router.push("/events/create")}
+            testID="groups-create-trip-action"
+          />
+        </View>
+        <View style={styles.quickAction}>
+          <SecondaryButton
+            accessibilityLabel="Join another group"
+            fullWidth
+            label="Join Group"
+            onPress={() => router.push("/join" as never)}
+            testID="groups-join-action"
+          />
+        </View>
+      </View>
 
       {hasAnyData ? (
         <>
@@ -281,6 +295,8 @@ function RequestCard({ request, onPress }: { request: UserGroupRequest; onPress:
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing["2xl"] },
+  quickActions: { flexDirection: "row", gap: spacing.sm },
+  quickAction: { flex: 1 },
   filters: { gap: spacing.xs },
   filter: {
     minHeight: layout.minimumTouchTarget,

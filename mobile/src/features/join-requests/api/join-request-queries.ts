@@ -6,6 +6,7 @@ import type {
   JoinRequest,
   JoinRequestRow,
   JoinRequestStatus,
+  JoinRequestStatusDetail,
   RegistrationAnswerRow,
 } from "../types/join-request-models";
 
@@ -53,6 +54,37 @@ export async function listPendingJoinRequests(groupId: string): Promise<JoinRequ
 
 function jsonObject(value: Json): Record<string, Json | undefined> {
   return value && !Array.isArray(value) && typeof value === "object" ? value : {};
+}
+
+export async function getJoinRequestStatusDetail(
+  requestId: string
+): Promise<JoinRequestStatusDetail> {
+  const { data, error } = await getSupabaseClient().rpc("get_join_request_status", {
+    target_request_id: requestId,
+  });
+  if (error) throwSupabaseError(error, "getJoinRequestStatusDetail");
+  const row = jsonObject(data);
+  const answers = Array.isArray(row.answers) ? row.answers : [];
+  return {
+    requestId: String(row.request_id ?? requestId),
+    groupId: String(row.group_id ?? ""),
+    groupName: String(row.group_name ?? "Group"),
+    eventId: String(row.event_id ?? ""),
+    eventName: String(row.event_name ?? "Trip"),
+    status: String(row.status ?? "pending") as JoinRequestStatus,
+    submittedAt: String(row.submitted_at ?? ""),
+    reviewedAt: typeof row.reviewed_at === "string" ? row.reviewed_at : null,
+    rejectionReason: typeof row.rejection_reason === "string" ? row.rejection_reason : null,
+    answers: answers.map((raw) => {
+      const answer = jsonObject(raw);
+      return {
+        id: String(answer.id ?? ""),
+        questionId: String(answer.question_id ?? ""),
+        label: String(answer.label ?? "Question"),
+        answer: answer.answer ?? null,
+      };
+    }),
+  };
 }
 
 export async function listGroupJoinRequests(

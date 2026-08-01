@@ -48,6 +48,19 @@ export interface JoinRequestReviewResult {
   qrVersion: number | null;
 }
 
+export interface JoinRequestStatusDetail {
+  requestId: string;
+  groupId: string;
+  groupName: string;
+  eventId: string;
+  eventName: string;
+  status: JoinRequestStatus;
+  submittedAt: string;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  answers: { id: string; questionId: string; label: string; answer: Json }[];
+}
+
 export function canReviewJoinRequests(role?: string, status?: string): boolean {
   return status === "active" && (role === "organiser" || role === "super_organiser");
 }

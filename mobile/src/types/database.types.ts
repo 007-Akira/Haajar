@@ -652,6 +652,14 @@ export type Database = {
           qr_version: number;
         }[];
       };
+      get_event_member_details: {
+        Args: { target_event_id: string; target_user_id: string };
+        Returns: Json;
+      };
+      get_join_request_status: {
+        Args: { target_request_id: string };
+        Returns: Json;
+      };
       is_active_group_member: {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;

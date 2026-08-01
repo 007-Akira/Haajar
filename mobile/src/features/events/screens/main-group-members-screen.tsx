@@ -214,6 +214,12 @@ export function MainGroupMembersScreen(): JSX.Element {
                 key={member.membershipId}
                 name={name}
                 onCall={() => void callMember(name, member.profile?.phone ?? null)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/events/[eventId]/member/[userId]" as never,
+                    params: { eventId, userId: member.userId },
+                  })
+                }
                 phone={member.profile?.phone ?? "Phone unavailable"}
                 role={toEventDisplayRole(member.role)}
                 testID={`event-member-${member.membershipId}`}

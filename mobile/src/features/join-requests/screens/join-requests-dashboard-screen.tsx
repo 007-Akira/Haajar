@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -11,6 +11,9 @@ import {
   PrimaryButton,
   ScreenContainer,
   SecondaryButton,
+  SegmentedTabs,
+  AnswerSummaryList,
+  LabeledDetailRow,
   TextField,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
@@ -47,6 +50,7 @@ export function JoinRequestsDashboardScreen(): JSX.Element {
   const [decision, setDecision] = useState<JoinRequestDecision>("accept");
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const requestsQuery = useGroupJoinRequests(groupId, status);
@@ -54,6 +58,15 @@ export function JoinRequestsDashboardScreen(): JSX.Element {
   const role = membershipQuery.data?.role;
   const canManage = canReviewJoinRequests(role, membershipQuery.data?.status);
   const requests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
+  const visibleRequests = useMemo(() => {
+    const value = search.trim().toLowerCase();
+    if (!value) return requests;
+    return requests.filter((request) =>
+      [request.applicant?.fullName, request.applicant?.phone, request.applicant?.email]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(value))
+    );
+  }, [requests, search]);
   const backAction = {
     accessibilityLabel: "Go back to group details",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -138,23 +151,21 @@ export function JoinRequestsDashboardScreen(): JSX.Element {
           title="Join Requests"
         />
 
-        <View accessibilityRole="tablist" style={styles.tabs} testID="join-request-tabs">
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab.value}
-              accessibilityLabel={`${tab.label} join requests`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: status === tab.value }}
-              onPress={() => setStatus(tab.value)}
-              style={[styles.tab, status === tab.value && styles.selectedTab]}
-              testID={`join-requests-tab-${tab.value}`}
-            >
-              <Text style={[styles.tabText, status === tab.value && styles.selectedTabText]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <SegmentedTabs
+          accessibilityLabel="Filter join requests by status"
+          onChange={setStatus}
+          tabs={tabs}
+          testID="join-request-tabs"
+          value={status}
+        />
+        <TextField
+          accessibilityLabel="Search join requests"
+          label="Search applicants"
+          onChangeText={setSearch}
+          placeholder="Name, phone, or email"
+          testID="join-requests-search"
+          value={search}
+        />
 
         {requestsQuery.isLoading ? (
           <LoadingSkeleton lines={layout.skeletonDefaultLines} />
@@ -183,16 +194,23 @@ export function JoinRequestsDashboardScreen(): JSX.Element {
           />
         ) : (
           <View style={styles.list}>
-            {requests.map((request) => (
-              <RequestCard
-                key={request.id}
-                busy={reviewMutation.isPending && selected?.id === request.id}
-                onAccept={() => openConfirmation(request, "accept")}
-                onReject={() => openConfirmation(request, "reject")}
-                request={request}
-                showActions={status === "pending"}
+            {visibleRequests.length === 0 ? (
+              <EmptyState
+                description="Try another name, phone, or email."
+                title="No matching requests"
               />
-            ))}
+            ) : (
+              visibleRequests.map((request) => (
+                <RequestCard
+                  key={request.id}
+                  busy={reviewMutation.isPending && selected?.id === request.id}
+                  onAccept={() => openConfirmation(request, "accept")}
+                  onReject={() => openConfirmation(request, "reject")}
+                  request={request}
+                  showActions={status === "pending"}
+                />
+              ))
+            )}
           </View>
         )}
       </ScreenContainer>
@@ -218,6 +236,19 @@ export function JoinRequestsDashboardScreen(): JSX.Element {
                 ? `${selected?.applicant?.fullName ?? "This applicant"} will become an active event and group member.`
                 : `${selected?.applicant?.fullName ?? "This applicant"} will not receive a membership.`}
             </Text>
+            {selected ? (
+              <>
+                <LabeledDetailRow
+                  label="Phone"
+                  value={selected.applicant?.phone ?? "Not provided"}
+                />
+                <LabeledDetailRow
+                  label="Google email"
+                  value={selected.applicant?.email ?? "Not available"}
+                />
+                <AnswerSummaryList answers={selected.displayAnswers ?? []} />
+              </>
+            ) : null}
             {decision === "reject" ? (
               <TextField
                 accessibilityLabel="Optional rejection reason"

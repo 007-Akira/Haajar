@@ -16,7 +16,7 @@ import { useEvent } from "@/features/events/hooks/use-event";
 import { useEventMembership } from "@/features/events/hooks/use-event-membership";
 import { canManageEvent } from "@/features/events/permissions/event-permissions";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
-import { colors, layout, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { useCreateGroup } from "../hooks/use-create-group";
 
@@ -162,6 +162,13 @@ export function CreateGroupScreen(): JSX.Element {
         />
       </View>
 
+      <View style={styles.scopeInfo} testID="create-group-scope-info">
+        <Text style={styles.infoLabel}>[ INTERNAL GROUP ]</Text>
+        <Text style={styles.infoBody}>
+          Group names are flexible. Joining questions can be configured after creation.
+        </Text>
+      </View>
+
       <View style={styles.footer}>
         {submitError ? (
           <Text
@@ -199,6 +206,16 @@ const styles = StyleSheet.create({
   footer: {
     gap: spacing.md,
   },
+  scopeInfo: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
+  },
+  infoLabel: { ...typography.technicalLabel, color: colors.accent },
+  infoBody: { ...typography.body, color: colors.textSecondary },
   note: {
     ...typography.technicalLabel,
     color: colors.textSecondary,

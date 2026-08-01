@@ -85,3 +85,22 @@ export async function correctRegistrationAnswer(
   if (error) throwSupabaseError(error, "correctRegistrationAnswer");
   return data;
 }
+
+export interface CreatedGroupInvitation {
+  invitationId: string;
+  invitationToken: string;
+}
+
+export async function createGroupInvitation(groupId: string): Promise<CreatedGroupInvitation> {
+  if (!groupId) throw validationError();
+  const { data, error } = await getSupabaseClient().rpc("create_group_invitation", {
+    target_group_id: groupId,
+  });
+  if (error) throwSupabaseError(error, "createGroupInvitation");
+  const invitation = data[0];
+  if (!invitation) throw validationError();
+  return {
+    invitationId: invitation.invitation_id,
+    invitationToken: invitation.invitation_token,
+  };
+}

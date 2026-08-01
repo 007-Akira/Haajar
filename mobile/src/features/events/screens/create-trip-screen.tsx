@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { PageHeader, PrimaryButton, ScreenContainer, TextField } from "@/components";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
-import { colors, layout, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { useCreateEvent } from "../hooks/use-create-event";
 
@@ -92,6 +92,15 @@ export function CreateTripScreen(): JSX.Element {
         />
       </View>
 
+      <View style={styles.everyoneInfo} testID="create-trip-everyone-info">
+        <Text style={styles.infoLabel}>[ EVERYONE ]</Text>
+        <Text style={styles.infoTitle}>Automatic main group</Text>
+        <Text style={styles.infoBody}>
+          Every approved trip member is included in Everyone. Internal groups stay organised inside
+          this trip.
+        </Text>
+      </View>
+
       <View style={styles.footer}>
         {submitError ? (
           <Text
@@ -129,6 +138,17 @@ const styles = StyleSheet.create({
   footer: {
     gap: spacing.md,
   },
+  everyoneInfo: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
+  },
+  infoLabel: { ...typography.technicalLabel, color: colors.accent },
+  infoTitle: { ...typography.headingSmall, color: colors.textPrimary },
+  infoBody: { ...typography.body, color: colors.textSecondary },
   note: {
     ...typography.technicalLabel,
     color: colors.textSecondary,
