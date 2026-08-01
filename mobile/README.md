@@ -47,7 +47,11 @@ Useful validation commands:
 npm run typecheck
 npm run lint
 npm run format:check
+npm test
 ```
+
+Local database reset, seed, pgTAP testing, and the two-account security checklist are documented in
+[`../docs/development-testing.md`](../docs/development-testing.md).
 
 Routes live in `src/app`, shared components in `src/components`, and
 domain-oriented code in `src/features`.
