@@ -12,10 +12,10 @@ import {
   SecondaryButton,
   TextField,
 } from "@/components";
-import { getMockGroupDetails } from "@/features/groups/data/mock-group-details";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { rollCallNameExamples } from "../data/mock-roll-calls";
+import { getMockAttendanceGroupContext } from "../data/mock-attendance-group-context";
 import { getRollCallPermissions } from "../permissions/roll-call-permissions";
 
 export function CreateRollCallScreen(): JSX.Element {
@@ -24,7 +24,7 @@ export function CreateRollCallScreen(): JSX.Element {
     eventId: string;
     groupId: string;
   }>();
-  const group = getMockGroupDetails(eventId, groupId);
+  const group = getMockAttendanceGroupContext(eventId, groupId);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [notifyMembers, setNotifyMembers] = useState(true);

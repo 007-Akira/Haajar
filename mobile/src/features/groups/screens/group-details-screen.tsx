@@ -269,8 +269,8 @@ export function GroupDetailsScreen(): JSX.Element {
           <View style={styles.prototypeNotice} testID="group-actions-prototype-notice">
             <Text style={styles.prototypeTitle}>[ PROTOTYPE ACTIONS ]</Text>
             <Text style={styles.prototypeDescription}>
-              Attendance, QR, offline, and export actions still use mock data. Registration forms
-              and join requests use live Supabase data.
+              Attendance, offline, and export actions still use mock data. Registration forms, join
+              requests, and membership QR use live Supabase data.
             </Text>
           </View>
           <GroupPrimaryActions

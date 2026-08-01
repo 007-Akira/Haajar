@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(38);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -227,6 +227,13 @@ select throws_ok(
   '42501',
   'an unrelated user cannot list group join requests'
 );
+select is(
+  (select count(*)::integer from public.registration_answers as answer
+   join public.join_requests as request on request.id = answer.join_request_id
+   where request.group_id = current_setting('haajar.lifecycle_group_id')::uuid),
+  0,
+  'an unrelated user cannot read submitted registration answers directly'
+);
 reset role;
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
@@ -363,6 +370,30 @@ select is(
 );
 reset role;
 
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select lives_ok(
+  $$select public.correct_registration_answer(
+    (select answer.id from public.registration_answers as answer
+     where answer.join_request_id = current_setting('haajar.accept_request_id')::uuid
+       and answer.question_id = current_setting('haajar.register_question_id')::uuid),
+    '"PTA23CS068"'::jsonb
+  )$$,
+  'an organiser can correct a submitted answer through the secured RPC'
+);
+select ok(
+  exists (
+    select 1 from public.audit_logs
+    where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+      and entity_type = 'registration_answer'
+      and action = 'registration_answer.corrected'
+      and old_data ->> 'answer' = 'PTA23CS067'
+      and new_data ->> 'answer' = 'PTA23CS068'
+  ),
+  'answer correction preserves old and new values in the audit log'
+);
+reset role;
+
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 set local role authenticated;
 select lives_ok(
@@ -462,6 +493,32 @@ select is(
      and credential.status = 'active' and credential.version = 2),
   1,
   'a role change issues one new versioned QR credential'
+);
+select set_config(
+  'haajar.pre_regeneration_qr_id',
+  (select credential.id::text from public.qr_credentials as credential
+   join public.group_memberships as membership
+     on membership.id = credential.group_membership_id
+   where membership.user_id = '10000000-0000-4000-8000-000000000002'
+     and credential.status = 'active'),
+  true
+);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select ok(
+  (select qr_token is not null from public.regenerate_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )),
+  'a membership owner can regenerate their QR through the secured RPC'
+);
+reset role;
+select is(
+  (select status from public.qr_credentials
+   where id = current_setting('haajar.pre_regeneration_qr_id')::uuid),
+  'revoked',
+  'QR regeneration revokes the previously active credential'
 );
 select ok(
   (select count(*) >= 8 from public.audit_logs

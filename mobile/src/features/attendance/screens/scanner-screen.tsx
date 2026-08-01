@@ -13,10 +13,10 @@ import {
   type ScanResultTone,
   type SyncState,
 } from "@/components";
-import { getMockGroupDetails } from "@/features/groups/data/mock-group-details";
 import { colors, layout, spacing, typography } from "@/theme";
 
 import { getMockRollCall, mockVerificationMember } from "../data/mock-roll-calls";
+import { getMockAttendanceGroupContext } from "../data/mock-attendance-group-context";
 
 interface ResultState {
   tone: ScanResultTone;
@@ -68,7 +68,7 @@ export function ScannerScreen(): JSX.Element {
     rollCallId: string;
     state?: string;
   }>();
-  const group = getMockGroupDetails(params.eventId, params.groupId);
+  const group = getMockAttendanceGroupContext(params.eventId, params.groupId);
   const rollCall = getMockRollCall(params.groupId, params.rollCallId);
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [verificationVisible, setVerificationVisible] = useState(false);

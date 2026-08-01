@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(27);
 
 select has_table('public', 'registration_forms', 'registration_forms exists');
 select has_table('public', 'registration_questions', 'registration_questions exists');
@@ -120,6 +120,10 @@ select ok(
 select ok(
   not has_table_privilege('authenticated', 'public.audit_logs', 'INSERT'),
   'clients cannot forge audit records directly'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.group_memberships', 'UPDATE'),
+  'clients cannot bypass role-change QR rotation through direct membership updates'
 );
 
 select * from finish();

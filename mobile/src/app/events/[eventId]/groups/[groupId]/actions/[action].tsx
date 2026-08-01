@@ -4,17 +4,17 @@ import type { JSX } from "react";
 
 import { EmptyState, PageHeader, ScreenContainer } from "@/components";
 import { getGroupActionLabel } from "@/features/groups/config/group-action-config";
-import { getMockGroupDetails } from "@/features/groups/data/mock-group-details";
+import { useGroup } from "@/features/groups/hooks/use-group";
 import { colors, layout } from "@/theme";
 
 export default function GroupActionPlaceholderRoute(): JSX.Element {
   const router = useRouter();
-  const { eventId, groupId, action } = useLocalSearchParams<{
+  const { groupId, action } = useLocalSearchParams<{
     eventId: string;
     groupId: string;
     action: string;
   }>();
-  const group = getMockGroupDetails(eventId, groupId);
+  const group = useGroup(groupId).data;
   const actionLabel = getGroupActionLabel(action) ?? "Group action";
 
   return (

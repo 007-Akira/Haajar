@@ -13,10 +13,10 @@ import {
   SecondaryButton,
   SectionHeader,
 } from "@/components";
-import { getMockGroupDetails } from "@/features/groups/data/mock-group-details";
 import { colors, layout, spacing, typography } from "@/theme";
 
 import { getMockRollCall, type AttendanceStatus } from "../data/mock-roll-calls";
+import { getMockAttendanceGroupContext } from "../data/mock-attendance-group-context";
 import { getRollCallPermissions } from "../permissions/roll-call-permissions";
 
 type StatusFilter = "all" | AttendanceStatus;
@@ -30,7 +30,7 @@ export function ActiveRollCallScreen(): JSX.Element {
     rollCallId: string;
     state?: string;
   }>();
-  const group = getMockGroupDetails(params.eventId, params.groupId);
+  const group = getMockAttendanceGroupContext(params.eventId, params.groupId);
   const rollCall = getMockRollCall(params.groupId, params.rollCallId);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [message, setMessage] = useState("");
