@@ -559,6 +559,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      change_group_membership_role: {
+        Args: { new_role: string; target_membership_id: string };
+        Returns: {
+          group_membership_id: string;
+          qr_credential_id: string | null;
+          qr_token: string | null;
+          qr_version: number | null;
+        }[];
+      };
+      correct_registration_answer: {
+        Args: { corrected_answer: Json; target_answer_id: string };
+        Returns: string;
+      };
       create_event: {
         Args: { event_description?: string; event_name: string };
         Returns: string;
@@ -569,6 +582,10 @@ export type Database = {
           group_name: string;
           parent_event_id: string;
         };
+        Returns: string;
+      };
+      create_registration_form: {
+        Args: { target_group_id: string };
         Returns: string;
       };
       is_active_event_member: {
@@ -587,6 +604,14 @@ export type Database = {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;
       };
+      issue_membership_qr: {
+        Args: { target_membership_id: string };
+        Returns: {
+          qr_credential_id: string | null;
+          qr_token: string | null;
+          qr_version: number | null;
+        }[];
+      };
       list_event_member_directory: {
         Args: { target_event_id: string };
         Returns: {
@@ -598,9 +623,61 @@ export type Database = {
           user_id: string;
         }[];
       };
+      publish_registration_form: {
+        Args: { target_form_id: string };
+        Returns: string;
+      };
+      regenerate_membership_qr: {
+        Args: { target_membership_id: string };
+        Returns: {
+          qr_credential_id: string | null;
+          qr_token: string | null;
+          qr_version: number | null;
+        }[];
+      };
+      review_join_request: {
+        Args: {
+          decision: string;
+          rejection_reason?: string | null;
+          target_request_id: string;
+        };
+        Returns: {
+          group_membership_id: string | null;
+          join_request_id: string;
+          qr_credential_id: string | null;
+          qr_token: string | null;
+          qr_version: number | null;
+        }[];
+      };
+      save_registration_form_draft: {
+        Args: { questions: Json; target_form_id: string };
+        Returns: string;
+      };
       shares_active_group: {
         Args: { other_user_id: string; target_user_id?: string };
         Returns: boolean;
+      };
+      submit_join_request: {
+        Args: { answers?: Json; target_group_id: string };
+        Returns: string;
+      };
+      validate_registration_answer: {
+        Args: { answer_value: Json; target_question_id: string };
+        Returns: boolean;
+      };
+      write_haajar_audit: {
+        Args: {
+          target_action: string;
+          target_actor_id: string;
+          target_entity_id: string;
+          target_entity_type: string;
+          target_event_id: string;
+          target_group_id: string;
+          target_metadata?: Json;
+          target_new_data?: Json;
+          target_old_data?: Json;
+        };
+        Returns: string;
       };
     };
     Enums: {
