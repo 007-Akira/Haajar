@@ -42,7 +42,7 @@ const actions: Record<GroupActionId, GroupActionDefinition> = {
   "manage-members": { id: "manage-members", label: "Manage Members" },
   "registration-form": { id: "registration-form", label: "Registration Form" },
   "join-requests": { id: "join-requests", label: "Join Requests" },
-  "share-invitation": { id: "share-invitation", label: "Share Invitation" },
+  "share-invitation": { id: "share-invitation", label: "Invite Members" },
   "assign-roles": { id: "assign-roles", label: "Assign Roles" },
   "export-attendance": { id: "export-attendance", label: "Export Attendance" },
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Share, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -20,7 +20,6 @@ import {
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { openPhoneLink } from "@/lib/native/open-phone-link";
-import { useCreateGroupInvitation } from "@/features/registration/hooks/use-create-group-invitation";
 import { usePendingGroupRequests } from "@/features/join-requests/hooks/use-join-requests";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
@@ -43,7 +42,6 @@ export function GroupDetailsScreen(): JSX.Element {
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
-  const invitationMutation = useCreateGroupInvitation(groupId);
   const canManageRequests =
     membershipQuery.data?.status === "active" &&
     (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
@@ -180,22 +178,6 @@ export function GroupDetailsScreen(): JSX.Element {
     }
   }
 
-  async function shareInvitation(): Promise<void> {
-    if (invitationMutation.isPending) return;
-    setActivityMessage("");
-    try {
-      const invitation = await invitationMutation.mutateAsync();
-      await Share.share({
-        message: `Join this Haajar group: haajar://join/${invitation.invitationToken}`,
-      });
-      invitationMutation.reset();
-    } catch (error) {
-      setActivityMessage(
-        isAppError(error) ? error.message : "Could not create the invitation. Try again."
-      );
-    }
-  }
-
   function handleGroupAction(actionId: GroupActionId): void {
     if (actionId === "show-my-qr") {
       router.push({
@@ -238,7 +220,10 @@ export function GroupDetailsScreen(): JSX.Element {
     }
 
     if (actionId === "share-invitation") {
-      void shareInvitation();
+      router.push({
+        pathname: "/events/[eventId]/groups/[groupId]/invite" as never,
+        params: groupRouteParams,
+      });
       return;
     }
 
