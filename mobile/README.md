@@ -78,6 +78,20 @@ Before Google sign-in works:
 Sessions are persisted in Expo SecureStore. The app uses the `haajar` scheme and
 the OAuth callback `haajar://auth/callback`.
 
+### Regenerate database types
+
+After applying database migrations, authenticate the Supabase CLI and regenerate
+the types from the hosted `public` schema:
+
+```bash
+npx supabase login
+npx supabase gen types typescript --project-id idhxgezjoxgbfjckngzp --schema public > src/types/database.types.ts
+npx prettier --write src/types/database.types.ts
+```
+
+The generated file contains table row, insert and update shapes, relationships,
+views, functions, enums and composite types. It must not be edited by hand.
+
 ## What's preconfigured
 
 - **HeroUI Native** (`heroui-native`) wrapped in `HeroUINativeProvider` and `GestureHandlerRootView` in `src/app/_layout.tsx`
