@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(51);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -505,6 +505,15 @@ select set_config(
 );
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
 set local role authenticated;
+select set_config(
+  'haajar.pre_regeneration_qr_token',
+  (select qr_token from public.get_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )),
+  true
+);
 select ok(
   (select qr_token is not null from public.regenerate_membership_qr(
     (select id from public.group_memberships
@@ -524,6 +533,181 @@ select ok(
   (select count(*) >= 8 from public.audit_logs
    where group_id = current_setting('haajar.lifecycle_group_id')::uuid),
   'publication, submissions, reviews, memberships, QR issuance and role changes are audited'
+);
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select set_config(
+  'haajar.current_qr_token',
+  (select qr_token from public.get_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )),
+  true
+);
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    'HJR:3:' || current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'valid',
+  'an active co-organiser can resolve a current group QR'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'valid',
+  'an authorised organiser can resolve a current group QR'
+);
+select set_config(
+  'haajar.other_group_id',
+  public.create_group(
+    current_setting('haajar.lifecycle_event_id')::uuid,
+    'Other Resolution Group',
+    null
+  )::text,
+  true
+);
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.other_group_id')::uuid
+  )),
+  'wrong_group',
+  'a valid credential is rejected in the wrong group context'
+);
+select is(
+  (select membership_id from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.other_group_id')::uuid
+  )),
+  null::uuid,
+  'wrong-group resolution returns no unrelated membership data'
+);
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.pre_regeneration_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'revoked',
+  'a regenerated old token is rejected as revoked'
+);
+reset role;
+
+update public.group_memberships
+set status = 'inactive'
+where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+  and user_id = '10000000-0000-4000-8000-000000000002';
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'inactive_membership',
+  'an inactive membership QR is rejected'
+);
+reset role;
+update public.group_memberships
+set status = 'active'
+where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+  and user_id = '10000000-0000-4000-8000-000000000002';
+
+update public.groups set status = 'archived'
+where id = current_setting('haajar.lifecycle_group_id')::uuid;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'archived',
+  'an archived group rejects QR resolution'
+);
+reset role;
+update public.groups set status = 'active'
+where id = current_setting('haajar.lifecycle_group_id')::uuid;
+
+update public.events set status = 'archived'
+where id = current_setting('haajar.lifecycle_event_id')::uuid;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'archived',
+  'an archived event rejects QR resolution'
+);
+reset role;
+update public.events set status = 'active'
+where id = current_setting('haajar.lifecycle_event_id')::uuid;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select set_config(
+  'haajar.member_role_qr_token',
+  (select qr_token from public.change_group_membership_role(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002'),
+    'member'
+  )),
+  true
+);
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.current_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'revoked',
+  'a role change invalidates the prior credential for resolution'
+);
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.member_role_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'valid',
+  'an organiser can resolve the replacement credential after role rotation'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select is(
+  (select resolution_status from public.resolve_membership_qr(
+    current_setting('haajar.member_role_qr_token'),
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  'unauthorised',
+  'an ordinary member cannot resolve membership QR tokens'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.qr_credentials', 'SELECT'),
+  'authenticated clients cannot bypass the resolver with direct credential reads'
+);
+reset role;
+
+select ok(
+  not exists (
+    select 1 from public.audit_logs
+    where metadata::text like '%' || current_setting('haajar.current_qr_token') || '%'
+      or metadata::text like '%' || current_setting('haajar.member_role_qr_token') || '%'
+      or coalesce(old_data::text, '') like '%' || current_setting('haajar.current_qr_token') || '%'
+      or coalesce(new_data::text, '') like '%' || current_setting('haajar.current_qr_token') || '%'
+  ),
+  'QR resolution audit logs never contain plaintext tokens'
 );
 
 select * from finish();

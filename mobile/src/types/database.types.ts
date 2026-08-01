@@ -715,6 +715,22 @@ export type Database = {
         Args: { invitation_token: string };
         Returns: Json;
       };
+      resolve_membership_qr: {
+        Args: { expected_group_id: string; presented_token: string };
+        Returns: {
+          credential_status: string | null;
+          credential_version: number | null;
+          display_name: string | null;
+          group_id: string | null;
+          group_name: string | null;
+          member_role: string | null;
+          member_user_id: string | null;
+          membership_id: string | null;
+          membership_status: string | null;
+          phone: string | null;
+          resolution_status: string;
+        }[];
+      };
       review_join_request: {
         Args: {
           decision: string;

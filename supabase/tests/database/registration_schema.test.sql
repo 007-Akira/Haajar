@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(32);
 
 select has_table('public', 'registration_forms', 'registration_forms exists');
 select has_table('public', 'registration_questions', 'registration_questions exists');
@@ -124,6 +124,29 @@ select ok(
 select ok(
   not has_table_privilege('authenticated', 'public.group_memberships', 'UPDATE'),
   'clients cannot bypass role-change QR rotation through direct membership updates'
+);
+select has_function(
+  'public',
+  'resolve_membership_qr',
+  array['text', 'uuid'],
+  'secured membership QR resolver exists'
+);
+select ok(
+  (select prosecdef from pg_proc where oid = 'public.resolve_membership_qr(text, uuid)'::regprocedure),
+  'membership QR resolver is security definer'
+);
+select ok(
+  (select proconfig @> array['search_path='] from pg_proc
+   where oid = 'public.resolve_membership_qr(text, uuid)'::regprocedure),
+  'membership QR resolver has an empty fixed search path'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.resolve_membership_qr(text, uuid)', 'EXECUTE'),
+  'authenticated callers may execute the secured resolver'
+);
+select ok(
+  not has_function_privilege('anon', 'public.resolve_membership_qr(text, uuid)', 'EXECUTE'),
+  'anonymous callers cannot execute the membership QR resolver'
 );
 
 select * from finish();

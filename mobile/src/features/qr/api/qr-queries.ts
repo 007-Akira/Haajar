@@ -3,11 +3,33 @@ import { getSupabaseClient } from "@/lib/supabase";
 
 import {
   mapQrCredentialResult,
+  mapMembershipQrResolution,
   type MembershipQr,
+  type MembershipQrResolution,
   type QrCredentialMutationResult,
 } from "../types/qr-models";
 
 export const membershipQrIsEphemeral = true;
+
+export async function resolveMembershipQr(
+  presentedToken: string,
+  expectedGroupId: string
+): Promise<MembershipQrResolution> {
+  const { data, error } = await getSupabaseClient().rpc("resolve_membership_qr", {
+    presented_token: presentedToken,
+    expected_group_id: expectedGroupId,
+  });
+  if (error) throwSupabaseError(error, "resolveMembershipQr");
+  const result = data[0];
+  if (!result) {
+    throw new AppError({
+      code: appErrorCodes.database,
+      message: userSafeErrorMessages[appErrorCodes.database],
+      retryable: true,
+    });
+  }
+  return mapMembershipQrResolution(result);
+}
 
 export function toMembershipQr(
   membershipId: string,
