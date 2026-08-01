@@ -28,6 +28,11 @@ export interface HomeEvent {
   createdAt: EventRow["created_at"];
 }
 
+export type EventRecord = Pick<
+  EventRow,
+  "id" | "name" | "description" | "status" | "created_by" | "created_at" | "updated_at"
+>;
+
 export type EventDetail = EventSummary;
 
 export interface EventMember {

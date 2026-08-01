@@ -2,7 +2,13 @@ import { throwSupabaseError } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Tables } from "@/types/database.types";
 
-import type { EventDetail, EventMember, EventSummary, HomeEvent } from "../types/event";
+import type {
+  EventDetail,
+  EventMember,
+  EventRecord,
+  EventSummary,
+  HomeEvent,
+} from "../types/event";
 
 export interface ListEventsParameters {
   userId: string;
@@ -13,8 +19,34 @@ export interface GetEventDetailParameters {
   userId: string;
 }
 
+export interface GetEventParameters {
+  eventId: string;
+}
+
 export interface ListEventMembersParameters {
   eventId: string;
+}
+
+export async function getEvent({ eventId }: GetEventParameters): Promise<EventRecord | null> {
+  const { data, error } = await getSupabaseClient()
+    .from("events")
+    .select("id, name, description, status, created_by, created_at, updated_at")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) throwSupabaseError(error, "getEvent");
+  return data;
+}
+
+export async function countActiveEventMembers({ eventId }: GetEventParameters): Promise<number> {
+  const { count, error } = await getSupabaseClient()
+    .from("event_members")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("status", "active");
+
+  if (error) throwSupabaseError(error, "countActiveEventMembers");
+  return count ?? 0;
 }
 
 function toSummary(event: Tables<"events">, currentRole: string): EventSummary {

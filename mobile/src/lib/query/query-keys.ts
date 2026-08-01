@@ -10,9 +10,11 @@ export const queryKeys = {
   events: {
     all: ["events"] as const,
     list: (userId: string) => ["events", "list", userId] as const,
-    detail: (eventId: string) => ["events", "detail", eventId] as const,
+    detail: (eventId: string, userId?: string) =>
+      ["events", "detail", eventId, userId ?? "anonymous"] as const,
     members: (eventId: string) => ["events", eventId, "members"] as const,
-    groups: (eventId: string) => ["events", eventId, "groups"] as const,
+    groups: (eventId: string, userId?: string) =>
+      ["events", eventId, "groups", userId ?? "anonymous"] as const,
   },
   groups: {
     all: ["groups"] as const,

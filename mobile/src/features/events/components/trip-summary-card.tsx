@@ -6,6 +6,8 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export interface TripSummaryCardProps {
   eventName: string;
+  description?: string | null;
+  status: "active" | "archived";
   participantCount: number;
   groupCount: number;
   userRole: UserRole;
@@ -15,6 +17,8 @@ export interface TripSummaryCardProps {
 
 export function TripSummaryCard({
   eventName,
+  description,
+  status,
   participantCount,
   groupCount,
   userRole,
@@ -24,9 +28,13 @@ export function TripSummaryCard({
   return (
     <View style={styles.container} testID={testID}>
       <View style={styles.header}>
-        <Text style={styles.eventName}>{eventName}</Text>
+        <View style={styles.copy}>
+          <Text style={styles.eventName}>{eventName}</Text>
+          {description ? <Text style={styles.description}>{description}</Text> : null}
+        </View>
         <RoleBadge role={userRole} />
       </View>
+      <StatusBadge status={status} />
       <View style={styles.counts}>
         <View style={styles.metric}>
           <Text style={styles.metricValue}>{participantCount}</Text>
@@ -65,6 +73,14 @@ const styles = StyleSheet.create({
     ...typography.headingMedium,
     flex: 1,
     color: colors.textPrimary,
+  },
+  copy: {
+    flex: 1,
+    gap: spacing.half,
+  },
+  description: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
   counts: {
     flexDirection: "row",

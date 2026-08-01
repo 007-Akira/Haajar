@@ -21,6 +21,11 @@ export interface UserGroupSummary extends GroupSummary {
   currentRole: GroupMembershipRow["role"];
 }
 
+export interface EventGroupSummary extends GroupSummary {
+  currentRole: GroupMembershipRow["role"];
+  activeMemberCount: number;
+}
+
 export interface GroupMember {
   membershipId: GroupMembershipRow["id"];
   userId: GroupMembershipRow["user_id"];

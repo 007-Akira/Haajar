@@ -2,10 +2,17 @@ import { throwSupabaseError } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Tables } from "@/types/database.types";
 
-import type { GroupMember, GroupSummary, UserGroupSummary } from "../types/group";
+import type {
+  EventGroupSummary,
+  GroupMember,
+  GroupSummary,
+  UserGroupSummary,
+} from "../types/group";
 
 export interface ListEventGroupsParameters {
   eventId: string;
+  userId: string;
+  eventRole: string;
 }
 
 export interface ListUserGroupsParameters {
@@ -36,16 +43,46 @@ function toSummary(group: Tables<"groups">): GroupSummary {
 
 export async function listEventGroups({
   eventId,
-}: ListEventGroupsParameters): Promise<GroupSummary[]> {
-  const { data, error } = await getSupabaseClient()
+  userId,
+  eventRole,
+}: ListEventGroupsParameters): Promise<EventGroupSummary[]> {
+  const supabase = getSupabaseClient();
+  const groupsResult = await supabase
     .from("groups")
     .select("*")
     .eq("event_id", eventId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
 
-  if (error) throwSupabaseError(error, "listEventGroups");
-  return data.map(toSummary);
+  if (groupsResult.error) throwSupabaseError(groupsResult.error, "listEventGroups.groups");
+  if (groupsResult.data.length === 0) return [];
+
+  const groupIds = groupsResult.data.map((group) => group.id);
+  const membershipsResult = await supabase
+    .from("group_memberships")
+    .select("group_id, user_id, role")
+    .in("group_id", groupIds)
+    .eq("status", "active");
+
+  if (membershipsResult.error) {
+    throwSupabaseError(membershipsResult.error, "listEventGroups.memberships");
+  }
+
+  const memberCounts = new Map<string, number>();
+  const rolesByGroup = new Map<string, EventGroupSummary["currentRole"]>();
+  for (const membership of membershipsResult.data) {
+    memberCounts.set(membership.group_id, (memberCounts.get(membership.group_id) ?? 0) + 1);
+    if (membership.user_id === userId) rolesByGroup.set(membership.group_id, membership.role);
+  }
+
+  return groupsResult.data.map((group) => ({
+    ...toSummary(group),
+    currentRole:
+      eventRole === "super_organiser"
+        ? "super_organiser"
+        : (rolesByGroup.get(group.id) ?? "member"),
+    activeMemberCount: memberCounts.get(group.id) ?? 0,
+  }));
 }
 
 export async function listUserGroups({

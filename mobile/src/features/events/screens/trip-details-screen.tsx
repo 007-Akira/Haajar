@@ -12,18 +12,30 @@ import {
   ScreenContainer,
   SectionHeader,
 } from "@/components";
+import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
 
 import { MainGroupCard } from "../components/main-group-card";
 import { OrganiserActions } from "../components/organiser-actions";
 import { TripSummaryCard } from "../components/trip-summary-card";
-import { canShowOrganiserActions, getMockEventDetails } from "../data/mock-event-details";
+import { useEvent } from "../hooks/use-event";
+import { useEventGroups } from "../hooks/use-event-groups";
+import { useEventMemberCount } from "../hooks/use-event-member-count";
+import { useEventMembership } from "../hooks/use-event-membership";
+import {
+  canManageEvent,
+  toEventDisplayRole,
+  toGroupDisplayRole,
+} from "../permissions/event-permissions";
 
 export function TripDetailsScreen(): JSX.Element {
   const router = useRouter();
-  const params = useLocalSearchParams<{ eventId: string; state?: string }>();
+  const params = useLocalSearchParams<{ eventId: string }>();
   const [activityMessage, setActivityMessage] = useState("");
-  const result = getMockEventDetails(params.eventId, params.state);
+  const eventQuery = useEvent(params.eventId);
+  const membershipQuery = useEventMembership(params.eventId);
+  const groupsQuery = useEventGroups(params.eventId);
+  const memberCountQuery = useEventMemberCount(params.eventId);
   const backAction = {
     accessibilityLabel: "Go back",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -31,7 +43,14 @@ export function TripDetailsScreen(): JSX.Element {
     testID: "trip-details-back-button",
   };
 
-  if (result.status === "loading") {
+  const isInitialLoading =
+    eventQuery.isLoading ||
+    membershipQuery.isLoading ||
+    membershipQuery.sessionLoading ||
+    (membershipQuery.data?.status === "active" &&
+      (groupsQuery.isLoading || memberCountQuery.isLoading));
+
+  if (isInitialLoading) {
     return (
       <ScreenContainer
         contentContainerStyle={styles.content}
@@ -46,22 +65,93 @@ export function TripDetailsScreen(): JSX.Element {
     );
   }
 
-  if (result.status === "error") {
+  const failedQuery = [eventQuery, membershipQuery, groupsQuery, memberCountQuery].find(
+    (query) => query.isError
+  );
+
+  if (failedQuery) {
+    const description = isAppError(failedQuery.error)
+      ? failedQuery.error.message
+      : userSafeErrorMessages.UNKNOWN_ERROR;
     return (
       <ScreenContainer contentContainerStyle={styles.content} showGrid testID="trip-details-error">
         <PageHeader leadingAction={backAction} title="Trip details" />
         <EmptyState
-          actionLabel="Go Back"
-          description={result.message}
-          onActionPress={() => router.back()}
+          actionLabel="Retry"
+          description={description}
+          onActionPress={() => {
+            void eventQuery.refetch();
+            void membershipQuery.refetch();
+            void groupsQuery.refetch();
+            void memberCountQuery.refetch();
+          }}
           testID="trip-details-error-state"
-          title="Trip unavailable"
+          title="Could not load trip"
         />
       </ScreenContainer>
     );
   }
 
-  const { event } = result;
+  if (membershipQuery.sessionMissing || !membershipQuery.data) {
+    return (
+      <ScreenContainer contentContainerStyle={styles.content} showGrid testID="trip-unauthorised">
+        <PageHeader leadingAction={backAction} title="Trip details" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="You need an active membership to view this trip."
+          onActionPress={() => router.back()}
+          testID="trip-unauthorised-state"
+          title="Access unavailable"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  if (membershipQuery.data.status !== "active") {
+    return (
+      <ScreenContainer contentContainerStyle={styles.content} showGrid testID="trip-unauthorised">
+        <PageHeader leadingAction={backAction} title="Trip details" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="Your membership for this trip is not active."
+          onActionPress={() => router.back()}
+          testID="trip-unauthorised-state"
+          title="Access unavailable"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  if (!eventQuery.data) {
+    return (
+      <ScreenContainer contentContainerStyle={styles.content} showGrid testID="trip-missing">
+        <PageHeader leadingAction={backAction} title="Trip details" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="This trip no longer exists."
+          onActionPress={() => router.back()}
+          testID="trip-missing-state"
+          title="Trip not found"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  const event = eventQuery.data;
+  const groups = groupsQuery.data ?? [];
+  const userRole = toEventDisplayRole(membershipQuery.data.role);
+  const isRefreshing = [eventQuery, membershipQuery, groupsQuery, memberCountQuery].some(
+    (query) => query.isRefetching
+  );
+
+  function refresh(): void {
+    void Promise.all([
+      eventQuery.refetch(),
+      membershipQuery.refetch(),
+      groupsQuery.refetch(),
+      memberCountQuery.refetch(),
+    ]);
+  }
 
   function showMockMessage(message: string): void {
     setActivityMessage(message);
@@ -70,13 +160,15 @@ export function TripDetailsScreen(): JSX.Element {
   return (
     <ScreenContainer
       contentContainerStyle={styles.content}
+      onRefresh={refresh}
+      refreshing={isRefreshing}
       scroll
       showGrid
       testID="trip-details-screen"
     >
       <PageHeader
         leadingAction={backAction}
-        subtitle={event.dateOrStatus}
+        subtitle={event.status === "archived" ? "Archived trip" : "Active trip"}
         testID="trip-details-header"
         title={event.name}
         trailingAction={{
@@ -99,13 +191,23 @@ export function TripDetailsScreen(): JSX.Element {
         </Text>
       ) : null}
 
+      {event.status === "archived" ? (
+        <View accessibilityRole="alert" style={styles.archivedNotice} testID="trip-archived-notice">
+          <Text style={styles.archivedTitle}>[ ARCHIVED TRIP ]</Text>
+          <Text style={styles.archivedDescription}>
+            This trip is read-only while it is archived.
+          </Text>
+        </View>
+      ) : null}
+
       <TripSummaryCard
-        activeRollCallLabel={event.activeRollCallLabel}
+        description={event.description}
         eventName={event.name}
-        groupCount={event.groups.length}
-        participantCount={event.participantCount}
+        groupCount={groups.length}
+        participantCount={memberCountQuery.data ?? 0}
+        status={event.status === "archived" ? "archived" : "active"}
         testID="trip-summary"
-        userRole={event.userRole}
+        userRole={userRole}
       />
 
       <View style={styles.section}>
@@ -118,21 +220,22 @@ export function TripDetailsScreen(): JSX.Element {
             })
           }
           onViewRollCalls={() => showMockMessage("Main Group roll calls selected.")}
-          participantCount={event.participantCount}
+          participantCount={memberCountQuery.data ?? 0}
           testID="main-group-card"
         />
       </View>
 
       <View style={styles.section}>
         <SectionHeader description="Flexible groups belonging to this trip." title="Groups" />
-        {event.groups.length > 0 ? (
+        {groupsQuery.isLoading || memberCountQuery.isLoading ? (
+          <LoadingSkeleton lines={layout.skeletonDefaultLines} testID="trip-groups-loading" />
+        ) : groups.length > 0 ? (
           <View style={styles.groupList}>
-            {event.groups.map((group) => (
+            {groups.map((group) => (
               <GroupCard
-                activeRollCall={group.activeRollCall}
                 groupName={group.name}
                 key={group.id}
-                memberCount={group.memberCount}
+                memberCount={group.activeMemberCount}
                 onPress={() =>
                   router.push({
                     pathname: "/events/[eventId]/groups/[groupId]",
@@ -140,7 +243,7 @@ export function TripDetailsScreen(): JSX.Element {
                   })
                 }
                 testID={`group-card-${group.id}`}
-                userRole={group.userRole}
+                userRole={toGroupDisplayRole(group.currentRole)}
               />
             ))}
           </View>
@@ -153,7 +256,7 @@ export function TripDetailsScreen(): JSX.Element {
         )}
       </View>
 
-      {canShowOrganiserActions(event.userRole) ? (
+      {event.status === "active" && canManageEvent(membershipQuery.data.role) ? (
         <OrganiserActions
           onAddGroup={() => showMockMessage("Add Group selected.")}
           onManageMembers={() => showMockMessage("Manage Members selected.")}
@@ -179,5 +282,18 @@ const styles = StyleSheet.create({
   },
   groupList: {
     gap: spacing.sm,
+  },
+  archivedNotice: {
+    gap: spacing.half,
+    padding: spacing.md,
+    backgroundColor: colors.gridLine,
+  },
+  archivedTitle: {
+    ...typography.technicalLabel,
+    color: colors.textPrimary,
+  },
+  archivedDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
 });
