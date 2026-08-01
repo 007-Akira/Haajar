@@ -395,6 +395,7 @@ export type Database = {
           issued_at: string;
           revoked_at: string | null;
           status: string;
+          token_ciphertext: string | null;
           token_hash: string;
           version: number;
         };
@@ -404,6 +405,7 @@ export type Database = {
           issued_at?: string;
           revoked_at?: string | null;
           status?: string;
+          token_ciphertext?: string | null;
           token_hash: string;
           version?: number;
         };
@@ -413,6 +415,7 @@ export type Database = {
           issued_at?: string;
           revoked_at?: string | null;
           status?: string;
+          token_ciphertext?: string | null;
           token_hash?: string;
           version?: number;
         };
@@ -640,6 +643,14 @@ export type Database = {
       is_active_event_member: {
         Args: { target_event_id: string; target_user_id?: string };
         Returns: boolean;
+      };
+      get_membership_qr: {
+        Args: { target_membership_id: string };
+        Returns: {
+          qr_credential_id: string;
+          qr_token: string;
+          qr_version: number;
+        }[];
       };
       is_active_group_member: {
         Args: { target_group_id: string; target_user_id?: string };

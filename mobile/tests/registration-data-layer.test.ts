@@ -8,6 +8,7 @@ import {
 } from "../src/features/join-requests/types/join-request-models";
 import { safeAuthReturnTo } from "../src/features/auth/services/auth-return";
 import {
+  buildMembershipQrPayload,
   mapQrCredentialResult,
   redactQrToken,
   redactedQrToken,
@@ -165,6 +166,17 @@ test("maps secured RPC results to application models", () => {
     token: "one-time-secret",
     version: 2,
   });
+});
+
+test("QR payload contains only the version prefix and opaque credential", () => {
+  const token = "a".repeat(64);
+  const payload = buildMembershipQrPayload(3, token);
+
+  assert.equal(payload, `HJR:3:${token}`);
+  assert.equal(payload.includes("Mathews"), false);
+  assert.equal(payload.includes("group"), false);
+  assert.throws(() => buildMembershipQrPayload(0, token));
+  assert.throws(() => buildMembershipQrPayload(1, "not-a-token"));
 });
 
 test("maps lifecycle database errors to safe messages", async () => {

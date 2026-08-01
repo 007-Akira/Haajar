@@ -1,5 +1,6 @@
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import { colors, layout, opacity, radii, shadows, spacing, typography } from "@/theme";
 
@@ -14,48 +15,9 @@ export interface QRMembershipCardProps {
   role: UserRole;
   membershipReference: string;
   validity: QRValidity;
+  payload: string;
+  qrCaptureRef?: RefObject<View | null>;
   testID?: string;
-}
-
-function seedValue(seed: string): number {
-  return Array.from(seed).reduce(
-    (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0,
-    7
-  );
-}
-
-function isFinderPixel(row: number, column: number): boolean {
-  const dimension = layout.qrGridDimension;
-  const finderOrigins = [
-    [0, 0],
-    [0, dimension - 7],
-    [dimension - 7, 0],
-  ];
-
-  return finderOrigins.some(([originRow, originColumn]) => {
-    const localRow = row - originRow;
-    const localColumn = column - originColumn;
-    const inside = localRow >= 0 && localRow < 7 && localColumn >= 0 && localColumn < 7;
-    const outer = localRow === 0 || localRow === 6 || localColumn === 0 || localColumn === 6;
-    const inner = localRow >= 2 && localRow <= 4 && localColumn >= 2 && localColumn <= 4;
-    return inside && (outer || inner);
-  });
-}
-
-function createPlaceholderMatrix(seed: string): boolean[] {
-  const dimension = layout.qrGridDimension;
-  const base = seedValue(seed);
-
-  return Array.from({ length: dimension * dimension }, (_, index) => {
-    const row = Math.floor(index / dimension);
-    const column = index % dimension;
-
-    if (isFinderPixel(row, column)) {
-      return true;
-    }
-
-    return (base + row * 17 + column * 29 + row * column * 3) % 7 < 3;
-  });
 }
 
 export function QRMembershipCard({
@@ -65,9 +27,10 @@ export function QRMembershipCard({
   role,
   membershipReference,
   validity,
+  payload,
+  qrCaptureRef,
   testID,
 }: QRMembershipCardProps): JSX.Element {
-  const matrix = createPlaceholderMatrix(`${eventName}:${groupName}:${membershipReference}`);
   const isRevoked = validity === "revoked";
 
   return (
@@ -89,21 +52,19 @@ export function QRMembershipCard({
       </View>
 
       <View
-        accessibilityLabel="Visual QR placeholder"
+        ref={qrCaptureRef}
+        accessibilityLabel="Group membership QR credential"
         accessibilityRole="image"
+        collapsable={false}
         style={styles.qrFrame}
       >
-        <View style={styles.qrGrid}>
-          {matrix.map((filled, index) => (
-            <View
-              key={index}
-              style={[
-                styles.qrCell,
-                filled && (isRevoked ? styles.revokedCell : styles.filledCell),
-              ]}
-            />
-          ))}
-        </View>
+        <QRCode
+          backgroundColor={colors.surface}
+          color={isRevoked ? colors.danger : colors.textPrimary}
+          ecl="M"
+          size={layout.qrPlaceholderSize - spacing.lg}
+          value={payload}
+        />
       </View>
 
       <View style={styles.memberDetails}>
@@ -114,8 +75,6 @@ export function QRMembershipCard({
     </View>
   );
 }
-
-const cellWidth = `${100 / layout.qrGridDimension}%` as const;
 
 const styles = StyleSheet.create({
   card: {
@@ -175,22 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
     borderWidth: layout.focusedBorderWidth,
-  },
-  qrGrid: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  qrCell: {
-    width: cellWidth,
-    aspectRatio: 1,
-    backgroundColor: colors.surface,
-  },
-  filledCell: {
-    backgroundColor: colors.textPrimary,
-  },
-  revokedCell: {
-    backgroundColor: colors.danger,
   },
   memberDetails: {
     alignItems: "center",

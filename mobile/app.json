@@ -31,7 +31,15 @@
       ],
       "expo-status-bar",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Haajar to access photos for saving membership QR images.",
+          "savePhotosPermission": "Allow Haajar to save membership QR images."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

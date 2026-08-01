@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(31);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -309,6 +309,32 @@ select isnt(
   current_setting('haajar.accepted_qr_token'),
   'the plaintext QR token is never stored'
 );
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select is(
+  (select qr_token from public.get_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )),
+  current_setting('haajar.accepted_qr_token'),
+  'a member can retrieve their active encrypted QR credential'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+set local role authenticated;
+select throws_ok(
+  $$select public.get_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )$$,
+  '42501',
+  'an unrelated user cannot retrieve a member QR credential'
+);
+reset role;
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 set local role authenticated;

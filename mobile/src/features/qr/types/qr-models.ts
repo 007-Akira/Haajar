@@ -19,6 +19,16 @@ export const redactedQrToken = "[REDACTED_QR_TOKEN]";
 
 type QrRpcRow = Database["public"]["Functions"]["regenerate_membership_qr"]["Returns"][number];
 
+export function buildMembershipQrPayload(version: number, token: string): string {
+  if (!Number.isInteger(version) || version < 1 || !/^[a-f0-9]{64}$/i.test(token)) {
+    throw new AppError({
+      code: appErrorCodes.validation,
+      message: userSafeErrorMessages[appErrorCodes.validation],
+    });
+  }
+  return `HJR:${version}:${token}`;
+}
+
 export function mapQrCredentialResult(row: QrRpcRow): QrCredentialMutationResult {
   if (!row.qr_credential_id || !row.qr_token || row.qr_version === null) {
     throw new AppError({
