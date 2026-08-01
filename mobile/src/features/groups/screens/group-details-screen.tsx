@@ -11,11 +11,15 @@ import {
   PageHeader,
   RoleBadge,
   ScreenContainer,
+  SecondaryButton,
   SectionHeader,
   StatusBadge,
+  TextField,
+  type UserRole,
 } from "@/components";
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
+import { openPhoneLink } from "@/lib/native/open-phone-link";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { GroupPrimaryActions } from "../components/group-primary-actions";
@@ -24,10 +28,16 @@ import { useGroup } from "../hooks/use-group";
 import { useGroupMembers } from "../hooks/use-group-members";
 import { useGroupMembership } from "../hooks/use-group-membership";
 
+type RoleFilter = "all" | UserRole;
+
+const roleFilters: RoleFilter[] = ["all", "member", "co-organiser", "organiser", "super organiser"];
+
 export function GroupDetailsScreen(): JSX.Element {
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const [activityMessage, setActivityMessage] = useState("");
+  const [memberQuery, setMemberQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
@@ -126,6 +136,18 @@ export function GroupDetailsScreen(): JSX.Element {
 
   const group = groupQuery.data;
   const members = membersQuery.data ?? [];
+  const normalizedMemberQuery = memberQuery.trim().toLowerCase();
+  const filteredMembers = members.filter((member) => {
+    const name = member.profile?.full_name ?? "";
+    const phone = member.profile?.phone ?? "";
+    const role = toGroupDisplayRole(member.role);
+    return (
+      (!normalizedMemberQuery ||
+        name.toLowerCase().includes(normalizedMemberQuery) ||
+        phone.toLowerCase().includes(normalizedMemberQuery)) &&
+      (roleFilter === "all" || role === roleFilter)
+    );
+  });
   const userRole = toGroupDisplayRole(membershipQuery.data.role);
   const isArchived = group.status === "archived";
   const groupRouteParams = { eventId: group.eventId, groupId: group.id };
@@ -137,8 +159,18 @@ export function GroupDetailsScreen(): JSX.Element {
     void Promise.all([groupQuery.refetch(), membershipQuery.refetch(), membersQuery.refetch()]);
   }
 
-  function showPrototypeMessage(message: string): void {
-    setActivityMessage(message);
+  function cycleRoleFilter(): void {
+    const currentIndex = roleFilters.indexOf(roleFilter);
+    setRoleFilter(roleFilters[(currentIndex + 1) % roleFilters.length] ?? "all");
+  }
+
+  async function callMember(name: string, phone: string | null): Promise<void> {
+    try {
+      const opened = await openPhoneLink(phone);
+      if (!opened) setActivityMessage(`No phone number is available for ${name}.`);
+    } catch {
+      setActivityMessage(`Could not open the phone app for ${name}.`);
+    }
   }
 
   function handleGroupAction(actionId: GroupActionId): void {
@@ -243,22 +275,53 @@ export function GroupDetailsScreen(): JSX.Element {
           description={`${members.length} active members belong to this group.`}
           title="Members"
         />
+        <View style={styles.filters}>
+          <TextField
+            accessibilityLabel="Search group members by name or phone"
+            label="Search members"
+            onChangeText={setMemberQuery}
+            placeholder="Name or phone number"
+            testID="group-member-search-field"
+            value={memberQuery}
+          />
+          <SecondaryButton
+            accessibilityLabel={`Filter by group role. Current filter: ${roleFilter}`}
+            fullWidth
+            label={`Role: ${roleFilter}`}
+            onPress={cycleRoleFilter}
+            testID="group-member-role-filter"
+          />
+        </View>
         {members.length > 0 ? (
-          <View style={styles.list}>
-            {members.map((member) => {
-              const memberName = member.profile?.full_name?.trim() || "Unnamed member";
-              return (
-                <MemberRow
-                  key={member.membershipId}
-                  name={memberName}
-                  onCall={() => showPrototypeMessage(`Call action selected for ${memberName}.`)}
-                  phone={member.profile?.phone ?? "Phone unavailable"}
-                  role={toGroupDisplayRole(member.role)}
-                  testID={`group-member-${member.membershipId}`}
-                />
-              );
-            })}
-          </View>
+          filteredMembers.length > 0 ? (
+            <View style={styles.list}>
+              {filteredMembers.map((member) => {
+                const memberName = member.profile?.full_name?.trim() || "Unnamed member";
+                return (
+                  <MemberRow
+                    key={member.membershipId}
+                    name={memberName}
+                    onCall={() => void callMember(memberName, member.profile?.phone ?? null)}
+                    phone={member.profile?.phone ?? "Phone unavailable"}
+                    role={toGroupDisplayRole(member.role)}
+                    statusLabel={member.status}
+                    testID={`group-member-${member.membershipId}`}
+                  />
+                );
+              })}
+            </View>
+          ) : (
+            <EmptyState
+              actionLabel="Clear Filters"
+              description="Try another name, phone number, or role."
+              onActionPress={() => {
+                setMemberQuery("");
+                setRoleFilter("all");
+              }}
+              testID="group-members-no-results"
+              title="No matching members"
+            />
+          )
         ) : (
           <EmptyState
             description="Active members added to this group will appear here."
@@ -322,6 +385,9 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: spacing.sm,
+  },
+  filters: {
+    gap: spacing.md,
   },
   archivedNotice: {
     gap: spacing.half,

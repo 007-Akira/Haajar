@@ -41,5 +41,6 @@ export interface EventMember {
   role: EventMembershipRow["role"];
   status: EventMembershipRow["status"];
   joinedAt: EventMembershipRow["created_at"];
-  profile: Pick<ProfileRow, "id" | "full_name" | "email" | "phone"> | null;
+  internalGroupCount: number;
+  profile: Pick<ProfileRow, "id" | "full_name" | "phone"> | null;
 }

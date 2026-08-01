@@ -38,5 +38,5 @@ export interface GroupMember {
   status: GroupMembershipRow["status"];
   approvedAt: GroupMembershipRow["approved_at"];
   joinedAt: GroupMembershipRow["created_at"];
-  profile: Pick<ProfileRow, "id" | "full_name" | "email" | "phone"> | null;
+  profile: Pick<ProfileRow, "id" | "full_name" | "phone"> | null;
 }

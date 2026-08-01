@@ -12,6 +12,7 @@ export interface MemberRowProps {
   phone: string;
   internalGroupCount?: number;
   role?: UserRole;
+  statusLabel?: string;
   onCall: () => void;
   accessibilityLabel?: string;
   testID?: string;
@@ -22,6 +23,7 @@ export function MemberRow({
   phone,
   internalGroupCount,
   role,
+  statusLabel,
   onCall,
   accessibilityLabel,
   testID,
@@ -44,6 +46,9 @@ export function MemberRow({
           </Text>
         ) : null}
         {role ? <RoleBadge role={role} /> : null}
+        {statusLabel ? (
+          <Text style={styles.status}>{`[ ${statusLabel.toUpperCase()} ]`}</Text>
+        ) : null}
       </View>
       <IconButton
         accessibilityLabel={`Call ${name}`}
@@ -82,5 +87,9 @@ const styles = StyleSheet.create({
   groupCount: {
     ...typography.technicalLabel,
     color: colors.textSecondary,
+  },
+  status: {
+    ...typography.technicalLabel,
+    color: colors.success,
   },
 });

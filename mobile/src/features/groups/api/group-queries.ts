@@ -163,7 +163,7 @@ export async function listGroupMembers({
 
   const profilesResult = await supabase
     .from("profiles")
-    .select("id, full_name, email, phone")
+    .select("id, full_name, phone")
     .in(
       "id",
       membershipsResult.data.map((membership) => membership.user_id)

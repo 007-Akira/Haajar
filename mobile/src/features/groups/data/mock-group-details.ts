@@ -1,5 +1,12 @@
 import type { Status, UserRole } from "@/components";
-import type { MockEventMember } from "@/features/events/data/mock-event-members";
+
+interface MockGroupMember {
+  id: string;
+  name: string;
+  phone: string;
+  eventRole?: UserRole;
+  internalGroupCount: number;
+}
 
 export interface MockRecentRollCall {
   id: string;
@@ -33,13 +40,13 @@ export interface MockGroupDetails {
     presentCount: number;
     pendingSyncCount: number;
   };
-  members: MockEventMember[];
+  members: MockGroupMember[];
   recentRollCalls: MockRecentRollCall[];
   information: MockGroupInformation[];
   membership: MockGroupMembership;
 }
 
-const groupMembers: MockEventMember[] = [
+const groupMembers: MockGroupMember[] = [
   {
     id: "mathews-joseph",
     name: "Mathews Joseph",
