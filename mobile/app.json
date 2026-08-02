@@ -30,6 +30,12 @@
         }
       ],
       "expo-status-bar",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Haajar to scan membership tickets during roll call."
+        }
+      ],
       "expo-secure-store",
       "expo-web-browser",
       "expo-sharing",

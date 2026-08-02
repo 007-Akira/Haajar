@@ -4,14 +4,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
-import { SyncBadge } from "../status/sync-badge";
-
 export interface ScannerOverlayProps {
   groupName: string;
   rollCallName: string;
-  online: boolean;
-  pendingSyncCount: number;
   flashEnabled: boolean;
+  paused?: boolean;
   onToggleFlash: () => void;
   testID?: string;
 }
@@ -22,12 +19,9 @@ export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
       <View style={styles.meta}>
         <Text style={styles.group}>{props.groupName}</Text>
         <Text style={styles.rollCall}>{props.rollCallName}</Text>
-        <View style={styles.statusRow}>
-          <SyncBadge state={props.pendingSyncCount > 0 ? "pending" : "synced"} />
-          <Text style={styles.connection}>{props.online ? "ONLINE" : "OFFLINE"}</Text>
-        </View>
+        <Text style={styles.connection}>{props.paused ? "PROCESSING" : "READY TO SCAN"}</Text>
       </View>
-      <View accessibilityLabel="Mock QR scan frame" accessibilityRole="image" style={styles.frame}>
+      <View accessibilityLabel="QR scan frame" accessibilityRole="image" style={styles.frame}>
         <View style={[styles.corner, styles.topLeft]} />
         <View style={[styles.corner, styles.topRight]} />
         <View style={[styles.corner, styles.bottomLeft]} />
@@ -53,11 +47,21 @@ export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "space-between", gap: spacing.lg },
+  container: {
+    position: "absolute",
+    top: spacing.none,
+    right: spacing.none,
+    bottom: spacing.none,
+    left: spacing.none,
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.lg,
+    padding: spacing.lg,
+    paddingTop: spacing["3xl"],
+  },
   meta: { alignSelf: "stretch", gap: spacing.half },
   group: { ...typography.headingLarge, color: colors.textInverse },
   rollCall: { ...typography.body, color: colors.gridLine },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   connection: { ...typography.technicalLabel, color: colors.textInverse },
   frame: {
     width: layout.qrPlaceholderSize,

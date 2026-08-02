@@ -5,6 +5,7 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { PrimaryButton } from "../actions/primary-button";
 import { SecondaryButton } from "../actions/secondary-button";
+import { InitialsBadge } from "../status/initials-badge";
 import { RoleBadge, type UserRole } from "../status/role-badge";
 
 export interface RegistrationAnswer {
@@ -15,12 +16,13 @@ export interface RegistrationAnswer {
 export interface MemberVerificationSheetProps {
   visible: boolean;
   memberName: string;
-  phone: string;
+  phone?: string | null;
   groupName: string;
   role: UserRole;
-  registrationAnswers: RegistrationAnswer[];
+  registrationAnswers?: RegistrationAnswer[];
   attendanceStatus: string;
   previousMarkingTime?: string;
+  confirmLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   testID?: string;
@@ -45,21 +47,24 @@ export function MemberVerificationSheet(props: MemberVerificationSheetProps): JS
           <View style={styles.handle} />
           <Text style={styles.eyebrow}>[ VERIFY MEMBER ]</Text>
           <View style={styles.header}>
+            <InitialsBadge name={props.memberName} />
             <View style={styles.copy}>
               <Text style={styles.name}>{props.memberName}</Text>
-              <Text style={styles.meta}>{props.phone}</Text>
+              {props.phone ? <Text style={styles.meta}>{props.phone}</Text> : null}
               <Text style={styles.meta}>{props.groupName}</Text>
             </View>
             <RoleBadge role={props.role} />
           </View>
-          <View style={styles.answers}>
-            {props.registrationAnswers.map((answer) => (
-              <View key={answer.label} style={styles.answer}>
-                <Text style={styles.answerLabel}>{answer.label.toUpperCase()}</Text>
-                <Text style={styles.answerValue}>{answer.value}</Text>
-              </View>
-            ))}
-          </View>
+          {props.registrationAnswers?.length ? (
+            <View style={styles.answers}>
+              {props.registrationAnswers.map((answer) => (
+                <View key={answer.label} style={styles.answer}>
+                  <Text style={styles.answerLabel}>{answer.label.toUpperCase()}</Text>
+                  <Text style={styles.answerValue}>{answer.value}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           <Text
             style={styles.status}
           >{`CURRENT STATUS: ${props.attendanceStatus.toUpperCase()}`}</Text>
@@ -69,6 +74,8 @@ export function MemberVerificationSheet(props: MemberVerificationSheetProps): JS
           <PrimaryButton
             fullWidth
             label="Confirm Present"
+            loading={props.confirmLoading}
+            disabled={props.confirmLoading}
             onPress={props.onConfirm}
             testID="confirm-present-button"
           />

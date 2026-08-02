@@ -4,6 +4,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import {
   mapQrCredentialResult,
   mapMembershipQrResolution,
+  redactQrToken,
   type MembershipQr,
   type MembershipQrResolution,
   type QrCredentialMutationResult,
@@ -19,7 +20,7 @@ export async function resolveMembershipQr(
     presented_token: presentedToken,
     expected_group_id: expectedGroupId,
   });
-  if (error) throwSupabaseError(error, "resolveMembershipQr");
+  if (error) throwSupabaseError(redactQrToken(error), "resolveMembershipQr");
   const result = data[0];
   if (!result) {
     throw new AppError({

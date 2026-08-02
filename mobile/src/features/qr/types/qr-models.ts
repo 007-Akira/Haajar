@@ -125,6 +125,11 @@ export function mapQrCredentialResult(row: QrRpcRow): QrCredentialMutationResult
 }
 
 export function redactQrToken<T>(value: T): T {
+  if (typeof value === "string") {
+    return value
+      .replace(/hjr:[1-9][0-9]{0,8}:[a-f0-9]{64}/gi, redactedQrToken)
+      .replace(/\b[a-f0-9]{64}\b/gi, redactedQrToken) as T;
+  }
   if (Array.isArray(value)) return value.map((item) => redactQrToken(item)) as T;
   if (typeof value !== "object" || value === null) return value;
 
