@@ -24,10 +24,7 @@ export function getCreateRollCallAccess(
   if (context.groupStatus !== "active" || context.eventStatus === "archived") {
     return { allowed: false, reason: "archived" };
   }
-  if (
-    context.membershipStatus !== "active" ||
-    context.membershipRole !== "super_organiser"
-  ) {
+  if (context.membershipStatus !== "active" || context.membershipRole !== "super_organiser") {
     return { allowed: false, reason: "unauthorised" };
   }
   if (context.activeMemberCount < 1) {
