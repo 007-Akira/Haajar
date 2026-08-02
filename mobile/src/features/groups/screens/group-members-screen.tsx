@@ -33,7 +33,7 @@ const tabs: { label: string; value: Filter }[] = [
 
 export function GroupMembersScreen(): JSX.Element {
   const router = useRouter();
-  const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
+  const { eventId, groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const groupQuery = useGroup(groupId);
@@ -142,6 +142,12 @@ export function GroupMembersScreen(): JSX.Element {
                 key={member.membershipId}
                 name={name}
                 onCall={() => void openPhoneLink(member.profile?.phone ?? null)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/events/[eventId]/groups/[groupId]/members/[membershipId]" as never,
+                    params: { eventId, groupId, membershipId: member.membershipId },
+                  })
+                }
                 phone={member.profile?.phone ?? "Phone unavailable"}
                 role={toGroupDisplayRole(member.role)}
                 statusLabel={member.status}

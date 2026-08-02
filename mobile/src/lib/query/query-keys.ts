@@ -26,6 +26,8 @@ export const queryKeys = {
       ["groups", "detail", groupId, userId ?? "anonymous"] as const,
     members: (groupId: string, userId?: string) =>
       ["groups", groupId, "members", userId ?? "anonymous"] as const,
+    memberDetail: (groupId: string, membershipId: string, userId: string) =>
+      ["groups", groupId, "members", membershipId, userId] as const,
   },
   memberships: {
     all: ["memberships"] as const,

@@ -78,6 +78,7 @@ const roleActionConfiguration: Record<GroupDisplayRole, RoleActionConfiguration>
       "registration-form",
       "join-requests",
       "share-invitation",
+      "assign-roles",
       "offline-roster",
       "attendance-history",
     ],

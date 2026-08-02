@@ -72,3 +72,5 @@ export interface GroupMember {
   joinedAt: GroupMembershipRow["created_at"];
   profile: Pick<ProfileRow, "id" | "full_name" | "phone"> | null;
 }
+
+export type GroupMembershipRole = GroupMembershipRow["role"];

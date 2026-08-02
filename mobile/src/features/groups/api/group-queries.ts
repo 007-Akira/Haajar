@@ -29,6 +29,11 @@ export interface ListGroupMembersParameters {
   groupId: string;
 }
 
+export interface GetGroupMemberParameters {
+  groupId: string;
+  membershipId: string;
+}
+
 function jsonObject(value: Json): Record<string, Json | undefined> {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
@@ -229,4 +234,35 @@ export async function listGroupMembers({
     joinedAt: membership.created_at,
     profile: profilesById.get(membership.user_id) ?? null,
   }));
+}
+
+export async function getGroupMember({
+  groupId,
+  membershipId,
+}: GetGroupMemberParameters): Promise<GroupMember | null> {
+  const { data: membership, error: membershipError } = await getSupabaseClient()
+    .from("group_memberships")
+    .select("*")
+    .eq("id", membershipId)
+    .eq("group_id", groupId)
+    .maybeSingle();
+  if (membershipError) throwSupabaseError(membershipError, "getGroupMember.membership");
+  if (!membership) return null;
+
+  const { data: profile, error: profileError } = await getSupabaseClient()
+    .from("profiles")
+    .select("id, full_name, phone")
+    .eq("id", membership.user_id)
+    .maybeSingle();
+  if (profileError) throwSupabaseError(profileError, "getGroupMember.profile");
+
+  return {
+    membershipId: membership.id,
+    userId: membership.user_id,
+    role: membership.role,
+    status: membership.status,
+    approvedAt: membership.approved_at,
+    joinedAt: membership.created_at,
+    profile,
+  };
 }

@@ -187,7 +187,11 @@ export function GroupDetailsScreen(): JSX.Element {
       return;
     }
 
-    if (actionId === "view-members") {
+    if (
+      actionId === "view-members" ||
+      actionId === "manage-members" ||
+      actionId === "assign-roles"
+    ) {
       router.push({
         pathname: "/events/[eventId]/groups/[groupId]/members" as never,
         params: groupRouteParams,
@@ -372,6 +376,16 @@ export function GroupDetailsScreen(): JSX.Element {
                     key={member.membershipId}
                     name={memberName}
                     onCall={() => void callMember(memberName, member.profile?.phone ?? null)}
+                    onPress={() =>
+                      router.push({
+                        pathname:
+                          "/events/[eventId]/groups/[groupId]/members/[membershipId]" as never,
+                        params: {
+                          ...groupRouteParams,
+                          membershipId: member.membershipId,
+                        },
+                      })
+                    }
                     phone={member.profile?.phone ?? "Phone unavailable"}
                     role={toGroupDisplayRole(member.role)}
                     statusLabel={member.status}

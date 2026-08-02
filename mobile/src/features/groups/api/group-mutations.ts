@@ -1,6 +1,11 @@
 import { AppError, appErrorCodes, throwSupabaseError, userSafeErrorMessages } from "@/lib/errors";
 import { getSupabaseClient } from "@/lib/supabase";
 
+import type { AssignableGroupRole } from "../config/role-management";
+import { mapRoleChangeError, toChangeGroupRoleRpcArgs } from "../config/role-change-contract";
+
+export { mapRoleChangeError, toChangeGroupRoleRpcArgs } from "../config/role-change-contract";
+
 export interface CreateGroupParameters {
   eventId: string;
   name: string;
@@ -33,4 +38,37 @@ export async function createGroup({
 
   if (error) throwSupabaseError(error, "createGroup");
   return data;
+}
+
+export interface ChangeGroupMemberRoleParameters {
+  membershipId: string;
+  role: AssignableGroupRole;
+}
+
+export interface ChangeGroupMemberRoleResult {
+  membershipId: string;
+  qrRotated: boolean;
+}
+
+export async function changeGroupMemberRole({
+  membershipId,
+  role,
+}: ChangeGroupMemberRoleParameters): Promise<ChangeGroupMemberRoleResult> {
+  const { data, error } = await getSupabaseClient().rpc(
+    "change_group_membership_role",
+    toChangeGroupRoleRpcArgs({ membershipId, role })
+  );
+  if (error) throw mapRoleChangeError(error);
+  const result = data[0];
+  if (!result) {
+    throw new AppError({
+      code: appErrorCodes.database,
+      message: userSafeErrorMessages[appErrorCodes.database],
+      retryable: true,
+    });
+  }
+  return {
+    membershipId: result.group_membership_id,
+    qrRotated: Boolean(result.qr_credential_id),
+  };
 }
