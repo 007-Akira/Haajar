@@ -1,61 +1,162 @@
-import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
+  LoadingSkeleton,
   PageHeader,
   PrimaryButton,
   ScreenContainer,
   SecondaryButton,
   TextField,
 } from "@/components";
+import { useGroup } from "@/features/groups/hooks/use-group";
+import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
+import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
+import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
-import { rollCallNameExamples } from "../data/mock-roll-calls";
-import { getMockAttendanceGroupContext } from "../data/mock-attendance-group-context";
-import { getRollCallPermissions } from "../permissions/roll-call-permissions";
+import {
+  buildRollCallDashboardRoute,
+  createRollCallFailureMessage,
+  getCreateRollCallAccess,
+  mapCreateRollCallFailure,
+  normalizeRollCallTitle,
+  type CreateRollCallFailure,
+} from "../config/create-roll-call-flow";
+import { useActiveRollCall } from "../hooks/use-active-roll-call";
+import { useCreateRollCall } from "../hooks/use-create-roll-call";
 
 export function CreateRollCallScreen(): JSX.Element {
   const router = useRouter();
-  const { eventId, groupId } = useLocalSearchParams<{
-    eventId: string;
-    groupId: string;
-  }>();
-  const group = getMockAttendanceGroupContext(eventId, groupId);
-  const [name, setName] = useState("");
-  const [note, setNote] = useState("");
-  const [notifyMembers, setNotifyMembers] = useState(true);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const canCreate = group ? getRollCallPermissions(group.userRole).canCreate : false;
-  const nameError = submitted && !name.trim() ? "Enter a roll-call name." : undefined;
+  const { eventId, groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
+  const [label, setLabel] = useState("");
+  const [failure, setFailure] = useState<CreateRollCallFailure | null>(null);
+  const groupQuery = useGroup(groupId);
+  const membershipQuery = useGroupMembership(groupId);
+  const membersQuery = useGroupMembers(groupId);
+  const activeRollCallQuery = useActiveRollCall(groupId);
+  const createMutation = useCreateRollCall();
+  const activeRollCallId = activeRollCallQuery.data?.id;
 
-  function handleStart(): void {
-    setSubmitted(true);
-    if (!group || !canCreate || !name.trim()) return;
-    setLoading(true);
-    setTimeout(() => {
-      router.replace({
-        pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]",
-        params: { eventId, groupId, rollCallId: "morning-assembly" },
-      });
-    }, 700);
+  useEffect(() => {
+    if (!activeRollCallId) return;
+    router.replace(buildRollCallDashboardRoute(eventId, groupId, activeRollCallId));
+  }, [activeRollCallId, eventId, groupId, router]);
+
+  const backAction = {
+    accessibilityLabel: "Go back to group details",
+    icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
+    onPress: () => router.back(),
+    testID: "create-roll-call-back",
+  };
+  const loading =
+    groupQuery.isLoading ||
+    membershipQuery.isLoading ||
+    membersQuery.isLoading ||
+    activeRollCallQuery.isLoading;
+
+  if (loading || activeRollCallId) {
+    return (
+      <ScreenContainer scroll showGrid testID="create-roll-call-loading">
+        <PageHeader leadingAction={backAction} title="Start Roll Call" />
+        <LoadingSkeleton lines={layout.skeletonDefaultLines} />
+      </ScreenContainer>
+    );
   }
 
-  if (!group || !canCreate) {
+  const failedQuery = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].find(
+    (query) => query.isError
+  );
+  if (failedQuery) {
     return (
-      <ScreenContainer showGrid testID="create-roll-call-denied">
+      <ScreenContainer showGrid testID="create-roll-call-query-error">
+        <PageHeader leadingAction={backAction} title="Start Roll Call" />
+        <EmptyState
+          actionLabel="Retry"
+          description={
+            isAppError(failedQuery.error)
+              ? failedQuery.error.message
+              : userSafeErrorMessages.UNKNOWN_ERROR
+          }
+          onActionPress={() => {
+            void groupQuery.refetch();
+            void membershipQuery.refetch();
+            void membersQuery.refetch();
+            void activeRollCallQuery.refetch();
+          }}
+          title="Could not prepare roll call"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  const group = groupQuery.data;
+  const membership = membershipQuery.data;
+  const activeMemberCount = membersQuery.data?.length ?? 0;
+  if (!group) {
+    return (
+      <ScreenContainer showGrid testID="create-roll-call-missing-group">
+        <PageHeader leadingAction={backAction} title="Start Roll Call" />
         <EmptyState
           actionLabel="Go Back"
-          description="Only organisers and super organisers can create a roll call."
+          description="This group could not be found."
+          onActionPress={() => router.back()}
+          title="Group unavailable"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  const access = getCreateRollCallAccess({
+    membershipRole: membership?.role ?? null,
+    membershipStatus: membership?.status ?? null,
+    groupStatus: group.status,
+    eventStatus: group.eventStatus,
+    activeMemberCount,
+  });
+  if (!access.allowed) {
+    const descriptions = {
+      archived: "Archived groups or trips cannot start a roll call.",
+      no_active_members: "Add an active member before starting a roll call.",
+      unauthorised: "Only an active organiser or super organiser can start a roll call.",
+    } as const;
+    return (
+      <ScreenContainer showGrid testID={`create-roll-call-blocked-${access.reason}`}>
+        <PageHeader leadingAction={backAction} title="Start Roll Call" />
+        <EmptyState
+          actionLabel="Go Back"
+          description={descriptions[access.reason ?? "unauthorised"]}
           onActionPress={() => router.back()}
           title="Action unavailable"
         />
       </ScreenContainer>
     );
+  }
+  const selectedGroupId = group.id;
+
+  async function handleStart(): Promise<void> {
+    setFailure(null);
+    try {
+      const rollCallId = await createMutation.createRollCall({
+        groupId: selectedGroupId,
+        title: normalizeRollCallTitle(label),
+      });
+      router.replace(buildRollCallDashboardRoute(eventId, selectedGroupId, rollCallId));
+    } catch (error) {
+      const mappedFailure = mapCreateRollCallFailure(error);
+      if (mappedFailure === "active_roll_call_exists") {
+        const refreshed = await activeRollCallQuery.refetch();
+        if (refreshed.data) {
+          router.replace(buildRollCallDashboardRoute(eventId, selectedGroupId, refreshed.data.id));
+          return;
+        }
+      }
+      setFailure(mappedFailure);
+    }
   }
 
   return (
@@ -67,87 +168,94 @@ export function CreateRollCallScreen(): JSX.Element {
       testID="create-roll-call-screen"
     >
       <PageHeader
-        leadingAction={{
-          accessibilityLabel: "Go back to group details",
-          icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
-          onPress: () => router.back(),
-        }}
-        subtitle={group.name}
-        title="Create Roll Call"
+        leadingAction={backAction}
+        subtitle={group.eventName ?? "Trip"}
+        title="Start Roll Call"
       />
-      <View style={styles.form}>
-        <TextField
-          error={nameError}
-          label="Roll-call name"
-          onChangeText={setName}
-          placeholder="Morning assembly"
-          required
-          testID="roll-call-name-field"
-          value={name}
-        />
-        <TextField
-          label="Note"
-          multiline
-          onChangeText={setNote}
-          placeholder="Optional instructions"
-          testID="roll-call-note-field"
-          value={note}
-        />
-        <View style={styles.examples}>
-          <Text style={styles.examplesLabel}>[ EXAMPLES ]</Text>
-          {rollCallNameExamples.map((example) => (
-            <SecondaryButton
-              fullWidth
-              key={example}
-              label={example}
-              onPress={() => setName(example)}
-            />
-          ))}
-        </View>
-        <View style={styles.toggleRow}>
-          <View style={styles.toggleCopy}>
-            <Text style={styles.toggleTitle}>Notify members</Text>
-            <Text style={styles.toggleDescription}>Mock preference only.</Text>
-          </View>
-          <Switch
-            accessibilityLabel="Notify members"
-            accessibilityRole="switch"
-            onValueChange={setNotifyMembers}
-            testID="notify-members-toggle"
-            thumbColor={colors.surface}
-            trackColor={{ false: colors.border, true: colors.accent }}
-            value={notifyMembers}
-          />
+
+      <View style={styles.summary} testID="create-roll-call-group-summary">
+        <Text style={styles.eyebrow}>[ CURRENT ROSTER ]</Text>
+        <Text style={styles.groupName}>{group.name}</Text>
+        <Text style={styles.tripName}>{group.eventName ?? "Trip"}</Text>
+        <View style={styles.countRow}>
+          <Text style={styles.count}>{activeMemberCount}</Text>
+          <Text style={styles.countLabel}>ACTIVE MEMBERS</Text>
         </View>
       </View>
-      <PrimaryButton
-        fullWidth
-        label="Start Roll Call"
-        loading={loading}
-        onPress={handleStart}
-        testID="submit-roll-call-button"
+
+      <View style={styles.notice}>
+        <Text style={styles.noticeTitle}>Roster snapshot</Text>
+        <Text style={styles.noticeBody}>
+          Starting now will use the group’s current active members. This roster is preserved for the
+          roll call even if membership details change later.
+        </Text>
+      </View>
+
+      <TextField
+        accessibilityLabel="Optional roll-call label"
+        helperText="Optional. Haajar will use “Roll call” when left blank."
+        label="Roll-call label"
+        onChangeText={setLabel}
+        placeholder="Before departure"
+        testID="roll-call-label-field"
+        value={label}
       />
+
+      {failure ? (
+        <Text accessibilityRole="alert" style={styles.error} testID="create-roll-call-error">
+          {createRollCallFailureMessage(failure)}
+        </Text>
+      ) : null}
+
+      <View style={styles.actions}>
+        <PrimaryButton
+          accessibilityLabel="Start roll call with current active roster"
+          disabled={createMutation.isPending}
+          fullWidth
+          label="Start Roll Call"
+          loading={createMutation.isPending}
+          onPress={() => void handleStart()}
+          testID="submit-roll-call-button"
+        />
+        <SecondaryButton
+          accessibilityLabel="Cancel starting roll call"
+          disabled={createMutation.isPending}
+          fullWidth
+          label="Cancel"
+          onPress={() => router.back()}
+          testID="cancel-roll-call-button"
+        />
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   content: { gap: spacing.xl, paddingBottom: spacing["2xl"] },
-  form: { gap: spacing.xl },
-  examples: { gap: spacing.xs },
-  examplesLabel: { ...typography.technicalLabel, color: colors.textSecondary },
-  toggleRow: {
-    minHeight: layout.minimumTouchTarget,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
+  summary: {
+    gap: spacing.xs,
+    padding: spacing.lg,
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.md,
+  },
+  eyebrow: { ...typography.technicalLabel, color: colors.accent },
+  groupName: { ...typography.headingLarge, color: colors.textPrimary },
+  tripName: { ...typography.body, color: colors.textSecondary },
+  countRow: { flexDirection: "row", alignItems: "baseline", gap: spacing.sm },
+  count: { ...typography.displayLarge, color: colors.textPrimary },
+  countLabel: { ...typography.technicalLabel, color: colors.textSecondary },
+  notice: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
     borderWidth: layout.borderWidth,
     borderRadius: radii.sm,
   },
-  toggleCopy: { flex: 1, gap: spacing.half },
-  toggleTitle: { ...typography.bodyMedium, color: colors.textPrimary },
-  toggleDescription: { ...typography.caption, color: colors.textSecondary },
+  noticeTitle: { ...typography.bodyMedium, color: colors.textPrimary },
+  noticeBody: { ...typography.body, color: colors.textSecondary },
+  error: { ...typography.bodyMedium, color: colors.danger },
+  actions: { gap: spacing.sm },
 });
