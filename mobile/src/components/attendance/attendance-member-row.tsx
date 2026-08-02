@@ -5,6 +5,7 @@ import type { DashboardMemberStatus as AttendanceStatus } from "@/features/atten
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { StatusBadge } from "../status/status-badge";
+import { SecondaryButton } from "../actions/secondary-button";
 
 export interface AttendanceMemberRowProps {
   name: string;
@@ -13,6 +14,8 @@ export interface AttendanceMemberRowProps {
   markedAt?: string;
   markingMethod?: "qr" | "manual" | "offline_sync";
   markedBy?: string;
+  sourceGroup?: string;
+  onCall?: () => void;
   testID?: string;
 }
 
@@ -23,6 +26,8 @@ export function AttendanceMemberRow({
   markedAt,
   markingMethod,
   markedBy,
+  sourceGroup,
+  onCall,
   testID,
 }: AttendanceMemberRowProps): JSX.Element {
   return (
@@ -30,6 +35,7 @@ export function AttendanceMemberRow({
       <View style={styles.copy}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.meta}>{phone}</Text>
+        {sourceGroup ? <Text style={styles.meta}>{`Subgroup: ${sourceGroup}`}</Text> : null}
         {markedAt ? <Text style={styles.meta}>{`Marked ${markedAt}`}</Text> : null}
         {markingMethod ? (
           <Text
@@ -43,6 +49,11 @@ export function AttendanceMemberRow({
       ) : (
         <StatusBadge status={status} />
       )}
+      {onCall ? (
+        <View style={styles.callAction}>
+          <SecondaryButton label="Call" onPress={onCall} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -62,4 +73,5 @@ const styles = StyleSheet.create({
   name: { ...typography.bodyMedium, color: colors.textPrimary },
   meta: { ...typography.caption, color: colors.textSecondary },
   unmarked: { ...typography.badge, color: colors.textSecondary },
+  callAction: { minWidth: layout.minimumTouchTarget },
 });

@@ -76,7 +76,12 @@ test("closed summary maps snapshot absences and authorised marker attribution", 
       can_view_full_history: true,
     },
   });
-  assert.deepEqual(dashboard.counts, { totalRoster: 2, present: 1, remaining: 1 });
+  assert.deepEqual(dashboard.counts, {
+    totalRoster: 2,
+    present: 1,
+    remaining: 1,
+    percentage: 50,
+  });
   assert.equal(dashboard.remainingMembers[0]?.status, "absent");
   assert.equal(dashboard.presentMembers[0]?.markingMethod, "manual");
   assert.equal(dashboard.presentMembers[0]?.markedByName, "Adithya");
@@ -94,10 +99,10 @@ test("history uses the stored roster snapshot rather than current memberships", 
     new URL("../../supabase/migrations/20260802001100_roll_call_history.sql", import.meta.url),
     "utf8"
   );
-  assert.match(schema, /create table public\.roll_call_roster_members/);
+  assert.match(schema, /create table public\.attendance_unit_roster/);
   assert.match(schema, /on delete restrict/);
-  assert.match(migration, /public\.roll_call_roster_members/);
-  assert.match(migration, /order by roll_call\.started_at desc/);
+  assert.match(migration, /public\.attendance_unit_roster/);
+  assert.match(migration, /order by s\.started_at desc/);
   assert.doesNotMatch(migration, /from public\.group_memberships as roster/);
 });
 

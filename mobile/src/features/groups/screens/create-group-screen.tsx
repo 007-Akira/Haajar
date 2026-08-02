@@ -19,12 +19,16 @@ import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { useCreateGroup } from "../hooks/use-create-group";
+import { useGroup } from "../hooks/use-group";
 
 export function CreateGroupScreen(): JSX.Element {
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const params = useLocalSearchParams<{ eventId: string; categoryId?: string; groupId?: string }>();
+  const eventId = params.eventId;
+  const categoryId = params.categoryId ?? params.groupId;
   const router = useRouter();
   const eventQuery = useEvent(eventId);
   const membershipQuery = useEventMembership(eventId);
+  const categoryQuery = useGroup(categoryId);
   const createGroupMutation = useCreateGroup();
   const submissionLock = useRef(false);
   const [name, setName] = useState("");
@@ -47,7 +51,12 @@ export function CreateGroupScreen(): JSX.Element {
 
     submissionLock.current = true;
     try {
-      const groupId = await createGroupMutation.mutateAsync({ eventId, name, description });
+      const groupId = await createGroupMutation.mutateAsync({
+        eventId,
+        categoryId,
+        name,
+        description,
+      });
       if (groupId) {
         router.replace({
           pathname: "/events/[eventId]/groups/[groupId]",
@@ -63,24 +72,35 @@ export function CreateGroupScreen(): JSX.Element {
     }
   }
 
-  if (eventQuery.isLoading || membershipQuery.isLoading || membershipQuery.sessionLoading) {
+  if (
+    eventQuery.isLoading ||
+    membershipQuery.isLoading ||
+    membershipQuery.sessionLoading ||
+    (categoryId ? categoryQuery.isLoading : false)
+  ) {
     return (
       <ScreenContainer
         contentContainerStyle={styles.content}
         showGrid
         testID="create-group-loading"
       >
-        <PageHeader leadingAction={backAction} title="Create Group" />
+        <PageHeader
+          leadingAction={backAction}
+          title={categoryId ? "Create Operational Group" : "Create Category"}
+        />
         <LoadingSkeleton lines={layout.skeletonDefaultLines} />
       </ScreenContainer>
     );
   }
 
-  if (eventQuery.isError || membershipQuery.isError) {
-    const error = eventQuery.error ?? membershipQuery.error;
+  if (eventQuery.isError || membershipQuery.isError || categoryQuery.isError) {
+    const error = eventQuery.error ?? membershipQuery.error ?? categoryQuery.error;
     return (
       <ScreenContainer contentContainerStyle={styles.content} showGrid testID="create-group-error">
-        <PageHeader leadingAction={backAction} title="Create Group" />
+        <PageHeader
+          leadingAction={backAction}
+          title={categoryId ? "Create Operational Group" : "Create Category"}
+        />
         <EmptyState
           actionLabel="Retry"
           description={isAppError(error) ? error.message : userSafeErrorMessages.UNKNOWN_ERROR}
@@ -100,14 +120,22 @@ export function CreateGroupScreen(): JSX.Element {
     eventQuery.data.status !== "active" ||
     !membershipQuery.data ||
     membershipQuery.data.status !== "active" ||
-    !canManageEvent(membershipQuery.data.role)
+    !canManageEvent(membershipQuery.data.role) ||
+    (categoryId
+      ? !categoryQuery.data ||
+        categoryQuery.data.groupKind !== "category" ||
+        categoryQuery.data.status !== "active"
+      : false)
   ) {
     return (
       <ScreenContainer contentContainerStyle={styles.content} showGrid testID="create-group-denied">
-        <PageHeader leadingAction={backAction} title="Create Group" />
+        <PageHeader
+          leadingAction={backAction}
+          title={categoryId ? "Create Operational Group" : "Create Category"}
+        />
         <EmptyState
           actionLabel="Go Back"
-          description="Only an active trip super organiser can create an internal group."
+          description="Only an active trip super organiser can create this group."
           onActionPress={() => router.back()}
           testID="create-group-denied-state"
           title="Action unavailable"
@@ -134,7 +162,7 @@ export function CreateGroupScreen(): JSX.Element {
         leadingAction={backAction}
         subtitle={eventQuery.data.name}
         testID="create-group-header"
-        title="Create Group"
+        title={categoryId ? "Create Operational Group" : "Create Category"}
       />
 
       <View style={styles.form}>
@@ -142,7 +170,7 @@ export function CreateGroupScreen(): JSX.Element {
           accessibilityLabel="Group name"
           autoCapitalize="words"
           error={nameError}
-          label="Group name"
+          label={categoryId ? "Operational group name" : "Category name"}
           onChangeText={setName}
           placeholder="Bus 2"
           required
@@ -163,9 +191,13 @@ export function CreateGroupScreen(): JSX.Element {
       </View>
 
       <View style={styles.scopeInfo} testID="create-group-scope-info">
-        <Text style={styles.infoLabel}>[ INTERNAL GROUP ]</Text>
+        <Text style={styles.infoLabel}>
+          {categoryId ? "[ OPERATIONAL SUBGROUP ]" : "[ CATEGORY GROUP ]"}
+        </Text>
         <Text style={styles.infoBody}>
-          Group names are flexible. Joining questions can be configured after creation.
+          {categoryId
+            ? `This group will operate under ${categoryQuery.data?.name ?? "the selected category"}.`
+            : "Categories organise operational subgroups such as Bus 1 or Train 2."}
         </Text>
       </View>
 
@@ -185,7 +217,7 @@ export function CreateGroupScreen(): JSX.Element {
           accessibilityLabel="Create group"
           disabled={createGroupMutation.isPending}
           fullWidth
-          label="Create Group"
+          label={categoryId ? "Create Operational Group" : "Create Category"}
           loading={createGroupMutation.isPending}
           onPress={() => void handleSubmit()}
           testID="create-group-submit-button"

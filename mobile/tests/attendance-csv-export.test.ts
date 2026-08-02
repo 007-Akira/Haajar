@@ -13,6 +13,9 @@ import type { RollCallDashboard } from "../src/features/attendance/types/attenda
 const dashboard: RollCallDashboard = {
   rollCall: {
     id: "roll-call",
+    sessionId: "session",
+    attendanceUnitId: "roll-call",
+    scopeType: "subgroup",
     eventId: "event",
     groupId: "group",
     title: "Final check",
@@ -22,7 +25,8 @@ const dashboard: RollCallDashboard = {
     closedAt: "2026-08-02T10:00:00.000Z",
     createdBy: "organiser",
   },
-  counts: { totalRoster: 2, present: 1, remaining: 1 },
+  counts: { totalRoster: 2, present: 1, remaining: 1, percentage: 50 },
+  units: [],
   presentMembers: [
     {
       membershipId: "one",
@@ -59,6 +63,7 @@ test("CSV has the exact approved headers and no sensitive fields", () => {
   assert.deepEqual(attendanceCsvHeaders, [
     "Trip Name",
     "Group Name",
+    "Source Subgroup",
     "Roll Call Date",
     "Member Name",
     "Phone",

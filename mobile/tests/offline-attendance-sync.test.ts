@@ -54,8 +54,9 @@ test("sync reconciles already marked and preserves authority conflicts", () => {
   assert.match(queue, /"inactive_membership"/);
   assert.match(queue, /sync_state = 'failed'/);
   assert.match(queue, /2000 \* 2 \*\* attempts/);
-  assert.match(migration, /private\.record_present_attendance/);
-  assert.match(migration, /public\.is_group_attendance_operator/);
+  assert.match(migration, /private\.record_unit_attendance/);
+  assert.match(migration, /attendance_unit_operators/);
+  assert.match(migration, /unit\.unit_type<>'subgroup'/);
 });
 
 test("scanner distinguishes offline verification and never reports it as synced", () => {

@@ -26,7 +26,7 @@ export function getCreateRollCallAccess(
   }
   if (
     context.membershipStatus !== "active" ||
-    !["organiser", "super_organiser"].includes(context.membershipRole ?? "")
+    context.membershipRole !== "super_organiser"
   ) {
     return { allowed: false, reason: "unauthorised" };
   }
@@ -59,9 +59,9 @@ export function mapCreateRollCallFailure(error: unknown): CreateRollCallFailure 
 
 export function createRollCallFailureMessage(failure: CreateRollCallFailure): string {
   const messages: Record<CreateRollCallFailure, string> = {
-    active_roll_call_exists: "A roll call is already active for this group.",
-    archived: "Archived groups or trips cannot start a roll call.",
-    unauthorised: "You no longer have permission to start this roll call.",
+    active_roll_call_exists: "An attendance session is already active for this category.",
+    archived: "Archived categories or trips cannot start attendance.",
+    unauthorised: "Only a trip super organiser can start category attendance.",
     network_error: "Check your connection and try again.",
     backend_failure: "Haajar could not start the roll call. Please try again.",
   };

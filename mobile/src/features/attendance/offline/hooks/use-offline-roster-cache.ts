@@ -34,6 +34,7 @@ export function useOfflineRosterCache(
       !dashboard ||
       !group ||
       dashboard.rollCall.status !== "active" ||
+      dashboard.rollCall.scopeType !== "subgroup" ||
       group.status !== "active" ||
       group.eventStatus !== "active"
     )
@@ -69,6 +70,7 @@ export function useOfflineRosterCache(
     if (!user || !dashboard) return;
     if (
       dashboard.rollCall.status !== "active" ||
+      dashboard.rollCall.scopeType !== "subgroup" ||
       group?.status !== "active" ||
       group.eventStatus !== "active"
     ) {

@@ -8,12 +8,14 @@ export { mapRoleChangeError, toChangeGroupRoleRpcArgs } from "../config/role-cha
 
 export interface CreateGroupParameters {
   eventId: string;
+  categoryId?: string;
   name: string;
   description?: string;
 }
 
 export async function createGroup({
   eventId,
+  categoryId,
   name,
   description,
 }: CreateGroupParameters): Promise<string> {
@@ -29,11 +31,11 @@ export async function createGroup({
 
   const args = normalizedDescription
     ? {
-        parent_event_id: eventId,
+        parent_event_id: categoryId ?? eventId,
         group_name: normalizedName,
         group_description: normalizedDescription,
       }
-    : { parent_event_id: eventId, group_name: normalizedName };
+    : { parent_event_id: categoryId ?? eventId, group_name: normalizedName };
   const { data, error } = await getSupabaseClient().rpc("create_group", args);
 
   if (error) throwSupabaseError(error, "createGroup");

@@ -6,9 +6,11 @@ import { StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
+  GroupCard,
   LoadingSkeleton,
   MemberRow,
   PageHeader,
+  PrimaryButton,
   RoleBadge,
   ScreenContainer,
   SecondaryButton,
@@ -22,6 +24,7 @@ import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { openPhoneLink } from "@/lib/native/open-phone-link";
 import { usePendingGroupRequests } from "@/features/join-requests/hooks/use-join-requests";
 import { useActiveRollCall } from "@/features/attendance/hooks/use-active-roll-call";
+import { useEventGroups } from "@/features/events/hooks/use-event-groups";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { GroupPrimaryActions } from "../components/group-primary-actions";
@@ -44,6 +47,7 @@ export function GroupDetailsScreen(): JSX.Element {
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
   const activeRollCallQuery = useActiveRollCall(groupId);
+  const eventGroupsQuery = useEventGroups(groupQuery.data?.eventId);
   const canManageRequests =
     membershipQuery.data?.status === "active" &&
     (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
@@ -59,6 +63,7 @@ export function GroupDetailsScreen(): JSX.Element {
     membershipQuery.isLoading ||
     membershipQuery.sessionLoading ||
     activeRollCallQuery.isLoading ||
+    (groupQuery.data?.groupKind === "category" && eventGroupsQuery.isLoading) ||
     (membershipQuery.data?.status === "active" && membersQuery.isLoading);
 
   if (isInitialLoading) {
@@ -76,9 +81,13 @@ export function GroupDetailsScreen(): JSX.Element {
     );
   }
 
-  const failedQuery = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].find(
-    (query) => query.isError
-  );
+  const failedQuery = [
+    groupQuery,
+    membershipQuery,
+    membersQuery,
+    activeRollCallQuery,
+    eventGroupsQuery,
+  ].find((query) => query.isError);
   if (failedQuery) {
     return (
       <ScreenContainer contentContainerStyle={styles.content} showGrid testID="group-details-error">
@@ -95,6 +104,7 @@ export function GroupDetailsScreen(): JSX.Element {
             void membershipQuery.refetch();
             void membersQuery.refetch();
             void activeRollCallQuery.refetch();
+            void eventGroupsQuery.refetch();
           }}
           testID="group-details-error-state"
           title="Could not load group"
@@ -162,9 +172,16 @@ export function GroupDetailsScreen(): JSX.Element {
   const userRole = toGroupDisplayRole(membershipQuery.data.role);
   const isArchived = group.status === "archived";
   const groupRouteParams = { eventId: group.eventId, groupId: group.id };
-  const isRefreshing = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].some(
-    (query) => query.isRefetching
+  const childGroups = (eventGroupsQuery.data ?? []).filter(
+    (candidate) => candidate.parentGroupId === group.id
   );
+  const isRefreshing = [
+    groupQuery,
+    membershipQuery,
+    membersQuery,
+    activeRollCallQuery,
+    eventGroupsQuery,
+  ].some((query) => query.isRefetching);
 
   function refresh(): void {
     void Promise.all([
@@ -172,6 +189,7 @@ export function GroupDetailsScreen(): JSX.Element {
       membershipQuery.refetch(),
       membersQuery.refetch(),
       activeRollCallQuery.refetch(),
+      eventGroupsQuery.refetch(),
     ]);
   }
 
@@ -323,21 +341,37 @@ export function GroupDetailsScreen(): JSX.Element {
         </View>
       </View>
 
-      <View style={styles.ticketPreview} testID="membership-ticket-preview">
-        <View style={styles.ticketCopy}>
-          <Text style={styles.prototypeTitle}>YOUR MEMBERSHIP TICKET</Text>
-          <Text style={styles.description}>{group.eventName ?? "Trip"}</Text>
-          <Text
-            style={styles.memberCount}
-          >{`REF ${membershipQuery.data.id.slice(0, 8).toUpperCase()}`}</Text>
-        </View>
-        <SecondaryButton
-          accessibilityLabel="Open your membership QR"
-          label="Show QR"
-          onPress={() => handleGroupAction("show-my-qr")}
-          testID="membership-ticket-open-qr"
+      {group.groupKind === "category" && !isArchived ? (
+        <PrimaryButton
+          fullWidth
+          label="Add Operational Group"
+          onPress={() =>
+            router.push({
+              pathname: "/events/[eventId]/groups/[groupId]/create-group",
+              params: groupRouteParams,
+            })
+          }
+          testID="add-operational-group"
         />
-      </View>
+      ) : null}
+
+      {group.groupKind === "operational" ? (
+        <View style={styles.ticketPreview} testID="membership-ticket-preview">
+          <View style={styles.ticketCopy}>
+            <Text style={styles.prototypeTitle}>YOUR MEMBERSHIP TICKET</Text>
+            <Text style={styles.description}>{group.eventName ?? "Trip"}</Text>
+            <Text
+              style={styles.memberCount}
+            >{`REF ${membershipQuery.data.id.slice(0, 8).toUpperCase()}`}</Text>
+          </View>
+          <SecondaryButton
+            accessibilityLabel="Open your membership QR"
+            label="Show QR"
+            onPress={() => handleGroupAction("show-my-qr")}
+            testID="membership-ticket-open-qr"
+          />
+        </View>
+      ) : null}
 
       {canManageRequests && (pendingRequestsQuery.data?.length ?? 0) > 0 ? (
         <View style={styles.requestNotice} testID="pending-request-count">
@@ -364,6 +398,7 @@ export function GroupDetailsScreen(): JSX.Element {
                 : undefined
             }
             onActionPress={handleGroupAction}
+            groupKind={group.groupKind}
             role={userRole}
             testID="group-primary-actions"
           />
@@ -376,76 +411,108 @@ export function GroupDetailsScreen(): JSX.Element {
         </Text>
       ) : null}
 
-      <View style={styles.section}>
-        <SectionHeader
-          description={`${members.length} active members belong to this group.`}
-          title="Members"
-        />
-        <View style={styles.filters}>
-          <TextField
-            accessibilityLabel="Search group members by name or phone"
-            label="Search members"
-            onChangeText={setMemberQuery}
-            placeholder="Name or phone number"
-            testID="group-member-search-field"
-            value={memberQuery}
+      {group.groupKind === "category" ? (
+        <View style={styles.section} testID="category-operational-groups">
+          <SectionHeader
+            description="Attendance is operated independently inside each subgroup."
+            title="Operational groups"
           />
-          <SecondaryButton
-            accessibilityLabel={`Filter by group role. Current filter: ${roleFilter}`}
-            fullWidth
-            label={`Role: ${roleFilter}`}
-            onPress={cycleRoleFilter}
-            testID="group-member-role-filter"
-          />
-        </View>
-        {members.length > 0 ? (
-          filteredMembers.length > 0 ? (
+          {childGroups.length > 0 ? (
             <View style={styles.list}>
-              {filteredMembers.map((member) => {
-                const memberName = member.profile?.full_name?.trim() || "Unnamed member";
-                return (
-                  <MemberRow
-                    key={member.membershipId}
-                    name={memberName}
-                    onCall={() => void callMember(memberName, member.profile?.phone ?? null)}
-                    onPress={() =>
-                      router.push({
-                        pathname:
-                          "/events/[eventId]/groups/[groupId]/members/[membershipId]" as never,
-                        params: {
-                          ...groupRouteParams,
-                          membershipId: member.membershipId,
-                        },
-                      })
-                    }
-                    phone={member.profile?.phone ?? "Phone unavailable"}
-                    role={toGroupDisplayRole(member.role)}
-                    statusLabel={member.status}
-                    testID={`group-member-${member.membershipId}`}
-                  />
-                );
-              })}
+              {childGroups.map((child) => (
+                <GroupCard
+                  groupName={child.name}
+                  key={child.id}
+                  memberCount={child.activeMemberCount}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/events/[eventId]/groups/[groupId]",
+                      params: { eventId: child.eventId, groupId: child.id },
+                    })
+                  }
+                  userRole={toGroupDisplayRole(child.currentRole)}
+                />
+              ))}
             </View>
           ) : (
             <EmptyState
-              actionLabel="Clear Filters"
-              description="Try another name, phone number, or role."
-              onActionPress={() => {
-                setMemberQuery("");
-                setRoleFilter("all");
-              }}
-              testID="group-members-no-results"
-              title="No matching members"
+              description="Add an operational subgroup before starting category attendance."
+              title="No operational groups"
             />
-          )
-        ) : (
-          <EmptyState
-            description="Active members added to this group will appear here."
-            testID="group-members-empty"
-            title="No active members"
+          )}
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <SectionHeader
+            description={`${members.length} active members belong to this group.`}
+            title="Members"
           />
-        )}
-      </View>
+          <View style={styles.filters}>
+            <TextField
+              accessibilityLabel="Search group members by name or phone"
+              label="Search members"
+              onChangeText={setMemberQuery}
+              placeholder="Name or phone number"
+              testID="group-member-search-field"
+              value={memberQuery}
+            />
+            <SecondaryButton
+              accessibilityLabel={`Filter by group role. Current filter: ${roleFilter}`}
+              fullWidth
+              label={`Role: ${roleFilter}`}
+              onPress={cycleRoleFilter}
+              testID="group-member-role-filter"
+            />
+          </View>
+          {members.length > 0 ? (
+            filteredMembers.length > 0 ? (
+              <View style={styles.list}>
+                {filteredMembers.map((member) => {
+                  const memberName = member.profile?.full_name?.trim() || "Unnamed member";
+                  return (
+                    <MemberRow
+                      key={member.membershipId}
+                      name={memberName}
+                      onCall={() => void callMember(memberName, member.profile?.phone ?? null)}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            "/events/[eventId]/groups/[groupId]/members/[membershipId]" as never,
+                          params: {
+                            ...groupRouteParams,
+                            membershipId: member.membershipId,
+                          },
+                        })
+                      }
+                      phone={member.profile?.phone ?? "Phone unavailable"}
+                      role={toGroupDisplayRole(member.role)}
+                      statusLabel={member.status}
+                      testID={`group-member-${member.membershipId}`}
+                    />
+                  );
+                })}
+              </View>
+            ) : (
+              <EmptyState
+                actionLabel="Clear Filters"
+                description="Try another name, phone number, or role."
+                onActionPress={() => {
+                  setMemberQuery("");
+                  setRoleFilter("all");
+                }}
+                testID="group-members-no-results"
+                title="No matching members"
+              />
+            )
+          ) : (
+            <EmptyState
+              description="Active members added to this group will appear here."
+              testID="group-members-empty"
+              title="No active members"
+            />
+          )}
+        </View>
+      )}
     </ScreenContainer>
   );
 }

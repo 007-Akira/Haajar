@@ -85,11 +85,12 @@ test("sign-out revokes this app instance before ending the session", () => {
   assert.ok(signOutIndex > revokeIndex);
 });
 
-test("roll-call recipients are active group members and delivery is deduplicated", () => {
+test("attendance-session recipients come from the active snapshot and delivery is deduplicated", () => {
   assert.match(migrationSource, /membership\.status = 'active'/);
   assert.match(migrationSource, /device\.status = 'active'/);
   assert.match(migrationSource, /unique \(job_id, device_id\)/);
-  assert.match(migrationSource, /'roll-call-started:' \|\| new\.roll_call_id/);
+  assert.match(migrationSource, /'attendance-session-started:' \|\| new\.session_id/);
+  assert.match(migrationSource, /attendance_unit_roster/);
   assert.match(migrationSource, /'Roll call has started'/);
 });
 

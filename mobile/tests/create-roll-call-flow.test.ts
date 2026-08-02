@@ -14,7 +14,7 @@ import { createMutationGuard } from "../src/features/attendance/config/mutation-
 (globalThis as typeof globalThis & { __DEV__: boolean }).__DEV__ = false;
 
 const allowedContext = {
-  membershipRole: "organiser",
+  membershipRole: "super_organiser",
   membershipStatus: "active",
   groupStatus: "active",
   eventStatus: "active",
@@ -23,9 +23,10 @@ const allowedContext = {
 
 test("active organisers and super organisers may start a roll call", () => {
   assert.equal(getCreateRollCallAccess(allowedContext).allowed, true);
+  assert.equal(getCreateRollCallAccess(allowedContext).allowed, true);
   assert.equal(
-    getCreateRollCallAccess({ ...allowedContext, membershipRole: "super_organiser" }).allowed,
-    true
+    getCreateRollCallAccess({ ...allowedContext, membershipRole: "organiser" }).allowed,
+    false
   );
 });
 

@@ -137,6 +137,10 @@ export function TripDetailsScreen(): JSX.Element {
 
   const event = eventQuery.data;
   const groups = groupsQuery.data ?? [];
+  const categoryGroups = groups.filter((group) => group.groupKind === "category");
+  const legacyOperationalGroups = groups.filter(
+    (group) => group.groupKind === "operational" && !group.parentGroupId
+  );
   const userRole = toEventDisplayRole(membershipQuery.data.role);
   const isRefreshing = [eventQuery, membershipQuery, groupsQuery, memberCountQuery].some(
     (query) => query.isRefetching
@@ -206,21 +210,51 @@ export function TripDetailsScreen(): JSX.Element {
           <LoadingSkeleton lines={layout.skeletonDefaultLines} testID="trip-groups-loading" />
         ) : groups.length > 0 ? (
           <View style={styles.groupList}>
-            {groups.map((group) => (
-              <GroupCard
-                groupName={group.name}
-                key={group.id}
-                memberCount={group.activeMemberCount}
-                onPress={() =>
-                  router.push({
-                    pathname: "/events/[eventId]/groups/[groupId]",
-                    params: { eventId: event.id, groupId: group.id },
-                  })
-                }
-                testID={`group-card-${group.id}`}
-                userRole={toGroupDisplayRole(group.currentRole)}
-              />
-            ))}
+            {[...categoryGroups, ...legacyOperationalGroups].map((group) => {
+              const children = groups.filter((child) => child.parentGroupId === group.id);
+              return (
+                <View key={group.id} style={styles.hierarchyBranch}>
+                  <Text style={styles.hierarchyLabel}>
+                    {group.groupKind === "category" ? "[ CATEGORY ]" : "[ LEGACY GROUP ]"}
+                  </Text>
+                  <GroupCard
+                    groupName={group.name}
+                    memberCount={
+                      group.groupKind === "category"
+                        ? children.reduce((total, child) => total + child.activeMemberCount, 0)
+                        : group.activeMemberCount
+                    }
+                    onPress={() =>
+                      router.push({
+                        pathname: "/events/[eventId]/groups/[groupId]",
+                        params: { eventId: event.id, groupId: group.id },
+                      })
+                    }
+                    testID={`group-card-${group.id}`}
+                    userRole={toGroupDisplayRole(group.currentRole)}
+                  />
+                  {children.length > 0 ? (
+                    <View style={styles.childGroups}>
+                      {children.map((child) => (
+                        <GroupCard
+                          groupName={child.name}
+                          key={child.id}
+                          memberCount={child.activeMemberCount}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/events/[eventId]/groups/[groupId]",
+                              params: { eventId: event.id, groupId: child.id },
+                            })
+                          }
+                          testID={`group-card-${child.id}`}
+                          userRole={toGroupDisplayRole(child.currentRole)}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         ) : (
           <EmptyState
@@ -257,6 +291,14 @@ const styles = StyleSheet.create({
   },
   groupList: {
     gap: spacing.sm,
+  },
+  hierarchyBranch: { gap: spacing.xs },
+  hierarchyLabel: { ...typography.technicalLabel, color: colors.textSecondary },
+  childGroups: {
+    gap: spacing.xs,
+    paddingLeft: spacing.md,
+    borderLeftColor: colors.border,
+    borderLeftWidth: layout.borderWidth,
   },
   archivedNotice: {
     gap: spacing.half,

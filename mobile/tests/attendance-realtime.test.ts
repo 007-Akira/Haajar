@@ -9,18 +9,18 @@ import {
   isAttendanceChangeForRollCall,
 } from "../src/features/attendance/config/attendance-realtime";
 
-test("subscription identity and database filter are scoped to one roll call", () => {
-  assert.equal(buildAttendanceRealtimeFilter("roll-call-1"), "roll_call_id=eq.roll-call-1");
+test("subscription identity and database filter are scoped to one attendance session", () => {
+  assert.equal(buildAttendanceRealtimeFilter("session-1"), "session_id=eq.session-1");
   assert.equal(
     buildAttendanceRealtimeChannelName("roll-call-1", "user-1"),
     "attendance:roll-call-1:user-1"
   );
 });
 
-test("unrelated roll-call events are ignored", () => {
-  assert.equal(isAttendanceChangeForRollCall("roll-call-1", "roll-call-1"), true);
-  assert.equal(isAttendanceChangeForRollCall("roll-call-2", "roll-call-1"), false);
-  assert.equal(isAttendanceChangeForRollCall(undefined, "roll-call-1"), false);
+test("unrelated attendance-session events are ignored", () => {
+  assert.equal(isAttendanceChangeForRollCall("session-1", "session-1"), true);
+  assert.equal(isAttendanceChangeForRollCall("session-2", "session-1"), false);
+  assert.equal(isAttendanceChangeForRollCall(undefined, "session-1"), false);
 });
 
 test("bursts coalesce into one targeted invalidation", () => {

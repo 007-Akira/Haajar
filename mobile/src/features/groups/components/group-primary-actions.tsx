@@ -18,6 +18,7 @@ export interface ActiveGroupRollCall {
 export interface GroupPrimaryActionsProps {
   role: UserRole;
   activeRollCall?: ActiveGroupRollCall;
+  groupKind?: "category" | "operational";
   onActionPress: (actionId: GroupActionId) => void;
   testID?: string;
 }
@@ -35,10 +36,32 @@ function pairActions(actions: GroupActionDefinition[]): GroupActionDefinition[][
 export function GroupPrimaryActions({
   role,
   activeRollCall,
+  groupKind = "operational",
   onActionPress,
   testID,
 }: GroupPrimaryActionsProps): JSX.Element {
-  const sections = getGroupActionSections(role, Boolean(activeRollCall));
+  const configuredSections = getGroupActionSections(role, Boolean(activeRollCall));
+  const sections =
+    groupKind === "category" && role === "super organiser"
+      ? {
+          primary: {
+            id: activeRollCall ? ("active-roll-call" as const) : ("start-roll-call" as const),
+            label: activeRollCall ? "Open Attendance" : "Start Category Attendance",
+          },
+          priority: [],
+          more: [
+            { id: "attendance-history" as const, label: "Attendance History" },
+            { id: "export-attendance" as const, label: "Export Attendance" },
+          ],
+          showsRollCallState: true,
+        }
+      : configuredSections.primary.id === "start-roll-call"
+        ? {
+            ...configuredSections,
+            primary: { id: "view-members" as const, label: "View Members" },
+            priority: configuredSections.priority.filter((action) => action.id !== "view-members"),
+          }
+        : configuredSections;
 
   return (
     <View style={styles.container} testID={testID}>

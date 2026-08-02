@@ -13,6 +13,9 @@ import type { RollCallDashboard } from "../src/features/attendance/types/attenda
 const dashboard: RollCallDashboard = {
   rollCall: {
     id: "roll-call-1",
+    sessionId: "session-1",
+    attendanceUnitId: "roll-call-1",
+    scopeType: "subgroup",
     eventId: "event-1",
     groupId: "group-1",
     title: "Before departure",
@@ -22,7 +25,8 @@ const dashboard: RollCallDashboard = {
     closedAt: null,
     createdBy: "user-1",
   },
-  counts: { totalRoster: 3, present: 1, remaining: 2 },
+  counts: { totalRoster: 3, present: 1, remaining: 2, percentage: 33.3 },
+  units: [],
   presentMembers: [
     {
       membershipId: "membership-1",
@@ -61,7 +65,12 @@ const dashboard: RollCallDashboard = {
 };
 
 test("real dashboard counts and creator are used", () => {
-  assert.deepEqual(dashboard.counts, { totalRoster: 3, present: 1, remaining: 2 });
+  assert.deepEqual(dashboard.counts, {
+    totalRoster: 3,
+    present: 1,
+    remaining: 2,
+    percentage: 33.3,
+  });
   assert.equal(getRollCallCreatorName(dashboard), "Adithya");
 });
 
@@ -103,7 +112,7 @@ test("closed, empty, archived, and unauthorised states are explicit", () => {
   assert.equal(
     getAttendanceDashboardState({
       ...dashboard,
-      counts: { totalRoster: 0, present: 0, remaining: 0 },
+      counts: { totalRoster: 0, present: 0, remaining: 0, percentage: 0 },
     }),
     "empty"
   );

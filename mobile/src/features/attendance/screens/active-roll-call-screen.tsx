@@ -6,6 +6,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   AttendanceMemberRow,
+  AttendanceProgress,
   EmptyState,
   LoadingSkeleton,
   PageHeader,
@@ -19,6 +20,7 @@ import {
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
 import { appErrorCodes, isAppError } from "@/lib/errors";
+import { openPhoneLink } from "@/lib/native/open-phone-link";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import {
@@ -61,7 +63,8 @@ export function ActiveRollCallScreen(): JSX.Element {
   const dashboardQuery = useRollCallDashboard(rollCallId);
   const realtimeState = useAttendanceRealtime(
     rollCallId,
-    dashboardQuery.data?.rollCall.status === "active"
+    dashboardQuery.data?.rollCall.status === "active",
+    dashboardQuery.data?.rollCall.sessionId
   );
   const closeMutation = useCloseRollCall();
   const dashboardAccessRevoked =
@@ -208,10 +211,19 @@ export function ActiveRollCallScreen(): JSX.Element {
           params: { eventId, groupId, rollCallId },
         })
       }
+      onOpenUnit={(unit) =>
+        router.push({
+          pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]",
+          params: { eventId, groupId: unit.groupId, rollCallId: unit.attendanceUnitId },
+        })
+      }
       onRefresh={() => void refresh()}
       onScan={() => {
         void (async () => {
-          if (offlineRoster.status.state !== "ready") {
+          if (
+            dashboard.rollCall.scopeType === "subgroup" &&
+            offlineRoster.status.state !== "ready"
+          ) {
             const downloaded = await offlineRoster.refresh();
             if (!downloaded) {
               setFeedback("Download the current roster before opening the scanner.");
@@ -254,14 +266,19 @@ interface DashboardContentProps {
   onScan: () => void;
   onManual: () => void;
   onClose: () => void;
+  onOpenUnit: (unit: RollCallDashboard["units"][number]) => void;
 }
 
 function DashboardContent(props: DashboardContentProps): JSX.Element {
   const [exportPending, setExportPending] = useState(false);
   const [exportMessage, setExportMessage] = useState("");
+  const [sourceGroupId, setSourceGroupId] = useState<string | null>(null);
   const members = useMemo(
-    () => getVisibleDashboardMembers(props.dashboard, props.filter, props.search),
-    [props.dashboard, props.filter, props.search]
+    () =>
+      getVisibleDashboardMembers(props.dashboard, props.filter, props.search).filter(
+        (member) => !sourceGroupId || member.sourceGroupId === sourceGroupId
+      ),
+    [props.dashboard, props.filter, props.search, sourceGroupId]
   );
   const actions = getDashboardActionVisibility(props.dashboard);
   const counts = props.dashboard.counts ?? { totalRoster: 0, present: 0, remaining: 0 };
@@ -342,6 +359,29 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
       />
       <Text style={styles.tripName}>{props.tripName}</Text>
 
+      {props.dashboard.permissions.canViewAggregate && props.dashboard.units.length > 0 ? (
+        <View style={styles.section} testID="category-unit-progress">
+          <SectionHeader
+            description="Progress from the roster snapshot of each operational subgroup."
+            title="Subgroup progress"
+          />
+          {props.dashboard.units.map((unit) => (
+            <View key={unit.attendanceUnitId} style={styles.unitCard}>
+              <View style={styles.unitHeader}>
+                <View style={styles.unitCopy}>
+                  <Text style={styles.unitName}>{unit.groupName}</Text>
+                  <Text style={styles.unitMeta}>
+                    {`${unit.present} present · ${unit.remaining} ${closed ? "absent" : "remaining"} · ${unit.totalRoster} total`}
+                  </Text>
+                </View>
+                <SecondaryButton label="Open" onPress={() => props.onOpenUnit(unit)} />
+              </View>
+              <AttendanceProgress present={unit.present} total={unit.totalRoster} />
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       {!closed && props.realtimeState !== "idle" ? (
         <View style={styles.liveRow} testID="attendance-realtime-status">
           <Text
@@ -361,7 +401,7 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
         </View>
       ) : null}
 
-      {!closed ? (
+      {!closed && props.dashboard.rollCall.scopeType === "subgroup" ? (
         <OfflineRosterStatus
           onRefresh={() => void props.offlineRoster.refresh()}
           status={props.offlineRoster.status}
@@ -472,6 +512,38 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
             </Pressable>
           ))}
         </View>
+        {props.dashboard.permissions.canViewAggregate && props.dashboard.units.length > 1 ? (
+          <View style={styles.filters} testID="category-subgroup-filter">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setSourceGroupId(null)}
+              style={[styles.filter, sourceGroupId === null && styles.selectedFilter]}
+            >
+              <Text
+                style={[styles.filterLabel, sourceGroupId === null && styles.selectedFilterLabel]}
+              >
+                All subgroups
+              </Text>
+            </Pressable>
+            {props.dashboard.units.map((unit) => (
+              <Pressable
+                key={unit.groupId}
+                accessibilityRole="button"
+                onPress={() => setSourceGroupId(unit.groupId)}
+                style={[styles.filter, sourceGroupId === unit.groupId && styles.selectedFilter]}
+              >
+                <Text
+                  style={[
+                    styles.filterLabel,
+                    sourceGroupId === unit.groupId && styles.selectedFilterLabel,
+                  ]}
+                >
+                  {unit.groupName}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {members.length === 0 ? (
           <EmptyState
             description="No roster members match the current search and filter."
@@ -489,6 +561,8 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
                 status={member.status}
                 markedBy={member.markedByName ?? undefined}
                 markingMethod={member.markingMethod ?? undefined}
+                onCall={member.phone ? () => void openPhoneLink(member.phone ?? "") : undefined}
+                sourceGroup={member.sourceGroupName ?? undefined}
                 testID={`attendance-member-${member.membershipId}`}
               />
             ))}
@@ -568,10 +642,23 @@ const styles = StyleSheet.create({
   closedCopy: { ...typography.body, color: colors.textSecondary },
   feedback: { ...typography.caption, color: colors.textSecondary },
   section: { gap: spacing.md },
-  filters: { flexDirection: "row", gap: spacing.xs },
+  unitCard: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
+  },
+  unitHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  unitCopy: { flex: 1, gap: spacing.half },
+  unitName: { ...typography.bodyMedium, color: colors.textPrimary },
+  unitMeta: { ...typography.caption, color: colors.textSecondary },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   filter: {
     minHeight: layout.minimumTouchTarget,
-    flex: 1,
+    flexGrow: 1,
+    minWidth: spacing["5xl"],
     alignItems: "center",
     justifyContent: "center",
     borderColor: colors.borderStrong,

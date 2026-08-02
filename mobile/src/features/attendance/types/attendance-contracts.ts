@@ -1,9 +1,5 @@
 import type { Database, Json } from "@/types/database.types";
 
-export type RollCallRow = Database["public"]["Tables"]["roll_calls"]["Row"];
-export type RollCallRosterRow = Database["public"]["Tables"]["roll_call_roster_members"]["Row"];
-export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_records"]["Row"];
-
 export type RollCallStatus = "active" | "closed";
 export type AttendanceMarkingMethod = "qr" | "manual" | "offline_sync";
 export type AttendanceMarkResultStatus =
@@ -67,6 +63,7 @@ export interface ActiveRollCall {
 export type DashboardMemberStatus = "present" | "unmarked" | "absent";
 
 export interface RollCallDashboardMember {
+  rosterEntryId?: string;
   membershipId: string;
   userId: string;
   displayName: string;
@@ -77,6 +74,17 @@ export interface RollCallDashboardMember {
   markingMethod: AttendanceMarkingMethod | null;
   markedBy?: string | null;
   markedByName?: string | null;
+  sourceGroupId?: string | null;
+  sourceGroupName?: string | null;
+}
+
+export interface AttendanceUnitProgress {
+  attendanceUnitId: string;
+  groupId: string;
+  groupName: string;
+  totalRoster: number;
+  present: number;
+  remaining: number;
 }
 
 export interface RollCallHistoryItem {
@@ -97,6 +105,8 @@ export interface RollCallHistoryItem {
 export interface RollCallDashboard {
   rollCall: {
     id: string;
+    sessionId: string;
+    attendanceUnitId: string | null;
     eventId: string;
     groupId: string;
     title: string;
@@ -107,8 +117,10 @@ export interface RollCallDashboard {
     createdBy: string | null;
     createdByName?: string | null;
     closedByName?: string | null;
+    scopeType: "general" | "category" | "subgroup";
   };
-  counts: { totalRoster: number; present: number; remaining: number } | null;
+  counts: { totalRoster: number; present: number; remaining: number; percentage: number } | null;
+  units: AttendanceUnitProgress[];
   presentMembers: RollCallDashboardMember[];
   remainingMembers: RollCallDashboardMember[];
   permissions: {
@@ -116,6 +128,7 @@ export interface RollCallDashboard {
     canMarkManually: boolean;
     canClose: boolean;
     canViewFullHistory?: boolean;
+    canViewAggregate?: boolean;
   };
 }
 

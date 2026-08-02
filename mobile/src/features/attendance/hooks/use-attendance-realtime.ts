@@ -14,7 +14,7 @@ import {
   type AttendanceRealtimeState,
 } from "../config/attendance-realtime";
 
-export function useAttendanceRealtime(rollCallId?: string, enabled = true) {
+export function useAttendanceRealtime(rollCallId?: string, enabled = true, sessionId?: string) {
   const { user } = useSession();
   const userId = user?.id;
   const queryClient = useQueryClient();
@@ -23,7 +23,9 @@ export function useAttendanceRealtime(rollCallId?: string, enabled = true) {
 
   useFocusEffect(
     useCallback(() => {
-      if (!enabled || !rollCallId || !userId || subscriptionRef.current) return undefined;
+      const scopedSessionId = sessionId ?? rollCallId;
+      if (!enabled || !rollCallId || !scopedSessionId || !userId || subscriptionRef.current)
+        return undefined;
 
       let previousState: AttendanceRealtimeState = "idle";
       let acceptingUpdates = true;
@@ -32,7 +34,7 @@ export function useAttendanceRealtime(rollCallId?: string, enabled = true) {
         void queryClient.invalidateQueries({ queryKey, exact: true });
       });
       const subscription = subscribeToAttendanceChanges({
-        rollCallId,
+        sessionId: scopedSessionId,
         userId,
         onChange: scheduler.schedule,
         onStateChange: (nextState) => {
@@ -50,7 +52,7 @@ export function useAttendanceRealtime(rollCallId?: string, enabled = true) {
         subscriptionRef.current = null;
         void subscription.unsubscribe();
       };
-    }, [enabled, queryClient, rollCallId, userId])
+    }, [enabled, queryClient, rollCallId, sessionId, userId])
   );
 
   return state;

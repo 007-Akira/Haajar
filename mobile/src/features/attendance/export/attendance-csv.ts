@@ -3,6 +3,7 @@ import type { AttendanceMarkingMethod, RollCallDashboard } from "../types/attend
 export const attendanceCsvHeaders = [
   "Trip Name",
   "Group Name",
+  "Source Subgroup",
   "Roll Call Date",
   "Member Name",
   "Phone",
@@ -40,6 +41,7 @@ export function buildAttendanceCsv(input: {
     (member) => [
       input.tripName,
       input.groupName,
+      member.sourceGroupName ?? input.groupName,
       input.dashboard.rollCall.startedAt,
       member.displayName,
       member.phone ?? "",

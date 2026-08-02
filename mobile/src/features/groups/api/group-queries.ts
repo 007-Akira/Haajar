@@ -80,6 +80,10 @@ export async function listMyGroupOverview(): Promise<UserGroupOverview> {
 }
 
 function toSummary(group: Tables<"groups">): GroupSummary {
+  const hierarchy = group as Tables<"groups"> & {
+    group_kind?: "category" | "operational";
+    parent_group_id?: string | null;
+  };
   return {
     id: group.id,
     eventId: group.event_id,
@@ -89,6 +93,8 @@ function toSummary(group: Tables<"groups">): GroupSummary {
     createdBy: group.created_by,
     createdAt: group.created_at,
     updatedAt: group.updated_at,
+    groupKind: hierarchy.group_kind ?? "operational",
+    parentGroupId: hierarchy.parent_group_id ?? null,
   };
 }
 

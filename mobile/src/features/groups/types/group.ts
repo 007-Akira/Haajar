@@ -14,6 +14,8 @@ export interface GroupSummary {
   createdBy: GroupRow["created_by"];
   createdAt: GroupRow["created_at"];
   updatedAt: GroupRow["updated_at"];
+  groupKind: "category" | "operational";
+  parentGroupId: string | null;
 }
 
 export interface UserGroupSummary extends GroupSummary {

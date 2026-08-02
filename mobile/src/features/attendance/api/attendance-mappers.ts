@@ -93,13 +93,15 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
   const permissions = asObject(root.permissions);
   const countsValue = root.counts === null ? null : asObject(root.counts);
   const status = rollCall.status;
+  const scopeType = rollCall.scope_type ?? "subgroup";
   if (
     typeof rollCall.id !== "string" ||
     typeof rollCall.event_id !== "string" ||
     typeof rollCall.group_id !== "string" ||
     typeof rollCall.title !== "string" ||
     typeof rollCall.started_at !== "string" ||
-    (status !== "active" && status !== "closed")
+    (status !== "active" && status !== "closed") ||
+    (scopeType !== "general" && scopeType !== "category" && scopeType !== "subgroup")
   ) {
     throw invalidResponseError();
   }
@@ -107,6 +109,8 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
   return {
     rollCall: {
       id: rollCall.id,
+      sessionId: nullableString(rollCall.session_id) ?? rollCall.id,
+      attendanceUnitId: nullableString(rollCall.attendance_unit_id),
       eventId: rollCall.event_id,
       groupId: rollCall.group_id,
       title: rollCall.title,
@@ -117,14 +121,23 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
       createdBy: nullableString(rollCall.created_by),
       createdByName: nullableString(rollCall.created_by_name),
       closedByName: nullableString(rollCall.closed_by_name),
+      scopeType,
     },
     counts: countsValue
       ? {
           totalRoster: requiredNumber(countsValue.total_roster),
           present: requiredNumber(countsValue.present),
           remaining: requiredNumber(countsValue.remaining),
+          percentage:
+            typeof countsValue.percentage === "number"
+              ? countsValue.percentage
+              : percentage(
+                  requiredNumber(countsValue.present),
+                  requiredNumber(countsValue.total_roster)
+                ),
         }
       : null,
+    units: mapUnits(root.units),
     presentMembers: mapMembers(root.present_members),
     remainingMembers: mapMembers(root.remaining_members),
     permissions: {
@@ -132,6 +145,7 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
       canMarkManually: permissions.can_mark_manually === true,
       canClose: permissions.can_close === true,
       canViewFullHistory: permissions.can_view_full_history === true,
+      canViewAggregate: permissions.can_view_aggregate === true,
     },
   };
 }
@@ -151,6 +165,7 @@ function mapMembers(value: Json | undefined): RollCallDashboardMember[] {
     }
     return {
       membershipId: member.membership_id,
+      rosterEntryId: nullableString(member.roster_entry_id) ?? undefined,
       userId: member.user_id,
       displayName: member.display_name,
       phone: nullableString(member.phone),
@@ -160,8 +175,30 @@ function mapMembers(value: Json | undefined): RollCallDashboardMember[] {
       markingMethod: isMarkingMethod(member.marking_method) ? member.marking_method : null,
       markedBy: nullableString(member.marked_by),
       markedByName: nullableString(member.marked_by_name),
+      sourceGroupId: nullableString(member.source_group_id),
+      sourceGroupName: nullableString(member.source_group_name),
     };
   });
+}
+
+function mapUnits(value: Json | undefined): RollCallDashboard["units"] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw invalidResponseError();
+  return value.map((item) => {
+    const unit = asObject(item);
+    return {
+      attendanceUnitId: requiredString(unit.attendance_unit_id),
+      groupId: requiredString(unit.group_id),
+      groupName: requiredString(unit.group_name),
+      totalRoster: requiredNumber(unit.total_roster),
+      present: requiredNumber(unit.present),
+      remaining: requiredNumber(unit.remaining),
+    };
+  });
+}
+
+function percentage(present: number, total: number): number {
+  return total === 0 ? 0 : Math.round((present / total) * 1000) / 10;
 }
 
 export function mapRollCallHistoryItem(row: RollCallHistoryRpcRow): RollCallHistoryItem {
@@ -204,6 +241,11 @@ function nullableString(value: Json | undefined): string | null {
 
 function requiredNumber(value: Json | undefined): number {
   if (typeof value !== "number") throw invalidResponseError();
+  return value;
+}
+
+function requiredString(value: Json | undefined): string {
+  if (typeof value !== "string") throw invalidResponseError();
   return value;
 }
 

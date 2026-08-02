@@ -13,6 +13,9 @@ import type { RollCallDashboard } from "../src/features/attendance/types/attenda
 const dashboard: RollCallDashboard = {
   rollCall: {
     id: "roll-call-1",
+    sessionId: "session-1",
+    attendanceUnitId: "roll-call-1",
+    scopeType: "subgroup",
     eventId: "event-1",
     groupId: "group-1",
     title: "Boarding",
@@ -22,7 +25,8 @@ const dashboard: RollCallDashboard = {
     closedAt: null,
     createdBy: "user-1",
   },
-  counts: { totalRoster: 3, present: 1, remaining: 2 },
+  counts: { totalRoster: 3, present: 1, remaining: 2, percentage: 33.3 },
+  units: [],
   presentMembers: [
     {
       membershipId: "membership-1",

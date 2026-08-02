@@ -14,8 +14,8 @@ import {
   TextField,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
-import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
+import { useEventGroups } from "@/features/events/hooks/use-event-groups";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
@@ -37,7 +37,7 @@ export function CreateRollCallScreen(): JSX.Element {
   const [failure, setFailure] = useState<CreateRollCallFailure | null>(null);
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
-  const membersQuery = useGroupMembers(groupId);
+  const eventGroupsQuery = useEventGroups(groupQuery.data?.eventId);
   const activeRollCallQuery = useActiveRollCall(groupId);
   const createMutation = useCreateRollCall();
   const activeRollCallId = activeRollCallQuery.data?.id;
@@ -56,7 +56,7 @@ export function CreateRollCallScreen(): JSX.Element {
   const loading =
     groupQuery.isLoading ||
     membershipQuery.isLoading ||
-    membersQuery.isLoading ||
+    eventGroupsQuery.isLoading ||
     activeRollCallQuery.isLoading;
 
   if (loading || activeRollCallId) {
@@ -68,7 +68,7 @@ export function CreateRollCallScreen(): JSX.Element {
     );
   }
 
-  const failedQuery = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].find(
+  const failedQuery = [groupQuery, membershipQuery, eventGroupsQuery, activeRollCallQuery].find(
     (query) => query.isError
   );
   if (failedQuery) {
@@ -85,7 +85,7 @@ export function CreateRollCallScreen(): JSX.Element {
           onActionPress={() => {
             void groupQuery.refetch();
             void membershipQuery.refetch();
-            void membersQuery.refetch();
+            void eventGroupsQuery.refetch();
             void activeRollCallQuery.refetch();
           }}
           title="Could not prepare roll call"
@@ -96,7 +96,9 @@ export function CreateRollCallScreen(): JSX.Element {
 
   const group = groupQuery.data;
   const membership = membershipQuery.data;
-  const activeMemberCount = membersQuery.data?.length ?? 0;
+  const activeMemberCount = (eventGroupsQuery.data ?? [])
+    .filter((candidate) => candidate.parentGroupId === groupId)
+    .reduce((total, candidate) => total + candidate.activeMemberCount, 0);
   if (!group) {
     return (
       <ScreenContainer showGrid testID="create-roll-call-missing-group">
@@ -106,6 +108,20 @@ export function CreateRollCallScreen(): JSX.Element {
           description="This group could not be found."
           onActionPress={() => router.back()}
           title="Group unavailable"
+        />
+      </ScreenContainer>
+    );
+  }
+
+  if (group.groupKind !== "category") {
+    return (
+      <ScreenContainer showGrid testID="create-roll-call-operational-blocked">
+        <PageHeader leadingAction={backAction} title="Start Category Attendance" />
+        <EmptyState
+          actionLabel="Go Back"
+          description="Attendance sessions start from the parent category. Operational groups receive their own unit automatically."
+          onActionPress={() => router.back()}
+          title="Start from the category"
         />
       </ScreenContainer>
     );
@@ -186,8 +202,8 @@ export function CreateRollCallScreen(): JSX.Element {
       <View style={styles.notice}>
         <Text style={styles.noticeTitle}>Roster snapshot</Text>
         <Text style={styles.noticeBody}>
-          Starting now will use the group’s current active members. This roster is preserved for the
-          roll call even if membership details change later.
+          Starting now creates one attendance unit for every operational subgroup and preserves each
+          subgroup roster for history.
         </Text>
       </View>
 

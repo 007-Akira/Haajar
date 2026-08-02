@@ -1,7 +1,7 @@
 export type AttendanceRealtimeState = "idle" | "connecting" | "live" | "degraded";
 
-export function buildAttendanceRealtimeFilter(rollCallId: string): string {
-  return `roll_call_id=eq.${rollCallId}`;
+export function buildAttendanceRealtimeFilter(sessionId: string): string {
+  return `session_id=eq.${sessionId}`;
 }
 
 export function buildAttendanceRealtimeChannelName(rollCallId: string, userId: string): string {
@@ -9,10 +9,10 @@ export function buildAttendanceRealtimeChannelName(rollCallId: string, userId: s
 }
 
 export function isAttendanceChangeForRollCall(
-  changedRollCallId: unknown,
-  expectedRollCallId: string
+  changedSessionId: unknown,
+  expectedSessionId: string
 ): boolean {
-  return changedRollCallId === expectedRollCallId;
+  return changedSessionId === expectedSessionId;
 }
 
 export interface InvalidationScheduler {
