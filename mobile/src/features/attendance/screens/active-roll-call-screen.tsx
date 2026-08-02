@@ -28,7 +28,6 @@ import {
   type AttendanceDashboardFilter,
 } from "../config/roll-call-dashboard-view";
 import { useCloseRollCall } from "../hooks/use-close-roll-call";
-import { useMarkManualAttendance } from "../hooks/use-mark-manual-attendance";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
 import type { RollCallDashboard } from "../types/attendance-contracts";
 
@@ -48,11 +47,8 @@ export function ActiveRollCallScreen(): JSX.Element {
   const groupQuery = useGroup(groupId);
   const dashboardQuery = useRollCallDashboard(rollCallId);
   const closeMutation = useCloseRollCall();
-  const manualMutation = useMarkManualAttendance();
   const [filter, setFilter] = useState<AttendanceDashboardFilter>("all");
   const [search, setSearch] = useState("");
-  const [manualMode, setManualMode] = useState(false);
-  const [markingMembershipId, setMarkingMembershipId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const refreshing = dashboardQuery.isRefetching || groupQuery.isRefetching;
 
@@ -141,9 +137,6 @@ export function ActiveRollCallScreen(): JSX.Element {
       groupId={groupId}
       groupName={group.name}
       isClosing={closeMutation.isPending}
-      isMarking={manualMutation.isPending}
-      manualMode={manualMode}
-      markingMembershipId={markingMembershipId}
       onBack={() => router.back()}
       onClose={() => {
         Alert.alert(
@@ -178,27 +171,12 @@ export function ActiveRollCallScreen(): JSX.Element {
         );
       }}
       onFilter={setFilter}
-      onManualMode={() => setManualMode((value) => !value)}
-      onMark={async (membershipId) => {
-        setMarkingMembershipId(membershipId);
-        setFeedback("");
-        try {
-          const result = await manualMutation.markManualAttendance({
-            groupId,
-            membershipId,
-            rollCallId,
-          });
-          setFeedback(
-            result.outcome === "already_marked"
-              ? "Member was already present."
-              : "Member marked present."
-          );
-        } catch {
-          setFeedback("Attendance could not be marked. Refresh and try again.");
-        } finally {
-          setMarkingMembershipId(null);
-        }
-      }}
+      onManual={() =>
+        router.push({
+          pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]/manual",
+          params: { eventId, groupId, rollCallId },
+        })
+      }
       onRefresh={() => void refresh()}
       onScan={() =>
         router.push({
@@ -222,18 +200,14 @@ interface DashboardContentProps {
   filter: AttendanceDashboardFilter;
   search: string;
   feedback: string;
-  manualMode: boolean;
   isClosing: boolean;
-  isMarking: boolean;
-  markingMembershipId: string | null;
   refreshing: boolean;
   onBack: () => void;
   onRefresh: () => void;
   onFilter: (filter: AttendanceDashboardFilter) => void;
   onSearch: (value: string) => void;
   onScan: () => void;
-  onManualMode: () => void;
-  onMark: (membershipId: string) => Promise<void>;
+  onManual: () => void;
   onClose: () => void;
 }
 
@@ -290,8 +264,8 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
           {actions.canMarkManually ? (
             <SecondaryButton
               fullWidth
-              label={props.manualMode ? "Done Marking" : "Mark Manually"}
-              onPress={props.onManualMode}
+              label="Mark Manually"
+              onPress={props.onManual}
               testID="mark-manually-button"
             />
           ) : null}
@@ -352,25 +326,14 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
         ) : (
           <View style={styles.list}>
             {members.map((member) => (
-              <View key={member.membershipId} style={styles.memberItem}>
-                <AttendanceMemberRow
-                  markedAt={member.markedAt ? formatDateTime(member.markedAt) : undefined}
-                  name={member.displayName}
-                  phone={member.phone ?? "Phone unavailable"}
-                  status={member.status}
-                  testID={`attendance-member-${member.membershipId}`}
-                />
-                {props.manualMode && actions.canMarkManually && member.status === "unmarked" ? (
-                  <SecondaryButton
-                    disabled={props.isMarking}
-                    fullWidth
-                    label="Mark Present"
-                    loading={props.markingMembershipId === member.membershipId}
-                    onPress={() => void props.onMark(member.membershipId)}
-                    testID={`manual-mark-${member.membershipId}`}
-                  />
-                ) : null}
-              </View>
+              <AttendanceMemberRow
+                key={member.membershipId}
+                markedAt={member.markedAt ? formatDateTime(member.markedAt) : undefined}
+                name={member.displayName}
+                phone={member.phone ?? "Phone unavailable"}
+                status={member.status}
+                testID={`attendance-member-${member.membershipId}`}
+              />
             ))}
           </View>
         )}
@@ -459,5 +422,4 @@ const styles = StyleSheet.create({
   filterLabel: { ...typography.technicalLabel, color: colors.textSecondary },
   selectedFilterLabel: { color: colors.textPrimary },
   list: { gap: spacing.sm },
-  memberItem: { gap: spacing.xs },
 });
