@@ -12,7 +12,7 @@ import {
 
 export interface ActiveGroupRollCall {
   presentCount: number;
-  pendingSyncCount: number;
+  pendingSyncCount?: number;
 }
 
 export interface GroupPrimaryActionsProps {
@@ -58,10 +58,12 @@ export function GroupPrimaryActions({
               <Text style={styles.metricValue}>{activeRollCall.presentCount}</Text>
               <Text style={styles.metricLabel}>PRESENT</Text>
             </View>
-            <View style={styles.metric}>
-              <Text style={styles.metricValue}>{activeRollCall.pendingSyncCount}</Text>
-              <Text style={styles.metricLabel}>PENDING SYNC</Text>
-            </View>
+            {activeRollCall.pendingSyncCount !== undefined ? (
+              <View style={styles.metric}>
+                <Text style={styles.metricValue}>{activeRollCall.pendingSyncCount}</Text>
+                <Text style={styles.metricLabel}>PENDING SYNC</Text>
+              </View>
+            ) : null}
           </View>
         ) : (
           <Text

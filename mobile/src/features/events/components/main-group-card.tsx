@@ -7,14 +7,12 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 export interface MainGroupCardProps {
   participantCount: number;
   onViewMembers: () => void;
-  onViewRollCalls: () => void;
   testID?: string;
 }
 
 export function MainGroupCard({
   participantCount,
   onViewMembers,
-  onViewRollCalls,
   testID,
 }: MainGroupCardProps): JSX.Element {
   return (
@@ -30,24 +28,12 @@ export function MainGroupCard({
           <Text style={styles.countLabel}>MEMBERS</Text>
         </View>
       </View>
-      <View style={styles.actions}>
-        <View style={styles.action}>
-          <SecondaryButton
-            fullWidth
-            label="View Members"
-            onPress={onViewMembers}
-            testID="main-group-members-button"
-          />
-        </View>
-        <View style={styles.action}>
-          <SecondaryButton
-            fullWidth
-            label="View Roll Calls"
-            onPress={onViewRollCalls}
-            testID="main-group-roll-calls-button"
-          />
-        </View>
-      </View>
+      <SecondaryButton
+        fullWidth
+        label="View Members"
+        onPress={onViewMembers}
+        testID="main-group-members-button"
+      />
     </View>
   );
 }
@@ -92,12 +78,5 @@ const styles = StyleSheet.create({
   countLabel: {
     ...typography.technicalLabel,
     color: colors.gridLine,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  action: {
-    flex: 1,
   },
 });

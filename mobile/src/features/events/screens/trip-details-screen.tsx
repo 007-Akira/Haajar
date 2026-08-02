@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import type { JSX } from "react";
@@ -31,7 +30,6 @@ import {
 export function TripDetailsScreen(): JSX.Element {
   const router = useRouter();
   const params = useLocalSearchParams<{ eventId: string }>();
-  const [activityMessage, setActivityMessage] = useState("");
   const eventQuery = useEvent(params.eventId);
   const membershipQuery = useEventMembership(params.eventId);
   const groupsQuery = useEventGroups(params.eventId);
@@ -153,10 +151,6 @@ export function TripDetailsScreen(): JSX.Element {
     ]);
   }
 
-  function showMockMessage(message: string): void {
-    setActivityMessage(message);
-  }
-
   return (
     <ScreenContainer
       contentContainerStyle={styles.content}
@@ -171,25 +165,7 @@ export function TripDetailsScreen(): JSX.Element {
         subtitle={event.status === "archived" ? "Archived trip" : "Active trip"}
         testID="trip-details-header"
         title={event.name}
-        trailingAction={{
-          accessibilityLabel: "More trip actions",
-          icon: (
-            <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={layout.iconSize} />
-          ),
-          onPress: () => showMockMessage("More trip actions selected."),
-          testID: "trip-overflow-button",
-        }}
       />
-
-      {activityMessage ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={styles.activityMessage}
-          testID="trip-action-message"
-        >
-          {activityMessage}
-        </Text>
-      ) : null}
 
       {event.status === "archived" ? (
         <View accessibilityRole="alert" style={styles.archivedNotice} testID="trip-archived-notice">
@@ -219,7 +195,6 @@ export function TripDetailsScreen(): JSX.Element {
               params: { eventId: event.id },
             })
           }
-          onViewRollCalls={() => showMockMessage("Main Group roll calls selected.")}
           participantCount={memberCountQuery.data ?? 0}
           testID="main-group-card"
         />
@@ -259,8 +234,12 @@ export function TripDetailsScreen(): JSX.Element {
       {event.status === "active" && canManageEvent(membershipQuery.data.role) ? (
         <OrganiserActions
           onAddGroup={() => router.push(`/events/${event.id}/create-group` as Href)}
-          onManageMembers={() => showMockMessage("Manage Members selected.")}
-          onStartRollCall={() => showMockMessage("Start Roll Call selected.")}
+          onManageMembers={() =>
+            router.push({
+              pathname: "/events/[eventId]/members",
+              params: { eventId: event.id },
+            })
+          }
           testID="organiser-actions"
         />
       ) : null}
@@ -272,10 +251,6 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.xl,
     paddingBottom: spacing["2xl"],
-  },
-  activityMessage: {
-    ...typography.caption,
-    color: colors.textSecondary,
   },
   section: {
     gap: spacing.sm,

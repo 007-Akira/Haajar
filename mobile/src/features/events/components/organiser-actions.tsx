@@ -1,19 +1,17 @@
 import type { JSX } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { PrimaryButton, SecondaryButton, SectionHeader } from "@/components";
+import { SecondaryButton, SectionHeader } from "@/components";
 import { spacing } from "@/theme";
 
 export interface OrganiserActionsProps {
   onAddGroup: () => void;
-  onStartRollCall: () => void;
   onManageMembers: () => void;
   testID?: string;
 }
 
 export function OrganiserActions({
   onAddGroup,
-  onStartRollCall,
   onManageMembers,
   testID,
 }: OrganiserActionsProps): JSX.Element {
@@ -22,12 +20,6 @@ export function OrganiserActions({
       <SectionHeader
         description="Administrative controls for this trip."
         title="Organiser actions"
-      />
-      <PrimaryButton
-        fullWidth
-        label="Start Roll Call"
-        onPress={onStartRollCall}
-        testID="start-roll-call-button"
       />
       <View style={styles.secondaryActions}>
         <View style={styles.action}>

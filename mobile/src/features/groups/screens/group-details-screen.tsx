@@ -21,6 +21,7 @@ import { toGroupDisplayRole } from "@/features/events/permissions/event-permissi
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { openPhoneLink } from "@/lib/native/open-phone-link";
 import { usePendingGroupRequests } from "@/features/join-requests/hooks/use-join-requests";
+import { useActiveRollCall } from "@/features/attendance/hooks/use-active-roll-call";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { GroupPrimaryActions } from "../components/group-primary-actions";
@@ -42,6 +43,7 @@ export function GroupDetailsScreen(): JSX.Element {
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
+  const activeRollCallQuery = useActiveRollCall(groupId);
   const canManageRequests =
     membershipQuery.data?.status === "active" &&
     (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
@@ -56,6 +58,7 @@ export function GroupDetailsScreen(): JSX.Element {
     groupQuery.isLoading ||
     membershipQuery.isLoading ||
     membershipQuery.sessionLoading ||
+    activeRollCallQuery.isLoading ||
     (membershipQuery.data?.status === "active" && membersQuery.isLoading);
 
   if (isInitialLoading) {
@@ -73,7 +76,9 @@ export function GroupDetailsScreen(): JSX.Element {
     );
   }
 
-  const failedQuery = [groupQuery, membershipQuery, membersQuery].find((query) => query.isError);
+  const failedQuery = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].find(
+    (query) => query.isError
+  );
   if (failedQuery) {
     return (
       <ScreenContainer contentContainerStyle={styles.content} showGrid testID="group-details-error">
@@ -89,6 +94,7 @@ export function GroupDetailsScreen(): JSX.Element {
             void groupQuery.refetch();
             void membershipQuery.refetch();
             void membersQuery.refetch();
+            void activeRollCallQuery.refetch();
           }}
           testID="group-details-error-state"
           title="Could not load group"
@@ -156,12 +162,17 @@ export function GroupDetailsScreen(): JSX.Element {
   const userRole = toGroupDisplayRole(membershipQuery.data.role);
   const isArchived = group.status === "archived";
   const groupRouteParams = { eventId: group.eventId, groupId: group.id };
-  const isRefreshing = [groupQuery, membershipQuery, membersQuery].some(
+  const isRefreshing = [groupQuery, membershipQuery, membersQuery, activeRollCallQuery].some(
     (query) => query.isRefetching
   );
 
   function refresh(): void {
-    void Promise.all([groupQuery.refetch(), membershipQuery.refetch(), membersQuery.refetch()]);
+    void Promise.all([
+      groupQuery.refetch(),
+      membershipQuery.refetch(),
+      membersQuery.refetch(),
+      activeRollCallQuery.refetch(),
+    ]);
   }
 
   function cycleRoleFilter(): void {
@@ -239,22 +250,37 @@ export function GroupDetailsScreen(): JSX.Element {
       return;
     }
 
-    if (actionId === "active-roll-call" || actionId === "scan-qr") {
-      const rollCallParams = { ...groupRouteParams, rollCallId: "morning-assembly" };
+    if (
+      actionId === "active-roll-call" ||
+      actionId === "scan-qr" ||
+      actionId === "manual-attendance" ||
+      actionId === "absentees" ||
+      actionId === "offline-roster"
+    ) {
+      const activeRollCall = activeRollCallQuery.data;
+      if (!activeRollCall) {
+        setActivityMessage("No active roll call is available for this action.");
+        return;
+      }
+      const rollCallParams = { ...groupRouteParams, rollCallId: activeRollCall.id };
       router.push({
         pathname:
           actionId === "scan-qr"
             ? "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]/scanner"
-            : "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]",
+            : actionId === "manual-attendance"
+              ? "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]/manual"
+              : "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]",
         params: rollCallParams,
       });
       return;
     }
 
-    router.push({
-      pathname: "/events/[eventId]/groups/[groupId]/actions/[action]",
-      params: { ...groupRouteParams, action: actionId },
-    });
+    if (actionId === "export-attendance") {
+      router.push({
+        pathname: "/events/[eventId]/groups/[groupId]/roll-calls",
+        params: groupRouteParams,
+      });
+    }
   }
 
   return (
@@ -331,14 +357,12 @@ export function GroupDetailsScreen(): JSX.Element {
 
       {!isArchived ? (
         <>
-          <View style={styles.prototypeNotice} testID="group-actions-prototype-notice">
-            <Text style={styles.prototypeTitle}>[ PROTOTYPE ACTIONS ]</Text>
-            <Text style={styles.prototypeDescription}>
-              Attendance, offline, and export actions still use mock data. Registration forms, join
-              requests, and membership QR use live Supabase data.
-            </Text>
-          </View>
           <GroupPrimaryActions
+            activeRollCall={
+              activeRollCallQuery.data
+                ? { presentCount: activeRollCallQuery.data.presentCount ?? 0 }
+                : undefined
+            }
             onActionPress={handleGroupAction}
             role={userRole}
             testID="group-primary-actions"
@@ -494,21 +518,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  prototypeNotice: {
-    gap: spacing.half,
-    padding: spacing.md,
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accent,
-    borderWidth: layout.borderWidth,
-    borderRadius: radii.sm,
-  },
   prototypeTitle: {
     ...typography.technicalLabel,
     color: colors.textPrimary,
-  },
-  prototypeDescription: {
-    ...typography.caption,
-    color: colors.textSecondary,
   },
   ticketPreview: {
     flexDirection: "row",
