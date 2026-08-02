@@ -79,16 +79,16 @@ test("unknown resolver statuses become canonical safe database errors", () => {
     () =>
       mapMembershipQrResolution({
         resolution_status: "internal-token-a1b2c3",
-        membership_id: null,
-        member_user_id: null,
-        display_name: null,
-        phone: null,
-        group_id: null,
-        group_name: null,
-        member_role: null,
-        membership_status: null,
-        credential_status: null,
-        credential_version: null,
+        membership_id: "unused",
+        member_user_id: "unused",
+        display_name: "unused",
+        phone: "unused",
+        group_id: "unused",
+        group_name: "unused",
+        member_role: "unused",
+        membership_status: "unused",
+        credential_status: "unused",
+        credential_version: 0,
       }),
     (error: unknown) =>
       error instanceof Error &&

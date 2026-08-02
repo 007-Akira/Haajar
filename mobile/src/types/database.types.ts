@@ -152,6 +152,51 @@ export type Database = {
           },
         ];
       };
+      group_invitations: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          group_id: string;
+          id: string;
+          revoked_at: string | null;
+          status: string;
+          token_hash: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          group_id: string;
+          id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          group_id?: string;
+          id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_invitations_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_invitations_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       group_memberships: {
         Row: {
           approved_at: string | null;
@@ -254,51 +299,6 @@ export type Database = {
             columns: ["event_id"];
             isOneToOne: false;
             referencedRelation: "events";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      group_invitations: {
-        Row: {
-          created_at: string;
-          created_by: string;
-          group_id: string;
-          id: string;
-          revoked_at: string | null;
-          status: string;
-          token_hash: string;
-        };
-        Insert: {
-          created_at?: string;
-          created_by: string;
-          group_id: string;
-          id?: string;
-          revoked_at?: string | null;
-          status?: string;
-          token_hash: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string;
-          group_id?: string;
-          id?: string;
-          revoked_at?: string | null;
-          status?: string;
-          token_hash?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "group_invitations_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "group_invitations_group_id_fkey";
-            columns: ["group_id"];
-            isOneToOne: false;
-            referencedRelation: "groups";
             referencedColumns: ["id"];
           },
         ];
@@ -611,9 +611,9 @@ export type Database = {
         Args: { new_role: string; target_membership_id: string };
         Returns: {
           group_membership_id: string;
-          qr_credential_id: string | null;
-          qr_token: string | null;
-          qr_version: number | null;
+          qr_credential_id: string;
+          qr_token: string;
+          qr_version: number;
         }[];
       };
       correct_registration_answer: {
@@ -632,17 +632,24 @@ export type Database = {
         };
         Returns: string;
       };
+      create_group_invitation: {
+        Args: { target_group_id: string };
+        Returns: {
+          invitation_id: string;
+          invitation_token: string;
+        }[];
+      };
       create_registration_form: {
         Args: { target_group_id: string };
         Returns: string;
       };
-      create_group_invitation: {
-        Args: { target_group_id: string };
-        Returns: { invitation_id: string; invitation_token: string }[];
+      get_event_member_details: {
+        Args: { target_event_id: string; target_user_id: string };
+        Returns: Json;
       };
-      is_active_event_member: {
-        Args: { target_event_id: string; target_user_id?: string };
-        Returns: boolean;
+      get_join_request_status: {
+        Args: { target_request_id: string };
+        Returns: Json;
       };
       get_membership_qr: {
         Args: { target_membership_id: string };
@@ -652,13 +659,9 @@ export type Database = {
           qr_version: number;
         }[];
       };
-      get_event_member_details: {
-        Args: { target_event_id: string; target_user_id: string };
-        Returns: Json;
-      };
-      get_join_request_status: {
-        Args: { target_request_id: string };
-        Returns: Json;
+      is_active_event_member: {
+        Args: { target_event_id: string; target_user_id?: string };
+        Returns: boolean;
       };
       is_active_group_member: {
         Args: { target_group_id: string; target_user_id?: string };
@@ -672,20 +675,12 @@ export type Database = {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;
       };
-      list_group_join_requests: {
-        Args: { request_status?: string; target_group_id: string };
-        Returns: Json;
-      };
-      list_my_group_overview: {
-        Args: Record<PropertyKey, never>;
-        Returns: Json;
-      };
       issue_membership_qr: {
         Args: { target_membership_id: string };
         Returns: {
-          qr_credential_id: string | null;
-          qr_token: string | null;
-          qr_version: number | null;
+          qr_credential_id: string;
+          qr_token: string;
+          qr_version: number;
         }[];
       };
       list_event_member_directory: {
@@ -693,12 +688,17 @@ export type Database = {
         Returns: {
           active_internal_group_count: number;
           event_role: string;
-          full_name: string | null;
+          full_name: string;
           membership_id: string;
-          phone: string | null;
+          phone: string;
           user_id: string;
         }[];
       };
+      list_group_join_requests: {
+        Args: { request_status?: string; target_group_id: string };
+        Returns: Json;
+      };
+      list_my_group_overview: { Args: never; Returns: Json };
       publish_registration_form: {
         Args: { target_form_id: string };
         Returns: string;
@@ -706,9 +706,9 @@ export type Database = {
       regenerate_membership_qr: {
         Args: { target_membership_id: string };
         Returns: {
-          qr_credential_id: string | null;
-          qr_token: string | null;
-          qr_version: number | null;
+          qr_credential_id: string;
+          qr_token: string;
+          qr_version: number;
         }[];
       };
       resolve_group_invitation: {
@@ -718,31 +718,31 @@ export type Database = {
       resolve_membership_qr: {
         Args: { expected_group_id: string; presented_token: string };
         Returns: {
-          credential_status: string | null;
-          credential_version: number | null;
-          display_name: string | null;
-          group_id: string | null;
-          group_name: string | null;
-          member_role: string | null;
-          member_user_id: string | null;
-          membership_id: string | null;
-          membership_status: string | null;
-          phone: string | null;
+          credential_status: string;
+          credential_version: number;
+          display_name: string;
+          group_id: string;
+          group_name: string;
+          member_role: string;
+          member_user_id: string;
+          membership_id: string;
+          membership_status: string;
+          phone: string;
           resolution_status: string;
         }[];
       };
       review_join_request: {
         Args: {
           decision: string;
-          rejection_reason?: string | null;
+          rejection_reason?: string;
           target_request_id: string;
         };
         Returns: {
-          group_membership_id: string | null;
+          group_membership_id: string;
           join_request_id: string;
-          qr_credential_id: string | null;
-          qr_token: string | null;
-          qr_version: number | null;
+          qr_credential_id: string;
+          qr_token: string;
+          qr_version: number;
         }[];
       };
       save_registration_form_draft: {
