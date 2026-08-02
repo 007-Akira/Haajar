@@ -132,6 +132,7 @@ export default function GroupsRoute(): JSX.Element {
             contentContainerStyle={styles.filters}
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.filterScroller}
           >
             {eventNames.map((eventName) => (
               <Pressable
@@ -297,9 +298,12 @@ const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing["2xl"] },
   quickActions: { flexDirection: "row", gap: spacing.sm },
   quickAction: { flex: 1 },
-  filters: { gap: spacing.xs },
+  filterScroller: { flexGrow: 0 },
+  filters: { alignItems: "center", gap: spacing.xs },
   filter: {
+    height: layout.minimumTouchTarget,
     minHeight: layout.minimumTouchTarget,
+    alignSelf: "flex-start",
     justifyContent: "center",
     paddingHorizontal: spacing.md,
     borderWidth: layout.borderWidth,
