@@ -15,7 +15,8 @@ export interface RollCallSummaryCardProps {
   presentCount: number;
   unmarkedCount: number;
   absentCount?: number;
-  pendingSyncCount: number;
+  pendingSyncCount?: number;
+  status?: "active" | "closed";
   testID?: string;
 }
 
@@ -30,7 +31,7 @@ export function RollCallSummaryCard(props: RollCallSummaryCardProps): JSX.Elemen
           <Text style={styles.metadata}>{props.groupName}</Text>
           <Text style={styles.metadata}>{`${props.startedAt} · ${props.createdBy}`}</Text>
         </View>
-        <StatusBadge status="active" />
+        <StatusBadge status={props.status ?? "active"} />
       </View>
       <View style={styles.counts}>
         <Metric label="PRESENT" value={props.presentCount} />
@@ -40,10 +41,12 @@ export function RollCallSummaryCard(props: RollCallSummaryCardProps): JSX.Elemen
         ) : null}
       </View>
       <AttendanceProgress present={props.presentCount} total={total} />
-      <View style={styles.syncRow}>
-        <SyncBadge state={props.pendingSyncCount > 0 ? "pending" : "synced"} />
-        <Text style={styles.pending}>{`${props.pendingSyncCount} pending`}</Text>
-      </View>
+      {props.pendingSyncCount !== undefined ? (
+        <View style={styles.syncRow}>
+          <SyncBadge state={props.pendingSyncCount > 0 ? "pending" : "synced"} />
+          <Text style={styles.pending}>{`${props.pendingSyncCount} pending`}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import type { AttendanceStatus } from "@/features/attendance/data/mock-roll-calls";
+import type { DashboardMemberStatus as AttendanceStatus } from "@/features/attendance/types/attendance-contracts";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { StatusBadge } from "../status/status-badge";

@@ -4,7 +4,15 @@ import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from "react-na
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export type Status =
-  "active" | "archived" | "present" | "absent" | "pending" | "synced" | "pending sync" | "error";
+  | "active"
+  | "closed"
+  | "archived"
+  | "present"
+  | "absent"
+  | "pending"
+  | "synced"
+  | "pending sync"
+  | "error";
 
 export interface StatusBadgeProps {
   status: Status;
@@ -18,6 +26,7 @@ interface StatusAppearance {
 
 const statusLabels: Record<Status, string> = {
   active: "ACTIVE",
+  closed: "CLOSED",
   archived: "ARCHIVED",
   present: "PRESENT",
   absent: "ABSENT",
@@ -30,6 +39,10 @@ const statusLabels: Record<Status, string> = {
 const appearances: Record<Status, StatusAppearance> = {
   active: {
     container: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+    text: { color: colors.textPrimary },
+  },
+  closed: {
+    container: { backgroundColor: colors.gridLine, borderColor: colors.borderStrong },
     text: { color: colors.textPrimary },
   },
   archived: {
