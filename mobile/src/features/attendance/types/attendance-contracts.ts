@@ -5,7 +5,7 @@ export type RollCallRosterRow = Database["public"]["Tables"]["roll_call_roster_m
 export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_records"]["Row"];
 
 export type RollCallStatus = "active" | "closed";
-export type AttendanceMarkingMethod = "qr" | "manual";
+export type AttendanceMarkingMethod = "qr" | "manual" | "offline_sync";
 export type AttendanceMarkResultStatus =
   | "marked_present"
   | "already_marked"

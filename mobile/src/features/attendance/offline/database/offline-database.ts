@@ -5,6 +5,7 @@ import { AppError, appErrorCodes } from "@/lib/errors";
 import {
   offlineAttendanceDatabaseName,
   offlineAttendanceSchemaV1,
+  offlineAttendanceSchemaV2,
   offlineAttendanceSchemaVersion,
 } from "./offline-schema";
 
@@ -58,6 +59,12 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
   if (currentVersion < 1) {
     await database.withExclusiveTransactionAsync(async (transaction) => {
       await transaction.execAsync(offlineAttendanceSchemaV1);
+      await transaction.execAsync("PRAGMA user_version = 1");
+    });
+  }
+  if (currentVersion < 2) {
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.execAsync(offlineAttendanceSchemaV2);
       await transaction.execAsync(`PRAGMA user_version = ${offlineAttendanceSchemaVersion}`);
     });
   }

@@ -25,13 +25,15 @@ const sessionSource = readFileSync(
 );
 
 test("offline schema is versioned and all operational tables are user scoped", () => {
-  assert.match(schemaSource, /offlineAttendanceSchemaVersion = 1/);
+  assert.match(schemaSource, /offlineAttendanceSchemaVersion = 2/);
   for (const table of [
     "cached_groups",
     "cached_roll_calls",
     "cached_profile_summaries",
     "cached_roster_memberships",
     "offline_sync_metadata",
+    "cached_credential_verifiers",
+    "offline_attendance_queue",
   ]) {
     const definition = schemaSource.match(
       new RegExp(`CREATE TABLE IF NOT EXISTS ${table} \\(([\\s\\S]*?)\\n\\);`)

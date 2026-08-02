@@ -208,7 +208,7 @@ function requiredNumber(value: Json | undefined): number {
 }
 
 function isMarkingMethod(value: unknown): value is AttendanceMarkingMethod {
-  return value === "qr" || value === "manual";
+  return value === "qr" || value === "manual" || value === "offline_sync";
 }
 
 function invalidResponseError(): AppError {

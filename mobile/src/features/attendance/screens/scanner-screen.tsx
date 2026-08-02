@@ -9,6 +9,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
 import { AppState, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNetInfo } from "@react-native-community/netinfo";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -22,6 +23,7 @@ import {
   type ScanResultTone,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
+import { useSession } from "@/features/auth";
 import { useResolveMembershipQr } from "@/features/qr/hooks/use-resolve-membership-qr";
 import type { MembershipQrResolution } from "@/features/qr/types/qr-models";
 import { appErrorCodes, isAppError } from "@/lib/errors";
@@ -35,6 +37,16 @@ import {
 } from "../config/scanner-state";
 import { useMarkQrAttendance } from "../hooks/use-mark-qr-attendance";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
+import {
+  getCachedOfflineRoster,
+  getOfflineRosterStatus,
+} from "../offline/services/offline-roster-cache";
+import {
+  enqueueOfflineAttendance,
+  getPendingSyncCount,
+  resolveOfflineQr,
+  syncPendingAttendance,
+} from "../offline/services/offline-attendance-queue";
 
 type ValidResolution = Extract<MembershipQrResolution, { status: "valid" }>;
 
@@ -47,6 +59,8 @@ interface ResultState {
 
 export function ScannerScreen(): JSX.Element {
   const router = useRouter();
+  const { user } = useSession();
+  const netInfo = useNetInfo();
   const { eventId, groupId, rollCallId } = useLocalSearchParams<{
     eventId: string;
     groupId: string;
@@ -63,6 +77,9 @@ export function ScannerScreen(): JSX.Element {
   const [cameraUnavailable, setCameraUnavailable] = useState(false);
   const [verification, setVerification] = useState<ValidResolution | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
+  const [verifiedOffline, setVerifiedOffline] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [offlineReady, setOfflineReady] = useState(false);
   const [gate] = useState(createScannerGate);
   const [tokenStore] = useState(createEphemeralSecretStore);
   const mountedRef = useRef(true);
@@ -80,6 +97,7 @@ export function ScannerScreen(): JSX.Element {
     tokenStore.clear();
     setVerification(null);
     setResult(null);
+    setVerifiedOffline(false);
     setPhase("ready");
     if (appActiveRef.current) gate.resume();
   }
@@ -134,12 +152,75 @@ export function ScannerScreen(): JSX.Element {
   const scanningEnabled =
     permission?.granted === true && !cameraUnavailable && appActive && phase === "ready" && canScan;
 
+  useEffect(() => {
+    if (!user || !rollCallId) return;
+    void getPendingSyncCount(user.id, rollCallId).then(setPendingSyncCount);
+    void getOfflineRosterStatus(user.id, rollCallId).then((value) =>
+      setOfflineReady(value.state === "ready")
+    );
+    if (netInfo.isConnected) {
+      void syncPendingAttendance(user.id, rollCallId).then(() =>
+        getPendingSyncCount(user.id, rollCallId).then(setPendingSyncCount)
+      );
+    }
+  }, [netInfo.isConnected, rollCallId, user]);
+
+  async function resolveLocally(payload: string): Promise<boolean> {
+    if (!user || !group) return false;
+    const local = await resolveOfflineQr({ userId: user.id, rollCallId, groupId, payload });
+    tokenStore.clear();
+    if (local.status !== "valid") {
+      if (local.status === "stale_roster") setOfflineReady(false);
+      showResult(
+        local.status === "stale_roster"
+          ? {
+              tone: "warning",
+              title: "Roster outdated",
+              message: "Reconnect and download the current roster before scanning.",
+            }
+          : getResolutionResultCopy(local.status === "invalid" ? "invalid" : local.status)
+      );
+      return false;
+    }
+    const member = (await getCachedOfflineRoster(user.id, rollCallId)).find(
+      (item) => item.membershipId === local.membershipId
+    );
+    if (!member) {
+      showResult({
+        tone: "error",
+        title: "Roster unavailable",
+        message: "This member is not available in the cached roster.",
+      });
+      return false;
+    }
+    setVerification({
+      status: "valid",
+      membershipId: member.membershipId,
+      memberUserId: member.userId,
+      displayName: member.displayName,
+      phone: member.phone,
+      groupId,
+      groupName: group.name,
+      role: member.role as ValidResolution["role"],
+      membershipStatus: "active",
+      credentialStatus: "active",
+      credentialVersion: 1,
+    });
+    setVerifiedOffline(true);
+    setPhase("verifying");
+    return true;
+  }
+
   async function handleBarcodeScanned(scan: BarcodeScanningResult): Promise<void> {
     if (!scanningEnabled || !gate.tryAcquire()) return;
     const operation = ++operationRef.current;
     setPhase("resolving");
     tokenStore.set(scan.data);
     try {
+      if (netInfo.isConnected === false) {
+        await resolveLocally(scan.data);
+        return;
+      }
       const resolution = await resolver.resolveMembershipQr({
         expectedGroupId: groupId,
         presentedToken: scan.data,
@@ -155,9 +236,13 @@ export function ScannerScreen(): JSX.Element {
       setVerification(resolution);
       setPhase("verifying");
     } catch (error) {
-      tokenStore.clear();
       if (!mountedRef.current || !appActiveRef.current || operation !== operationRef.current)
         return;
+      if (isAppError(error) && error.code === appErrorCodes.network) {
+        await resolveLocally(scan.data);
+        return;
+      }
+      tokenStore.clear();
       showResult(
         isAppError(error) && error.code === appErrorCodes.network
           ? {
@@ -176,6 +261,27 @@ export function ScannerScreen(): JSX.Element {
 
   async function confirmPresent(): Promise<void> {
     if (!verification || phase !== "verifying") return;
+    if (verifiedOffline) {
+      if (!user) return;
+      setPhase("marking");
+      const queued = await enqueueOfflineAttendance({
+        userId: user.id,
+        rollCallId,
+        groupId,
+        membershipId: verification.membershipId,
+      });
+      setPendingSyncCount(await getPendingSyncCount(user.id, rollCallId));
+      showResult(
+        {
+          tone: "warning",
+          title: queued.inserted ? "Saved — Pending Sync" : "Already saved offline",
+          memberName: verification.displayName,
+          message: "Verified offline. Attendance will sync when the network returns.",
+        },
+        true
+      );
+      return;
+    }
     const presentedToken = tokenStore.take();
     if (!presentedToken) {
       showResult({
@@ -348,6 +454,32 @@ export function ScannerScreen(): JSX.Element {
           {phase === "resolving" ? "VERIFYING TICKET" : "SCAN TICKETS"}
         </Text>
       </View>
+      <View style={styles.connectivity} testID="scanner-connectivity">
+        <Text style={styles.connectivityText}>
+          {netInfo.isConnected === false
+            ? offlineReady
+              ? "[ OFFLINE READY ]"
+              : "[ ROSTER OUTDATED ]"
+            : "[ ONLINE ]"}
+          {` · ${pendingSyncCount} PENDING SYNC`}
+        </Text>
+        {pendingSyncCount > 0 && netInfo.isConnected ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry pending attendance synchronization"
+            onPress={() =>
+              user &&
+              void syncPendingAttendance(user.id, rollCallId).then(() =>
+                getPendingSyncCount(user.id, rollCallId).then(setPendingSyncCount)
+              )
+            }
+            style={styles.retrySyncButton}
+            testID="retry-offline-attendance-sync"
+          >
+            <Text style={styles.retrySync}>RETRY SYNC</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       <MemberVerificationSheet
         attendanceStatus={existingAttendance?.status ?? "unmarked"}
@@ -418,6 +550,21 @@ function formatTime(value: string): string {
 }
 
 const styles = StyleSheet.create({
+  connectivity: {
+    position: "absolute",
+    top: spacing["3xl"],
+    left: spacing.md,
+    right: spacing.md,
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  connectivityText: { ...typography.technicalLabel, color: colors.textInverse },
+  retrySync: { ...typography.technicalLabel, color: colors.accent },
+  retrySyncButton: {
+    minHeight: layout.minimumTouchTarget,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+  },
   screen: { flex: 1, backgroundColor: colors.surfaceElevated },
   state: {
     flex: 1,

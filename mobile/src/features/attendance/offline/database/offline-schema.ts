@@ -1,5 +1,5 @@
 export const offlineAttendanceDatabaseName = "haajar-attendance-cache.db";
-export const offlineAttendanceSchemaVersion = 1;
+export const offlineAttendanceSchemaVersion = 2;
 
 export const offlineAttendanceSchemaV1 = `
 PRAGMA foreign_keys = ON;
@@ -68,4 +68,32 @@ CREATE INDEX IF NOT EXISTS cached_roster_scope_idx
   ON cached_roster_memberships(user_id, event_id, group_id, roll_call_id);
 CREATE INDEX IF NOT EXISTS offline_sync_scope_idx
   ON offline_sync_metadata(user_id, group_id, scope_id);
+`;
+
+export const offlineAttendanceSchemaV2 = `
+CREATE TABLE IF NOT EXISTS cached_credential_verifiers (
+  user_id TEXT NOT NULL, roll_call_id TEXT NOT NULL, membership_id TEXT NOT NULL,
+  group_id TEXT NOT NULL, credential_hash TEXT NOT NULL CHECK(length(credential_hash) = 64),
+  credential_version INTEGER NOT NULL, credential_status TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, roll_call_id, credential_hash),
+  FOREIGN KEY(user_id, roll_call_id, membership_id)
+    REFERENCES cached_roster_memberships(user_id, roll_call_id, membership_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS credential_verifier_lookup_idx
+  ON cached_credential_verifiers(user_id, roll_call_id, group_id, credential_hash);
+
+CREATE TABLE IF NOT EXISTS offline_attendance_queue (
+  user_id TEXT NOT NULL, local_operation_id TEXT NOT NULL, roll_call_id TEXT NOT NULL,
+  group_id TEXT NOT NULL, membership_id TEXT NOT NULL,
+  marking_method TEXT NOT NULL CHECK(marking_method = 'offline_sync'),
+  local_marked_at TEXT NOT NULL,
+  sync_state TEXT NOT NULL CHECK(sync_state IN ('pending','syncing','synced','failed','conflict')),
+  attempt_count INTEGER NOT NULL DEFAULT 0, next_retry_at TEXT, last_error_code TEXT,
+  synced_at TEXT, created_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, local_operation_id),
+  UNIQUE(user_id, roll_call_id, membership_id)
+);
+CREATE INDEX IF NOT EXISTS offline_queue_pending_idx
+  ON offline_attendance_queue(user_id, sync_state, next_retry_at);
 `;

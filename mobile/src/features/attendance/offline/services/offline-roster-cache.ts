@@ -187,10 +187,15 @@ export async function clearOfflineAttendanceCache(userId?: string): Promise<void
     const database = await getOfflineAttendanceDatabase();
     await database.withExclusiveTransactionAsync(async (transaction) => {
       if (userId) {
+        await transaction.runAsync(
+          "DELETE FROM offline_attendance_queue WHERE user_id = ?",
+          userId
+        );
         await transaction.runAsync("DELETE FROM offline_sync_metadata WHERE user_id = ?", userId);
         await transaction.runAsync("DELETE FROM cached_groups WHERE user_id = ?", userId);
       } else {
         await transaction.execAsync(`
+          DELETE FROM offline_attendance_queue;
           DELETE FROM offline_sync_metadata;
           DELETE FROM cached_groups;
         `);

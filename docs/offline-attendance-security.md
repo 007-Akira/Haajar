@@ -22,10 +22,18 @@ would permit offline verification, but it also creates a portable verifier on an
 or compromised device and enables unlimited offline guessing attempts. Server-side encrypted QR
 recovery material would be even more sensitive and must never be downloaded.
 
-Therefore this milestone downloads neither credential hashes nor encrypted recovery material.
-Offline QR resolution remains disabled until a separate design introduces scanner-device
-authorisation, short-lived roll-call-specific verifier material, explicit expiry, device
-attestation/lock controls where practical, and clearing on closure.
+The offline scanning milestone now downloads credential hashes only through an operator-authorised
+RPC. The bundle is scoped to one active roll call/group, expires after four hours, includes known
+revoked hashes so they can be rejected, and is deleted on closure, permission loss, or sign-out.
+Server-side encrypted QR recovery material is never downloaded. A lost unlocked organiser device
+can still expose these time-limited verifiers and the minimal roster; device screen locks and prompt
+sign-out/revocation remain required. Device attestation and database-level encryption remain future
+hardening.
+
+Offline scans queue only membership IDs and idempotency keys—never raw QR payloads. The backend
+rechecks operator permission, live membership, roll-call state, group scope, and uniqueness before
+creating attendance. Already-marked records reconcile successfully; closed or revoked membership
+outcomes remain visible conflicts.
 
 ## Lifecycle
 

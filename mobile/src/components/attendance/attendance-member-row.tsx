@@ -11,7 +11,7 @@ export interface AttendanceMemberRowProps {
   phone: string;
   status: AttendanceStatus;
   markedAt?: string;
-  markingMethod?: "qr" | "manual";
+  markingMethod?: "qr" | "manual" | "offline_sync";
   markedBy?: string;
   testID?: string;
 }
@@ -34,7 +34,7 @@ export function AttendanceMemberRow({
         {markingMethod ? (
           <Text
             style={styles.meta}
-          >{`Method: ${markingMethod === "qr" ? "QR ticket" : "Manual"}`}</Text>
+          >{`Method: ${markingMethod === "qr" ? "QR ticket" : markingMethod === "offline_sync" ? "Offline scan" : "Manual"}`}</Text>
         ) : null}
         {markedBy ? <Text style={styles.meta}>{`Marked by ${markedBy}`}</Text> : null}
       </View>

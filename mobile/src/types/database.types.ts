@@ -867,6 +867,10 @@ export type Database = {
           total_roster: number;
         }[];
       };
+      get_offline_roll_call_bundle: {
+        Args: { target_roll_call_id: string };
+        Returns: Json;
+      };
       get_event_member_details: {
         Args: { target_event_id: string; target_user_id: string };
         Returns: Json;
@@ -1048,6 +1052,22 @@ export type Database = {
       submit_join_request: {
         Args: { answers?: Json; target_group_id: string };
         Returns: string;
+      };
+      sync_offline_attendance: {
+        Args: {
+          client_operation_id: string;
+          local_marked_at: string;
+          target_membership_id: string;
+          target_roll_call_id: string;
+        };
+        Returns: {
+          attendance_record_id: string | null;
+          marked_at: string | null;
+          marking_method: string | null;
+          member_user_id: string | null;
+          membership_id: string | null;
+          result_status: string;
+        }[];
       };
       validate_registration_answer: {
         Args: { answer_value: Json; target_question_id: string };

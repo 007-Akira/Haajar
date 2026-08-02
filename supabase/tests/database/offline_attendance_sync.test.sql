@@ -1,0 +1,10 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select no_plan();
+select has_function('public', 'get_offline_roll_call_bundle', array['uuid'], 'offline verifier bundle RPC exists');
+select has_function('public', 'sync_offline_attendance', array['uuid','uuid','timestamp with time zone','uuid'], 'offline sync RPC exists');
+select ok(has_function_privilege('authenticated', 'public.get_offline_roll_call_bundle(uuid)', 'EXECUTE'), 'authenticated operators can request a secured bundle');
+select ok(not has_table_privilege('authenticated', 'public.qr_credentials', 'SELECT'), 'credential hashes remain unavailable through direct table reads');
+select ok(not has_table_privilege('authenticated', 'public.attendance_records', 'INSERT'), 'offline clients cannot insert attendance directly');
+select * from finish();
+rollback;

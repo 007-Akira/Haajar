@@ -9,6 +9,7 @@ import {
   invalidateOfflineRoster,
   replaceOfflineRosterCache,
 } from "../services/offline-roster-cache";
+import { downloadOfflineVerifiers } from "../services/offline-attendance-queue";
 import type { OfflineRosterStatus } from "../types/offline-roster";
 import { offlineRosterFreshnessMs } from "../types/offline-roster";
 
@@ -39,19 +40,22 @@ export function useOfflineRosterCache(
       return false;
     setStatus((current) => ({ ...current, state: "downloading", errorMessage: undefined }));
     try {
-      setStatus(
-        await replaceOfflineRosterCache({
-          dashboard,
-          eventId: dashboard.rollCall.eventId,
-          eventName: group.eventName ?? "Trip",
-          groupId: dashboard.rollCall.groupId,
-          groupName: group.name,
-          rollCallId: dashboard.rollCall.id,
-          userId: user.id,
-        })
-      );
+      const nextStatus = await replaceOfflineRosterCache({
+        dashboard,
+        eventId: dashboard.rollCall.eventId,
+        eventName: group.eventName ?? "Trip",
+        groupId: dashboard.rollCall.groupId,
+        groupName: group.name,
+        rollCallId: dashboard.rollCall.id,
+        userId: user.id,
+      });
+      await downloadOfflineVerifiers(user.id, dashboard.rollCall.id);
+      setStatus(nextStatus);
       return true;
     } catch {
+      if (user && dashboard) {
+        await invalidateOfflineRoster(user.id, dashboard.rollCall.id).catch(() => undefined);
+      }
       setStatus((current) => ({
         ...current,
         state: "error",
