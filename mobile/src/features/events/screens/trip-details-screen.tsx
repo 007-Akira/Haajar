@@ -274,6 +274,9 @@ export function TripDetailsScreen(): JSX.Element {
               params: { eventId: event.id },
             })
           }
+          onStartGeneralAttendance={() =>
+            router.push(`/events/${event.id}/attendance/general/create` as Href)
+          }
           testID="organiser-actions"
         />
       ) : null}

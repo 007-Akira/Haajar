@@ -7,12 +7,14 @@ import { spacing } from "@/theme";
 export interface OrganiserActionsProps {
   onAddGroup: () => void;
   onManageMembers: () => void;
+  onStartGeneralAttendance?: () => void;
   testID?: string;
 }
 
 export function OrganiserActions({
   onAddGroup,
   onManageMembers,
+  onStartGeneralAttendance,
   testID,
 }: OrganiserActionsProps): JSX.Element {
   return (
@@ -22,6 +24,16 @@ export function OrganiserActions({
         title="Organiser actions"
       />
       <View style={styles.secondaryActions}>
+        {onStartGeneralAttendance ? (
+          <View style={styles.action}>
+            <SecondaryButton
+              fullWidth
+              label="Start General Attendance"
+              onPress={onStartGeneralAttendance}
+              testID="start-general-attendance-button"
+            />
+          </View>
+        ) : null}
         <View style={styles.action}>
           <SecondaryButton
             fullWidth
@@ -49,9 +61,11 @@ const styles = StyleSheet.create({
   },
   secondaryActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   action: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "46%",
   },
 });

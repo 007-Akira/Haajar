@@ -64,6 +64,10 @@ export const queryKeys = {
     all: ["attendance"] as const,
     activeByGroup: (groupId: string, userId: string) =>
       ["attendance", "active", groupId, userId] as const,
+    activeGeneral: (eventId: string, userId: string) =>
+      ["attendance", "active", "general", eventId, userId] as const,
+    generalOperators: (sessionId: string, userId: string) =>
+      ["attendance", "general", sessionId, "operators", userId] as const,
     rollCall: (rollCallId: string, userId: string) =>
       ["attendance", "roll-call", rollCallId, userId] as const,
     dashboard: (rollCallId: string, userId: string) =>
