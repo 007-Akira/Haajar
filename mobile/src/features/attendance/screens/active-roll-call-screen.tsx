@@ -28,8 +28,10 @@ import {
   type AttendanceDashboardFilter,
 } from "../config/roll-call-dashboard-view";
 import { useCloseRollCall } from "../hooks/use-close-roll-call";
+import { useAttendanceRealtime } from "../hooks/use-attendance-realtime";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
 import type { RollCallDashboard } from "../types/attendance-contracts";
+import type { AttendanceRealtimeState } from "../config/attendance-realtime";
 
 const filters: { label: string; value: AttendanceDashboardFilter }[] = [
   { label: "All", value: "all" },
@@ -46,6 +48,10 @@ export function ActiveRollCallScreen(): JSX.Element {
   }>();
   const groupQuery = useGroup(groupId);
   const dashboardQuery = useRollCallDashboard(rollCallId);
+  const realtimeState = useAttendanceRealtime(
+    rollCallId,
+    dashboardQuery.data?.rollCall.status === "active"
+  );
   const closeMutation = useCloseRollCall();
   const [filter, setFilter] = useState<AttendanceDashboardFilter>("all");
   const [search, setSearch] = useState("");
@@ -186,6 +192,7 @@ export function ActiveRollCallScreen(): JSX.Element {
       }
       onSearch={setSearch}
       refreshing={refreshing}
+      realtimeState={realtimeState}
       search={search}
       tripName={group.eventName ?? "Trip"}
     />
@@ -202,6 +209,7 @@ interface DashboardContentProps {
   feedback: string;
   isClosing: boolean;
   refreshing: boolean;
+  realtimeState: AttendanceRealtimeState;
   onBack: () => void;
   onRefresh: () => void;
   onFilter: (filter: AttendanceDashboardFilter) => void;
@@ -257,6 +265,25 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
         unmarkedCount={closed ? 0 : counts.remaining}
       />
       <Text style={styles.tripName}>{props.tripName}</Text>
+
+      {!closed && props.realtimeState !== "idle" ? (
+        <View style={styles.liveRow} testID="attendance-realtime-status">
+          <Text
+            style={[styles.liveLabel, props.realtimeState === "degraded" && styles.degradedLabel]}
+          >
+            {props.realtimeState === "live"
+              ? "[ LIVE ]"
+              : props.realtimeState === "connecting"
+                ? "[ CONNECTING ]"
+                : "[ LIVE DEGRADED ]"}
+          </Text>
+          {props.realtimeState === "degraded" ? (
+            <Text style={styles.liveMessage}>
+              Live updates are temporarily unavailable. Pull to refresh if needed.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       {!closed ? (
         <View style={styles.actions}>
@@ -423,6 +450,10 @@ const styles = StyleSheet.create({
   content: { gap: spacing.xl, paddingBottom: spacing["2xl"] },
   actions: { gap: spacing.sm },
   tripName: { ...typography.caption, color: colors.textSecondary },
+  liveRow: { gap: spacing.half },
+  liveLabel: { ...typography.technicalLabel, color: colors.success },
+  degradedLabel: { color: colors.warning },
+  liveMessage: { ...typography.caption, color: colors.textSecondary },
   closedCopy: { ...typography.body, color: colors.textSecondary },
   feedback: { ...typography.caption, color: colors.textSecondary },
   section: { gap: spacing.md },

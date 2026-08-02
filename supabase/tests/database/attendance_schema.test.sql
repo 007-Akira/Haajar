@@ -48,6 +48,16 @@ select ok(
 );
 
 select ok(
+  exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'attendance_records'
+  ),
+  'Realtime publishes attendance record changes used by scoped dashboards'
+);
+
+select ok(
   not has_table_privilege('authenticated', 'public.roll_calls', 'INSERT')
   and not has_table_privilege('authenticated', 'public.roll_calls', 'UPDATE')
   and not has_table_privilege('authenticated', 'public.roll_calls', 'DELETE'),
