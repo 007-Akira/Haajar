@@ -60,4 +60,15 @@ export const queryKeys = {
     membership: (membershipId: string, userId: string) =>
       ["membership-qr", membershipId, userId] as const,
   },
+  attendance: {
+    all: ["attendance"] as const,
+    activeByGroup: (groupId: string, userId: string) =>
+      ["attendance", "active", groupId, userId] as const,
+    rollCall: (rollCallId: string, userId: string) =>
+      ["attendance", "roll-call", rollCallId, userId] as const,
+    dashboard: (rollCallId: string, userId: string) =>
+      ["attendance", "dashboard", rollCallId, userId] as const,
+    memberState: (rollCallId: string, membershipId: string, userId: string) =>
+      ["attendance", "member", rollCallId, membershipId, userId] as const,
+  },
 } as const;

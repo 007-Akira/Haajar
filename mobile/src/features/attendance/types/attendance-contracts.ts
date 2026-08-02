@@ -33,3 +33,98 @@ export type ManualAttendanceRpcRow =
 export type CloseRollCallRpcRow =
   Database["public"]["Functions"]["close_roll_call"]["Returns"][number];
 export type RollCallDashboardRpcResult = Json;
+
+export type CanonicalAttendanceOutcome =
+  | "valid"
+  | "marked"
+  | "already_marked"
+  | "wrong_group"
+  | "invalid_qr"
+  | "revoked"
+  | "inactive_membership"
+  | "closed_roll_call"
+  | "archived"
+  | "unauthorised"
+  | "network_error";
+
+export interface ActiveRollCall {
+  id: string;
+  eventId: string;
+  groupId: string;
+  title: string;
+  status: RollCallStatus;
+  startedAt: string;
+  createdBy: string | null;
+  totalRoster: number | null;
+  presentCount: number | null;
+  remainingCount: number | null;
+  canScan: boolean;
+  canManage: boolean;
+}
+
+export type DashboardMemberStatus = "present" | "unmarked" | "absent";
+
+export interface RollCallDashboardMember {
+  membershipId: string;
+  userId: string;
+  displayName: string;
+  phone: string | null;
+  role: string;
+  status: DashboardMemberStatus;
+  markedAt: string | null;
+  markingMethod: AttendanceMarkingMethod | null;
+}
+
+export interface RollCallDashboard {
+  rollCall: {
+    id: string;
+    eventId: string;
+    groupId: string;
+    title: string;
+    note: string | null;
+    status: RollCallStatus;
+    startedAt: string;
+    closedAt: string | null;
+    createdBy: string | null;
+  };
+  counts: { totalRoster: number; present: number; remaining: number } | null;
+  presentMembers: RollCallDashboardMember[];
+  remainingMembers: RollCallDashboardMember[];
+  permissions: { canScan: boolean; canMarkManually: boolean; canClose: boolean };
+}
+
+export interface AttendanceMutationResult {
+  outcome: Exclude<CanonicalAttendanceOutcome, "valid" | "network_error">;
+  attendanceRecordId: string | null;
+  membershipId: string | null;
+  memberUserId: string | null;
+  markedAt: string | null;
+  markingMethod: AttendanceMarkingMethod | null;
+  changed: boolean;
+}
+
+export interface CloseRollCallResult {
+  rollCallId: string;
+  totalRoster: number;
+  presentCount: number;
+  remainingCount: number;
+  closedAt: string;
+}
+
+export interface CreateRollCallParameters {
+  groupId: string;
+  title: string;
+  note?: string;
+}
+
+export interface MarkQrAttendanceParameters {
+  rollCallId: string;
+  presentedToken: string;
+  clientOperationId: string;
+}
+
+export interface MarkManualAttendanceParameters {
+  rollCallId: string;
+  membershipId: string;
+  clientOperationId: string;
+}
