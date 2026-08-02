@@ -17,6 +17,7 @@ import {
   TextField,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
+import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
 import { appErrorCodes, isAppError } from "@/lib/errors";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
@@ -34,6 +35,13 @@ import { OfflineRosterStatus } from "../offline/components/offline-roster-status
 import { useOfflineRosterCache } from "../offline/hooks/use-offline-roster-cache";
 import type { RollCallDashboard } from "../types/attendance-contracts";
 import type { AttendanceRealtimeState } from "../config/attendance-realtime";
+import {
+  buildAttendanceCsv,
+  canExportAttendance,
+  createAttendanceExportFilename,
+  type ExportRole,
+} from "../export/attendance-csv";
+import { saveAttendanceCsv, shareAttendanceCsv } from "../export/attendance-file-service";
 
 const filters: { label: string; value: AttendanceDashboardFilter }[] = [
   { label: "All", value: "all" },
@@ -49,6 +57,7 @@ export function ActiveRollCallScreen(): JSX.Element {
     rollCallId: string;
   }>();
   const groupQuery = useGroup(groupId);
+  const membershipQuery = useGroupMembership(groupId);
   const dashboardQuery = useRollCallDashboard(rollCallId);
   const realtimeState = useAttendanceRealtime(
     rollCallId,
@@ -157,6 +166,8 @@ export function ActiveRollCallScreen(): JSX.Element {
       groupName={group.name}
       isClosing={closeMutation.isPending}
       offlineRoster={offlineRoster}
+      membershipRole={(membershipQuery.data?.role as ExportRole | undefined) ?? null}
+      membershipStatus={membershipQuery.data?.status ?? null}
       onBack={() => router.back()}
       onClose={() => {
         Alert.alert(
@@ -234,6 +245,8 @@ interface DashboardContentProps {
   refreshing: boolean;
   realtimeState: AttendanceRealtimeState;
   offlineRoster: ReturnType<typeof useOfflineRosterCache>;
+  membershipRole: ExportRole | null;
+  membershipStatus: string | null;
   onBack: () => void;
   onRefresh: () => void;
   onFilter: (filter: AttendanceDashboardFilter) => void;
@@ -244,6 +257,8 @@ interface DashboardContentProps {
 }
 
 function DashboardContent(props: DashboardContentProps): JSX.Element {
+  const [exportPending, setExportPending] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
   const members = useMemo(
     () => getVisibleDashboardMembers(props.dashboard, props.filter, props.search),
     [props.dashboard, props.filter, props.search]
@@ -251,6 +266,43 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
   const actions = getDashboardActionVisibility(props.dashboard);
   const counts = props.dashboard.counts ?? { totalRoster: 0, present: 0, remaining: 0 };
   const closed = props.dashboard.rollCall.status === "closed";
+  const exportAllowed = canExportAttendance({
+    canViewFullHistory: props.dashboard.permissions.canViewFullHistory === true,
+    membershipStatus: props.membershipStatus,
+    role: props.membershipRole,
+    rollCallStatus: props.dashboard.rollCall.status,
+  });
+
+  async function exportCsv(action: "share" | "save"): Promise<void> {
+    if (!exportAllowed || exportPending) return;
+    setExportPending(true);
+    setExportMessage("");
+    try {
+      const csv = buildAttendanceCsv({
+        dashboard: props.dashboard,
+        groupName: props.groupName,
+        tripName: props.tripName,
+      });
+      const filename = createAttendanceExportFilename(
+        props.groupName,
+        props.dashboard.rollCall.startedAt
+      );
+      await (action === "share"
+        ? shareAttendanceCsv(filename, csv)
+        : saveAttendanceCsv(filename, csv));
+      setExportMessage(
+        action === "share" ? "Attendance CSV ready to share." : "Attendance CSV saved."
+      );
+    } catch {
+      setExportMessage(
+        action === "share"
+          ? "The CSV could not be shared. Check available apps and retry."
+          : "The CSV could not be saved. Check storage access and retry."
+      );
+    } finally {
+      setExportPending(false);
+    }
+  }
 
   return (
     <ScreenContainer
@@ -336,9 +388,37 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
           ) : null}
         </View>
       ) : (
-        <Text style={styles.closedCopy}>
-          This roll call is closed. Normal attendance marking has stopped.
-        </Text>
+        <View style={styles.actions}>
+          <Text style={styles.closedCopy}>
+            This roll call is closed. Normal attendance marking has stopped.
+          </Text>
+          {exportAllowed ? (
+            <>
+              <PrimaryButton
+                accessibilityLabel="Share closed roll-call attendance CSV"
+                disabled={exportPending}
+                fullWidth
+                label="Share CSV"
+                loading={exportPending}
+                onPress={() => void exportCsv("share")}
+                testID="share-attendance-csv"
+              />
+              <SecondaryButton
+                accessibilityLabel="Save closed roll-call attendance CSV"
+                disabled={exportPending}
+                fullWidth
+                label="Save CSV"
+                onPress={() => void exportCsv("save")}
+                testID="save-attendance-csv"
+              />
+            </>
+          ) : null}
+          {exportMessage ? (
+            <Text accessibilityLiveRegion="polite" style={styles.feedback}>
+              {exportMessage}
+            </Text>
+          ) : null}
+        </View>
       )}
 
       {props.feedback ? (
