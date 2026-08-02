@@ -72,6 +72,69 @@ export type Database = {
           },
         ];
       };
+      attendance_records: {
+        Row: {
+          client_operation_id: string;
+          created_at: string;
+          event_id: string;
+          group_id: string;
+          id: string;
+          marked_at: string;
+          marked_by: string;
+          marking_method: string;
+          membership_id: string;
+          roll_call_id: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          client_operation_id: string;
+          created_at?: string;
+          event_id: string;
+          group_id: string;
+          id?: string;
+          marked_at?: string;
+          marked_by: string;
+          marking_method: string;
+          membership_id: string;
+          roll_call_id: string;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          client_operation_id?: string;
+          created_at?: string;
+          event_id?: string;
+          group_id?: string;
+          id?: string;
+          marked_at?: string;
+          marked_by?: string;
+          marking_method?: string;
+          membership_id?: string;
+          roll_call_id?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_marked_by_fkey";
+            columns: ["marked_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_record_roster_fk";
+            columns: ["roll_call_id", "membership_id", "event_id", "group_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "roll_call_roster_members";
+            referencedColumns: ["roll_call_id", "membership_id", "event_id", "group_id", "user_id"];
+          },
+        ];
+      };
       event_members: {
         Row: {
           created_at: string;
@@ -529,6 +592,132 @@ export type Database = {
           },
         ];
       };
+      roll_call_roster_members: {
+        Row: {
+          added_at: string;
+          event_id: string;
+          group_id: string;
+          membership_id: string;
+          role_at_start: string;
+          roll_call_id: string;
+          user_id: string;
+        };
+        Insert: {
+          added_at?: string;
+          event_id: string;
+          group_id: string;
+          membership_id: string;
+          role_at_start: string;
+          roll_call_id: string;
+          user_id: string;
+        };
+        Update: {
+          added_at?: string;
+          event_id?: string;
+          group_id?: string;
+          membership_id?: string;
+          role_at_start?: string;
+          roll_call_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "roll_call_roster_membership_fk";
+            columns: ["membership_id", "group_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "group_memberships";
+            referencedColumns: ["id", "group_id", "user_id"];
+          },
+          {
+            foreignKeyName: "roll_call_roster_roll_call_fk";
+            columns: ["roll_call_id", "event_id", "group_id"];
+            isOneToOne: false;
+            referencedRelation: "roll_calls";
+            referencedColumns: ["id", "event_id", "group_id"];
+          },
+        ];
+      };
+      roll_calls: {
+        Row: {
+          closed_at: string | null;
+          closed_by: string | null;
+          created_at: string;
+          created_by: string;
+          event_id: string;
+          group_id: string;
+          id: string;
+          note: string | null;
+          started_at: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          closed_at?: string | null;
+          closed_by?: string | null;
+          created_at?: string;
+          created_by: string;
+          event_id: string;
+          group_id: string;
+          id?: string;
+          note?: string | null;
+          started_at?: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          closed_by?: string | null;
+          created_at?: string;
+          created_by?: string;
+          event_id?: string;
+          group_id?: string;
+          id?: string;
+          note?: string | null;
+          started_at?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "roll_calls_closed_by_fkey";
+            columns: ["closed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "roll_calls_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "roll_calls_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "roll_calls_group_event_fk";
+            columns: ["group_id", "event_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id", "event_id"];
+          },
+          {
+            foreignKeyName: "roll_calls_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       registration_options: {
         Row: {
           created_at: string;
@@ -616,6 +805,16 @@ export type Database = {
           qr_version: number;
         }[];
       };
+      close_roll_call: {
+        Args: { target_roll_call_id: string };
+        Returns: {
+          closed_at: string;
+          present_count: number;
+          remaining_count: number;
+          roll_call_id: string;
+          total_roster: number;
+        }[];
+      };
       correct_registration_answer: {
         Args: { corrected_answer: Json; target_answer_id: string };
         Returns: string;
@@ -643,6 +842,31 @@ export type Database = {
         Args: { target_group_id: string };
         Returns: string;
       };
+      create_roll_call: {
+        Args: {
+          roll_call_note?: string;
+          roll_call_title: string;
+          target_group_id: string;
+        };
+        Returns: string;
+      };
+      get_active_roll_call: {
+        Args: { target_group_id: string };
+        Returns: {
+          caller_can_manage: boolean;
+          caller_can_scan: boolean;
+          created_by: string;
+          event_id: string;
+          group_id: string;
+          present_count: number;
+          remaining_count: number;
+          roll_call_id: string;
+          started_at: string;
+          status: string;
+          title: string;
+          total_roster: number;
+        }[];
+      };
       get_event_member_details: {
         Args: { target_event_id: string; target_user_id: string };
         Returns: Json;
@@ -659,6 +883,10 @@ export type Database = {
           qr_version: number;
         }[];
       };
+      get_roll_call_dashboard: {
+        Args: { target_roll_call_id: string };
+        Returns: Json;
+      };
       is_active_event_member: {
         Args: { target_event_id: string; target_user_id?: string };
         Returns: boolean;
@@ -672,6 +900,10 @@ export type Database = {
         Returns: boolean;
       };
       is_group_manager: {
+        Args: { target_group_id: string; target_user_id?: string };
+        Returns: boolean;
+      };
+      is_group_attendance_operator: {
         Args: { target_group_id: string; target_user_id?: string };
         Returns: boolean;
       };
@@ -699,6 +931,37 @@ export type Database = {
         Returns: Json;
       };
       list_my_group_overview: { Args: never; Returns: Json };
+      mark_attendance_manual: {
+        Args: {
+          client_operation_id: string;
+          target_membership_id: string;
+          target_roll_call_id: string;
+        };
+        Returns: {
+          attendance_record_id: string;
+          marked_at: string;
+          marking_method: string;
+          member_user_id: string;
+          membership_id: string;
+          result_status: string;
+        }[];
+      };
+      mark_attendance_present: {
+        Args: {
+          client_operation_id: string;
+          marking_method: string;
+          presented_token: string;
+          target_roll_call_id: string;
+        };
+        Returns: {
+          attendance_record_id: string;
+          marked_at: string;
+          member_user_id: string;
+          membership_id: string;
+          resolved_marking_method: string;
+          result_status: string;
+        }[];
+      };
       publish_registration_form: {
         Args: { target_form_id: string };
         Returns: string;

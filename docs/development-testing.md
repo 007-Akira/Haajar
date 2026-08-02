@@ -36,7 +36,8 @@ To populate the optional seed after creating a local user in Studio:
 not reuse it outside local development. The committed seed is idempotent.
 
 The pgTAP suite under `supabase/tests/database/` creates and rolls back its own disposable accounts
-and data. It does not depend on the optional seed.
+and data. It does not depend on the optional seed. Attendance schema and lifecycle tests require the
+local Docker-backed Supabase stack; they do not write to the linked hosted project.
 
 ## Two-account manual test plan
 
@@ -78,8 +79,10 @@ npx supabase test db
 
 The database suite covers authenticated event creation, creator role assignment, event filtering,
 group creation, parent-event placement, group organiser assignment, unauthorised RPC calls,
-self-elevation attempts, and unrelated event/group/member reads. The mobile test covers all current
-database-to-display role mappings and user-safe permission/network error normalisation.
+self-elevation attempts, unrelated event/group/member reads, roll-call creation and closure,
+frozen rosters, QR/manual attendance, duplicate protection, attendance permissions, final counts,
+RLS, and token-safe attendance auditing. The mobile test covers all current database-to-display role
+mappings and user-safe permission/network error normalisation.
 
 ## Known limitations
 
@@ -89,5 +92,4 @@ database-to-display role mappings and user-safe permission/network error normali
   group. Consequently, an ordinary event member may see incomplete names/phones in Everyone until a
   restricted directory RPC or similarly narrow database interface is introduced.
 - Internal-group counts in Everyone reflect rows visible through current RLS for the caller.
-- These tests do not cover attendance, QR, registration answers, join requests, notifications,
-  Realtime, offline sync, or SQLite.
+- These tests do not cover real camera scanning, notifications, Realtime, offline sync, or SQLite.
