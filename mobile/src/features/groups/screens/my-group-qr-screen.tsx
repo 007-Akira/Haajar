@@ -24,8 +24,6 @@ import { useMembershipQr } from "@/features/qr/hooks/use-membership-qr";
 import { buildMembershipQrPayload } from "@/features/qr/types/qr-models";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
-import { queryKeys } from "@/lib/query";
-import { useQueryClient } from "@tanstack/react-query";
 
 import { useGroup } from "../hooks/use-group";
 import { useGroupMembership } from "../hooks/use-group-membership";
@@ -33,8 +31,7 @@ import { useGroupMembership } from "../hooks/use-group-membership";
 export function MyGroupQRScreen(): JSX.Element {
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
-  const { profile, user } = useSession();
-  const queryClient = useQueryClient();
+  const { profile } = useSession();
   const qrCaptureRef = useRef<View>(null);
   const transientImageRef = useRef<string | null>(null);
   const [activityMessage, setActivityMessage] = useState("");
@@ -44,6 +41,7 @@ export function MyGroupQRScreen(): JSX.Element {
   const membership = membershipQuery.data;
   const hasActiveMembership = membership?.status === "active";
   const qrQuery = useMembershipQr(membership?.id, hasActiveMembership);
+  const clearQr = qrQuery.clear;
   const clearTransientImage = useCallback(() => {
     const uri = transientImageRef.current;
     transientImageRef.current = null;
@@ -51,17 +49,13 @@ export function MyGroupQRScreen(): JSX.Element {
   }, []);
   const clearSensitiveState = useCallback(() => {
     clearTransientImage();
-    if (membership?.id && user?.id) {
-      queryClient.removeQueries({
-        exact: true,
-        queryKey: queryKeys.qr.membership(membership.id, user.id),
-      });
-    }
-  }, [clearTransientImage, membership, queryClient, user]);
+    clearQr();
+  }, [clearQr, clearTransientImage]);
   const privacy = useSensitiveScreenPrivacy({
     protectionKey: "haajar-membership-qr",
     onBackground: clearSensitiveState,
     onBlur: clearSensitiveState,
+    onForeground: qrQuery.refetch,
   });
   const backAction = {
     accessibilityLabel: "Go back to group details",

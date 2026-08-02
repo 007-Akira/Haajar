@@ -176,6 +176,23 @@ end $$;
 revoke all on function public.create_group(uuid,text,text) from public,anon,authenticated;
 grant execute on function public.create_group(uuid,text,text) to authenticated;
 
+-- The original secured role-change function rotates the credential but also
+-- returned its plaintext to the organiser. Keep its audited permission logic
+-- private and expose only non-secret rotation metadata to the mobile client.
+alter function public.change_group_membership_role(uuid,text) set schema private;
+revoke all on function private.change_group_membership_role(uuid,text)
+  from public,anon,authenticated;
+
+create function public.change_group_membership_role(target_membership_id uuid,new_role text)
+returns table(group_membership_id uuid,qr_credential_id uuid,qr_token text,qr_version integer)
+language sql volatile security definer set search_path = '' as $$
+  select changed.group_membership_id,changed.qr_credential_id,null::text,changed.qr_version
+  from private.change_group_membership_role(target_membership_id,new_role) changed;
+$$;
+revoke all on function public.change_group_membership_role(uuid,text)
+  from public,anon,authenticated;
+grant execute on function public.change_group_membership_role(uuid,text) to authenticated;
+
 create or replace function public.transfer_operational_group_membership(
   source_membership_id uuid,
   target_operational_group_id uuid

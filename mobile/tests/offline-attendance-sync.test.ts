@@ -35,6 +35,7 @@ test("offline resolution handles stale, wrong-group, revoked, and valid credenti
   assert.match(queue, /wrong_group/);
   assert.match(queue, /credential_status !== "active"/);
   assert.match(queue, /status: "valid", membershipId/);
+  assert.match(queue, /WHERE user_id = \? AND roll_call_id = \? AND credential_hash = \?/);
 });
 
 test("queue is persistent, idempotent, user scoped, and contains no raw token", () => {

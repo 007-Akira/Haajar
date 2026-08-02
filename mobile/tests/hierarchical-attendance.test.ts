@@ -118,3 +118,15 @@ test("mobile aggregate UI exposes subgroup progress, filtering, calls, and sourc
   assert.match(screen, /openPhoneLink/);
   assert.match(csv, /Source Subgroup/);
 });
+
+test("category and inactive subgroup states do not expose operational attendance controls", () => {
+  const actions = readFileSync(
+    new URL("../src/features/groups/components/group-primary-actions.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(actions, /groupKind === "category"/);
+  assert.match(actions, /role === "super organiser"/);
+  assert.match(actions, /withoutOperationalAttendance/);
+  assert.match(actions, /groupKind === "category"[\s\S]*?priority: \[\]/);
+  assert.match(actions, /!activeRollCall[\s\S]*?showsRollCallState: false/);
+});

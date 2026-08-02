@@ -13,6 +13,10 @@ const qrScreen = readFileSync(
   new URL("../src/features/groups/screens/my-group-qr-screen.tsx", import.meta.url),
   "utf8"
 );
+const qrHook = readFileSync(
+  new URL("../src/features/qr/hooks/use-membership-qr.ts", import.meta.url),
+  "utf8"
+);
 const invitationScreen = readFileSync(
   new URL("../src/features/registration/screens/group-invitation-screen.tsx", import.meta.url),
   "utf8"
@@ -43,7 +47,9 @@ test("only QR and generated invitation screens use sensitive-screen protection",
 test("backgrounding clears invitations, QR cache data, and transient render files", () => {
   assert.match(invitationScreen, /onBackground: invitationState\.clear/);
   assert.match(invitationScreen, /onBlur: invitationState\.clear/);
-  assert.match(qrScreen, /queryClient\.removeQueries/);
+  assert.doesNotMatch(qrHook, /useQuery|queryClient|queryKeys/);
+  assert.match(qrHook, /setData\(undefined\)/);
+  assert.match(qrScreen, /onForeground: qrQuery\.refetch/);
   assert.match(qrScreen, /FileSystem\.deleteAsync/);
   assert.match(qrScreen, /captureRef/);
   assert.match(qrScreen, /shareAsync/);
@@ -82,6 +88,7 @@ test("deep links remain internal-only and Android backup is disabled", () => {
   }
   assert.equal(appConfig.expo.android.allowBackup, false);
   assert.deepEqual(appConfig.expo.android.blockedPermissions, [
+    "android.permission.SYSTEM_ALERT_WINDOW",
     "android.permission.RECORD_AUDIO",
     "android.permission.READ_MEDIA_AUDIO",
     "android.permission.READ_MEDIA_VIDEO",

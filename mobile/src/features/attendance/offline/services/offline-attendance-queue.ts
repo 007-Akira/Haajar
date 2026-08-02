@@ -76,8 +76,10 @@ export async function resolveOfflineQr(input: {
     expires_at: string;
   }>(
     `SELECT membership_id, group_id, credential_status, credential_version, expires_at
-     FROM cached_credential_verifiers WHERE user_id = ? AND credential_hash = ?`,
+     FROM cached_credential_verifiers
+     WHERE user_id = ? AND roll_call_id = ? AND credential_hash = ?`,
     input.userId,
+    input.rollCallId,
     tokenHash
   );
   if (!row) return { status: "invalid" };

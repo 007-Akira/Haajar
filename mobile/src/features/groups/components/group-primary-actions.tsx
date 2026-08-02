@@ -33,6 +33,18 @@ function pairActions(actions: GroupActionDefinition[]): GroupActionDefinition[][
   return pairs;
 }
 
+const operationalAttendanceActions = new Set<GroupActionId>([
+  "scan-qr",
+  "manual-attendance",
+  "active-roll-call",
+  "absentees",
+  "offline-roster",
+]);
+
+function withoutOperationalAttendance(actions: GroupActionDefinition[]): GroupActionDefinition[] {
+  return actions.filter((action) => !operationalAttendanceActions.has(action.id));
+}
+
 export function GroupPrimaryActions({
   role,
   activeRollCall,
@@ -55,13 +67,27 @@ export function GroupPrimaryActions({
           ],
           showsRollCallState: true,
         }
-      : configuredSections.primary.id === "start-roll-call"
+      : groupKind === "category"
         ? {
             ...configuredSections,
             primary: { id: "view-members" as const, label: "View Members" },
-            priority: configuredSections.priority.filter((action) => action.id !== "view-members"),
+            priority: [],
+            more: withoutOperationalAttendance(configuredSections.more).filter(
+              (action) => action.id !== "view-members" && action.id !== "attendance-history"
+            ),
+            showsRollCallState: false,
           }
-        : configuredSections;
+        : !activeRollCall && role !== "member"
+          ? {
+              ...configuredSections,
+              primary: { id: "view-members" as const, label: "View Members" },
+              priority: [],
+              more: withoutOperationalAttendance(configuredSections.more).filter(
+                (action) => action.id !== "view-members"
+              ),
+              showsRollCallState: false,
+            }
+          : configuredSections;
 
   return (
     <View style={styles.container} testID={testID}>

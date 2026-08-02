@@ -90,7 +90,18 @@ test("role UI introduces no direct update or QR token display", () => {
     new URL("../src/features/groups/screens/group-member-details-screen.tsx", import.meta.url),
     "utf8"
   );
+  const hierarchyMigration = readFileSync(
+    new URL(
+      "../../supabase/migrations/20260802000900_roll_call_attendance_schema.sql",
+      import.meta.url
+    ),
+    "utf8"
+  );
   assert.equal(/from\(["']group_memberships["']\)[\s\S]*\.update\(/.test(mutationSource), false);
   assert.equal(/qr[_A-Z]?token|token_hash|encrypted/i.test(screenSource), false);
   assert.equal(/console\.(log|warn|error)/.test(screenSource), false);
+  assert.match(
+    hierarchyMigration,
+    /select changed\.group_membership_id,changed\.qr_credential_id,null::text/
+  );
 });
