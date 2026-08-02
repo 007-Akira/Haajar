@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(52);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -514,13 +514,25 @@ select set_config(
   )),
   true
 );
+select throws_ok(
+  $$select * from public.regenerate_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )$$,
+  '42501',
+  'a membership owner cannot regenerate their QR through the secured RPC'
+);
+reset role;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
 select ok(
   (select qr_token is not null from public.regenerate_membership_qr(
     (select id from public.group_memberships
      where group_id = current_setting('haajar.lifecycle_group_id')::uuid
        and user_id = '10000000-0000-4000-8000-000000000002')
   )),
-  'a membership owner can regenerate their QR through the secured RPC'
+  'a group organiser can regenerate a member QR through the secured RPC'
 );
 reset role;
 select is(

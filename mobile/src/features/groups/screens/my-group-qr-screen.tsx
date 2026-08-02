@@ -5,7 +5,7 @@ import { usePreventScreenCapture } from "expo-screen-capture";
 import * as Sharing from "expo-sharing";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 import {
@@ -20,7 +20,6 @@ import {
 import { useSession } from "@/features/auth";
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { useMembershipQr } from "@/features/qr/hooks/use-membership-qr";
-import { useRegenerateMembershipQr } from "@/features/qr/hooks/use-regenerate-membership-qr";
 import { buildMembershipQrPayload } from "@/features/qr/types/qr-models";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
@@ -41,7 +40,6 @@ export function MyGroupQRScreen(): JSX.Element {
   const membership = membershipQuery.data;
   const hasActiveMembership = membership?.status === "active";
   const qrQuery = useMembershipQr(membership?.id, hasActiveMembership);
-  const regenerateMutation = useRegenerateMembershipQr(membership?.id ?? "");
   const backAction = {
     accessibilityLabel: "Go back to group details",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -95,31 +93,6 @@ export function MyGroupQRScreen(): JSX.Element {
     } finally {
       setImageActionPending(false);
     }
-  }
-
-  function confirmRegeneration(): void {
-    if (regenerateMutation.isPending) return;
-    Alert.alert(
-      "Regenerate group QR?",
-      "Your current QR will be revoked immediately. Previously shared QR images will stop working.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Regenerate",
-          style: "destructive",
-          onPress: () => {
-            setActivityMessage("");
-            regenerateMutation.mutate(undefined, {
-              onSuccess: () => setActivityMessage("A new group QR has been issued."),
-              onError: (error) =>
-                setActivityMessage(
-                  isAppError(error) ? error.message : userSafeErrorMessages.UNKNOWN_ERROR
-                ),
-            });
-          },
-        },
-      ]
-    );
   }
 
   if (
@@ -213,7 +186,7 @@ export function MyGroupQRScreen(): JSX.Element {
       <View style={styles.actions}>
         <PrimaryButton
           accessibilityLabel="Share group QR image"
-          disabled={imageActionPending || regenerateMutation.isPending}
+          disabled={imageActionPending}
           fullWidth
           label="Share QR"
           loading={imageActionPending}
@@ -222,20 +195,11 @@ export function MyGroupQRScreen(): JSX.Element {
         />
         <SecondaryButton
           accessibilityLabel="Save group QR image"
-          disabled={imageActionPending || regenerateMutation.isPending}
+          disabled={imageActionPending}
           fullWidth
           label="Save QR"
           onPress={() => void saveQr()}
           testID="save-group-qr-button"
-        />
-        <SecondaryButton
-          accessibilityLabel="Regenerate group QR credential"
-          disabled={imageActionPending || regenerateMutation.isPending}
-          fullWidth
-          label="Regenerate QR"
-          loading={regenerateMutation.isPending}
-          onPress={confirmRegeneration}
-          testID="regenerate-group-qr-button"
         />
       </View>
 
