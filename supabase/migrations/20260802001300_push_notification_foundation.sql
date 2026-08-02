@@ -44,7 +44,7 @@ create table public.notification_jobs (
   id uuid primary key default gen_random_uuid(),
   notification_type text not null check (notification_type in ('roll_call_started', 'join_request_created')),
   event_id uuid not null references public.events(id) on delete restrict,
-  group_id uuid not null references public.groups(id) on delete restrict,
+  group_id uuid references public.groups(id) on delete restrict,
   entity_id uuid not null,
   dedupe_key text not null unique,
   title text not null check (length(title) between 1 and 120),
@@ -159,20 +159,27 @@ begin
 end;
 $$;
 
-create or replace function private.enqueue_roll_call_push()
+create or replace function private.enqueue_attendance_session_push()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare job_id uuid; target_event public.events%rowtype; target_group public.groups%rowtype;
+  target_session public.attendance_sessions%rowtype; notification_group_id uuid; notification_route text;
 begin
   select * into target_event from public.events where id = new.event_id;
-  select * into target_group from public.groups where id = new.group_id;
+  select * into target_session from public.attendance_sessions where id = new.session_id;
+  notification_group_id := coalesce(new.group_id, target_session.category_group_id);
+  select * into target_group from public.groups where id = notification_group_id;
+  notification_route := case when target_session.scope_type = 'general'
+    then '/events/' || new.event_id || '/attendance/' || new.session_id
+    else '/events/' || new.event_id || '/groups/' || target_session.category_group_id
+      || '/roll-calls/' || new.session_id end;
   insert into public.notification_jobs (
     notification_type, event_id, group_id, entity_id, dedupe_key, title, body, route
   ) values (
-    'roll_call_started', new.event_id, new.group_id, new.roll_call_id,
-    'roll-call-started:' || new.roll_call_id,
-    left(target_event.name || ' · ' || target_group.name, 120),
+    'roll_call_started', new.event_id, notification_group_id, new.session_id,
+    'attendance-session-started:' || new.session_id,
+    left(target_event.name || case when target_group.id is null then '' else ' · ' || target_group.name end, 120),
     'Roll call has started',
-    '/events/' || new.event_id || '/groups/' || new.group_id || '/roll-calls/' || new.roll_call_id
+    notification_route
   ) on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
   returning id into job_id;
 
@@ -182,14 +189,14 @@ begin
   left join public.notification_preferences as preference on preference.user_id = new.user_id
   where device.user_id = new.user_id and device.status = 'active'
     and coalesce(preference.roll_call_started, true)
-    and exists (select 1 from public.group_memberships as membership
-      where membership.id = new.membership_id and membership.status = 'active')
+    and exists (select 1 from public.event_members as membership
+      where membership.id = new.event_member_id and membership.status = 'active')
   on conflict (job_id, device_id) do nothing;
   return new;
 end;
 $$;
-create trigger roll_call_roster_enqueue_push after insert on public.roll_call_roster_members
-for each row execute function private.enqueue_roll_call_push();
+create trigger attendance_roster_enqueue_push after insert on public.attendance_unit_roster
+for each row execute function private.enqueue_attendance_session_push();
 
 create or replace function private.enqueue_join_request_push()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -279,7 +286,7 @@ revoke all on function public.claim_push_deliveries(integer),
   public.complete_push_delivery(uuid, text, text, text) from public, anon, authenticated;
 grant execute on function public.claim_push_deliveries(integer),
   public.complete_push_delivery(uuid, text, text, text) to service_role;
-revoke all on function private.enqueue_roll_call_push(), private.enqueue_join_request_push()
+revoke all on function private.enqueue_attendance_session_push(), private.enqueue_join_request_push()
   from public, anon, authenticated;
 
 commit;

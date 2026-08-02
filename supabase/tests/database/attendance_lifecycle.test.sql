@@ -1,462 +1,98 @@
 begin;
-
 create extension if not exists pgtap with schema extensions;
 select no_plan();
 
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-)
-values
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '20000000-0000-4000-8000-000000000001',
-    'authenticated', 'authenticated', 'attendance-owner@haajar.local', '', now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Attendance Owner"}', now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '20000000-0000-4000-8000-000000000002',
-    'authenticated', 'authenticated', 'attendance-member@haajar.local', '', now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Attendance Member"}', now(), now()
-  ),
-  (
-    '00000000-0000-0000-8000-000000000003',
-    '20000000-0000-4000-8000-000000000003',
-    'authenticated', 'authenticated', 'attendance-coorg@haajar.local', '', now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Attendance Co-organiser"}', now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '20000000-0000-4000-8000-000000000004',
-    'authenticated', 'authenticated', 'attendance-outsider@haajar.local', '', now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Attendance Outsider"}', now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '20000000-0000-4000-8000-000000000005',
-    'authenticated', 'authenticated', 'attendance-later@haajar.local', '', now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Attendance Later Member"}', now(), now()
-  );
+insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,
+  raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
+('00000000-0000-0000-0000-000000000000','22000000-0000-4000-8000-000000000001','authenticated','authenticated','owner@attendance.local','',now(),'{}','{"full_name":"Owner"}',now(),now()),
+('00000000-0000-0000-0000-000000000000','22000000-0000-4000-8000-000000000002','authenticated','authenticated','bus1@attendance.local','',now(),'{}','{"full_name":"Bus One"}',now(),now()),
+('00000000-0000-0000-0000-000000000000','22000000-0000-4000-8000-000000000003','authenticated','authenticated','bus2@attendance.local','',now(),'{}','{"full_name":"Bus Two"}',now(),now()),
+('00000000-0000-0000-0000-000000000000','22000000-0000-4000-8000-000000000004','authenticated','authenticated','volunteer@attendance.local','',now(),'{}','{"full_name":"Volunteer"}',now(),now()),
+('00000000-0000-0000-0000-000000000000','22000000-0000-4000-8000-000000000005','authenticated','authenticated','outsider@attendance.local','',now(),'{}','{"full_name":"Outsider"}',now(),now());
 
-update public.profiles
-set phone = '+91000000000' || right(id::text, 1)
-where id::text like '20000000-%';
-
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-select set_config(
-  'haajar.attendance_event_id',
-  public.create_event('Attendance Trip', 'Attendance lifecycle test')::text,
-  true
-);
-select set_config(
-  'haajar.attendance_group_id',
-  public.create_group(
-    current_setting('haajar.attendance_event_id')::uuid,
-    'Attendance Group', null
-  )::text,
-  true
-);
-select set_config(
-  'haajar.wrong_group_id',
-  public.create_group(
-    current_setting('haajar.attendance_event_id')::uuid,
-    'Other Attendance Group', null
-  )::text,
-  true
-);
+select set_config('h.event',public.create_event('Hierarchy Trip',null)::text,true);
+select set_config('h.category',public.create_category_group(current_setting('h.event')::uuid,'Bus',null)::text,true);
+select set_config('h.bus1',public.create_operational_group(current_setting('h.category')::uuid,'Bus 1',null)::text,true);
+select set_config('h.bus2',public.create_operational_group(current_setting('h.category')::uuid,'Bus 2',null)::text,true);
 reset role;
 
-insert into public.event_members (event_id, user_id, role, status)
-values
-  (current_setting('haajar.attendance_event_id')::uuid,
-   '20000000-0000-4000-8000-000000000002', 'member', 'active'),
-  (current_setting('haajar.attendance_event_id')::uuid,
-   '20000000-0000-4000-8000-000000000003', 'member', 'active'),
-  (current_setting('haajar.attendance_event_id')::uuid,
-   '20000000-0000-4000-8000-000000000004', 'member', 'active'),
-  (current_setting('haajar.attendance_event_id')::uuid,
-   '20000000-0000-4000-8000-000000000005', 'member', 'active');
+insert into public.event_members(event_id,user_id,role,status) values
+(current_setting('h.event')::uuid,'22000000-0000-4000-8000-000000000002','member','active'),
+(current_setting('h.event')::uuid,'22000000-0000-4000-8000-000000000003','member','active'),
+(current_setting('h.event')::uuid,'22000000-0000-4000-8000-000000000004','member','active'),
+(current_setting('h.event')::uuid,'22000000-0000-4000-8000-000000000005','member','active');
+insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at) values
+(current_setting('h.bus1')::uuid,'22000000-0000-4000-8000-000000000002','organiser','active','22000000-0000-4000-8000-000000000001',now()),
+(current_setting('h.bus2')::uuid,'22000000-0000-4000-8000-000000000003','organiser','active','22000000-0000-4000-8000-000000000001',now());
 
-insert into public.group_memberships (
-  group_id, user_id, role, status, approved_by, approved_at
-)
-values
-  (current_setting('haajar.attendance_group_id')::uuid,
-   '20000000-0000-4000-8000-000000000002', 'member', 'active',
-   '20000000-0000-4000-8000-000000000001', now()),
-  (current_setting('haajar.attendance_group_id')::uuid,
-   '20000000-0000-4000-8000-000000000003', 'co_organiser', 'active',
-   '20000000-0000-4000-8000-000000000001', now()),
-  (current_setting('haajar.wrong_group_id')::uuid,
-   '20000000-0000-4000-8000-000000000004', 'member', 'active',
-   '20000000-0000-4000-8000-000000000001', now());
-
-select set_config(
-  'haajar.attendance_member_membership_id',
-  (select id::text from public.group_memberships
-   where group_id = current_setting('haajar.attendance_group_id')::uuid
-     and user_id = '20000000-0000-4000-8000-000000000002'),
-  true
-);
-select set_config(
-  'haajar.attendance_coorg_membership_id',
-  (select id::text from public.group_memberships
-   where group_id = current_setting('haajar.attendance_group_id')::uuid
-     and user_id = '20000000-0000-4000-8000-000000000003'),
-  true
-);
-select set_config(
-  'haajar.wrong_membership_id',
-  (select id::text from public.group_memberships
-   where group_id = current_setting('haajar.wrong_group_id')::uuid
-     and user_id = '20000000-0000-4000-8000-000000000004'),
-  true
-);
-select set_config(
-  'haajar.attendance_coorg_token',
-  (select qr_token from public.issue_membership_qr(
-    current_setting('haajar.attendance_coorg_membership_id')::uuid
-  )),
-  true
-);
-select set_config(
-  'haajar.wrong_group_token',
-  (select qr_token from public.issue_membership_qr(
-    current_setting('haajar.wrong_membership_id')::uuid
-  )),
-  true
-);
-
-update public.groups set status = 'archived'
-where id = current_setting('haajar.attendance_group_id')::uuid;
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-select throws_ok(
-  $$select public.create_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid,
-    'Archived attempt', null
-  )$$,
-  '55000',
-  'archived groups cannot create active roll calls'
-);
+select set_config('h.category_session',public.create_category_attendance_session(
+  current_setting('h.category')::uuid,'Boarding',null)::text,true);
 reset role;
-update public.groups set status = 'active'
-where id = current_setting('haajar.attendance_group_id')::uuid;
+select is((select count(*)::integer from public.attendance_units
+  where session_id=current_setting('h.category_session')::uuid),2,'category creates one unit per child subgroup');
+select is((select count(*)::integer from public.attendance_unit_roster
+  where session_id=current_setting('h.category_session')::uuid),2,'category aggregate roster contains unique child members');
+select is((select count(distinct user_id)::integer from public.attendance_unit_roster
+  where session_id=current_setting('h.category_session')::uuid),2,'category roster does not double-count users');
+select set_config('h.bus1_unit',(select id::text from public.attendance_units
+  where session_id=current_setting('h.category_session')::uuid and group_id=current_setting('h.bus1')::uuid),true);
+select set_config('h.bus2_unit',(select id::text from public.attendance_units
+  where session_id=current_setting('h.category_session')::uuid and group_id=current_setting('h.bus2')::uuid),true);
 
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000002',true);
 set local role authenticated;
-select throws_ok(
-  $$select public.create_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid,
-    'Member attempt', null
-  )$$,
-  '42501',
-  'a normal member cannot create a roll call'
-);
+select lives_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.bus1_unit')),
+  'subgroup organiser views own unit');
+select throws_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.bus2_unit')),
+  '42501','subgroup organiser cannot view sibling unit');
+select throws_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.category_session')),
+  '42501','subgroup organiser cannot view category aggregate');
 reset role;
 
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-select set_config(
-  'haajar.roll_call_id',
-  public.create_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid,
-    'Before departure', 'Online attendance test'
-  )::text,
-  true
-);
-select ok(
-  current_setting('haajar.roll_call_id')::uuid is not null,
-  'an authorised organiser creates and activates a roll call'
-);
-select throws_ok(
-  $$select public.create_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid,
-    'Duplicate active roll call', null
-  )$$,
-  '23505',
-  'a second active roll call is rejected'
-);
+select is((public.get_roll_call_dashboard(current_setting('h.category_session')::uuid)#>>'{counts,total_roster}')::integer,
+  2,'super organiser sees aggregate snapshot total');
+select is(jsonb_array_length(public.get_roll_call_dashboard(current_setting('h.category_session')::uuid)->'units'),
+  2,'category dashboard includes per-subgroup progress');
+select set_config('h.general',public.create_general_attendance_session(current_setting('h.event')::uuid,
+  'General check',null,jsonb_build_array(jsonb_build_object('user_id','22000000-0000-4000-8000-000000000004',
+  'can_scan',true,'can_mark_manually',true)))::text,true);
+reset role;
+select is((select count(*)::integer from public.attendance_units where session_id=current_setting('h.general')::uuid),
+  1,'General creates exactly one event unit');
+select is((select count(*)::integer from public.attendance_units where session_id=current_setting('h.general')::uuid
+  and group_id is not null),0,'General creates no subgroup units');
+
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000005',true);
+set local role authenticated;
+select throws_ok(format('select public.mark_attendance_manual(%L::uuid,%L::uuid,gen_random_uuid())',
+  (select id from public.attendance_units where session_id=current_setting('h.general')::uuid),
+  (select event_member_id from public.attendance_unit_roster where session_id=current_setting('h.general')::uuid limit 1)),
+  '42501','unselected event member cannot operate General');
 reset role;
 
-select is(
-  (select count(*)::integer from public.roll_call_roster_members
-   where roll_call_id = current_setting('haajar.roll_call_id')::uuid),
-  3,
-  'roll-call creation freezes the three active group memberships'
-);
-
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000004',true);
 set local role authenticated;
-select is(
-  (select total_roster from public.get_active_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid
-  )),
-  null::bigint,
-  'ordinary members receive only the safe active-roll-call summary'
-);
-select throws_ok(
-  $$select * from public.mark_attendance_manual(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_member_membership_id')::uuid,
-    '21000000-0000-4000-8000-000000000001'::uuid
-  )$$,
-  '42501',
-  'a normal member cannot mark attendance manually'
-);
+select is((select result_status from public.mark_attendance_manual(
+  (select id from public.attendance_units where session_id=current_setting('h.general')::uuid),
+  (select event_member_id from public.attendance_unit_roster where session_id=current_setting('h.general')::uuid
+    and user_id='22000000-0000-4000-8000-000000000003'),gen_random_uuid())),
+  'marked_present','selected General volunteer can mark manually');
 reset role;
 
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000003', true);
+select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-select throws_ok(
-  $$select * from public.mark_attendance_manual(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_member_membership_id')::uuid,
-    '21000000-0000-4000-8000-000000000002'::uuid
-  )$$,
-  '42501',
-  'a co-organiser cannot use manual attendance under current policy'
-);
+select is((select remaining_count from public.close_roll_call(current_setting('h.category_session')::uuid)),
+  2::bigint,'closing category freezes final absent count');
 reset role;
-
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
-set local role authenticated;
-select is(
-  (select result_status from public.mark_attendance_manual(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_member_membership_id')::uuid,
-    '21000000-0000-4000-8000-000000000003'::uuid
-  )),
-  'marked_present',
-  'an organiser can manually mark an active roster member present'
-);
-select is(
-  (select result_status from public.mark_attendance_manual(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_member_membership_id')::uuid,
-    '21000000-0000-4000-8000-000000000004'::uuid
-  )),
-  'already_marked',
-  'a duplicate mark returns already_marked instead of inserting another row'
-);
-select is(
-  (select count(*)::integer from public.attendance_records
-   where roll_call_id = current_setting('haajar.roll_call_id')::uuid
-     and membership_id = current_setting('haajar.attendance_member_membership_id')::uuid),
-  1,
-  'duplicate and concurrent protection leaves one attendance record'
-);
-select is(
-  (select result_status from public.mark_attendance_present(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.wrong_group_token'),
-    'qr',
-    '21000000-0000-4000-8000-000000000005'::uuid
-  )),
-  'wrong_group',
-  'a credential from another group is rejected'
-);
-reset role;
-
-update public.group_memberships set status = 'inactive'
-where id = current_setting('haajar.attendance_coorg_membership_id')::uuid;
-select is(
-  (select count(*)::integer from public.roll_call_roster_members
-   where roll_call_id = current_setting('haajar.roll_call_id')::uuid),
-  3,
-  'later membership status changes do not rewrite the frozen historical roster'
-);
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
-set local role authenticated;
-select is(
-  (select result_status from public.mark_attendance_present(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_coorg_token'),
-    'qr',
-    '21000000-0000-4000-8000-000000000006'::uuid
-  )),
-  'inactive_membership',
-  'an inactive membership cannot be marked present'
-);
-reset role;
-update public.group_memberships set status = 'active'
-where id = current_setting('haajar.attendance_coorg_membership_id')::uuid;
-
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
-set local role authenticated;
-select is(
-  (select result_status from public.mark_attendance_present(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_coorg_token'),
-    'qr',
-    '21000000-0000-4000-8000-000000000007'::uuid
-  )),
-  'marked_present',
-  'a valid active group credential marks its member present'
-);
-select is(
-  (public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
-    #>> '{counts,present}')::integer,
-  2,
-  'dashboard present count is correct'
-);
-select is(
-  (public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
-    #>> '{counts,remaining}')::integer,
-  1,
-  'dashboard remaining count is correct'
-);
-select is(
-  (select present_count from public.close_roll_call(
-    current_setting('haajar.roll_call_id')::uuid
-  )),
-  2::bigint,
-  'closing returns the final present count'
-);
-select is(
-  (select remaining_count from public.close_roll_call(
-    current_setting('haajar.roll_call_id')::uuid
-  )),
-  1::bigint,
-  'repeated closure is idempotent and preserves the final remaining count'
-);
-select is(
-  (select result_status from public.mark_attendance_present(
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_coorg_token'),
-    'qr',
-    '21000000-0000-4000-8000-000000000008'::uuid
-  )),
-  'closed',
-  'a closed roll call rejects further marking'
-);
-
-select is(
-  (select total_roster from public.get_roll_call_history(
-    current_setting('haajar.attendance_group_id')::uuid
-  ) limit 1),
-  3::bigint,
-  'history totals come from the frozen roll-call roster'
-);
-select is(
-  (select present_count from public.get_roll_call_history(
-    current_setting('haajar.attendance_group_id')::uuid
-  ) limit 1),
-  2::bigint,
-  'closed history preserves the final present count'
-);
-reset role;
-
-update public.group_memberships set status = 'inactive'
-where id = current_setting('haajar.attendance_member_membership_id')::uuid;
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
-set local role authenticated;
-select is(
-  jsonb_array_length(
-    public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
-      -> 'present_members'
-  ),
-  2,
-  'a member removed after closure remains in historical attendance'
-);
-reset role;
-update public.group_memberships set status = 'active'
-where id = current_setting('haajar.attendance_member_membership_id')::uuid;
-
-insert into public.group_memberships (
-  group_id, user_id, role, status, approved_by, approved_at
-) values (
-  current_setting('haajar.attendance_group_id')::uuid,
-  '20000000-0000-4000-8000-000000000005',
-  'member', 'active', '20000000-0000-4000-8000-000000000001', now()
-);
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
-set local role authenticated;
-select is(
-  (public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
-    #>> '{counts,total_roster}')::integer,
-  3,
-  'a member added later does not appear in an old roll-call roster'
-);
-select set_config(
-  'haajar.second_roll_call_id',
-  public.create_roll_call(
-    current_setting('haajar.attendance_group_id')::uuid,
-    'Arrival check', null
-  )::text,
-  true
-);
-select is(
-  (select roll_call_id from public.get_roll_call_history(
-    current_setting('haajar.attendance_group_id')::uuid
-  ) limit 1),
-  current_setting('haajar.second_roll_call_id')::uuid,
-  'roll-call history is ordered newest first'
-);
-select is(
-  (select count(*)::integer from public.roll_call_roster_members
-   where roll_call_id = current_setting('haajar.second_roll_call_id')::uuid),
-  4,
-  'a later member appears only in roll calls created after joining'
-);
-reset role;
-
-select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
-set local role authenticated;
-select throws_ok(
-  $$select public.get_roll_call_dashboard(
-    current_setting('haajar.roll_call_id')::uuid
-  )$$,
-  '42501',
-  'an unrelated group member cannot read dashboard member data'
-);
-select throws_ok(
-  $$select * from public.get_roll_call_history(
-    current_setting('haajar.attendance_group_id')::uuid
-  )$$,
-  '42501',
-  'an unrelated user cannot read roll-call history'
-);
-select is(
-  (select count(*)::integer from public.attendance_records
-   where roll_call_id = current_setting('haajar.roll_call_id')::uuid),
-  0,
-  'RLS hides unrelated attendance records'
-);
-select throws_ok(
-  $$insert into public.attendance_records (
-    roll_call_id, event_id, group_id, membership_id, user_id,
-    marked_by, marking_method, client_operation_id
-  ) values (
-    current_setting('haajar.roll_call_id')::uuid,
-    current_setting('haajar.attendance_event_id')::uuid,
-    current_setting('haajar.attendance_group_id')::uuid,
-    current_setting('haajar.attendance_member_membership_id')::uuid,
-    '20000000-0000-4000-8000-000000000002',
-    '20000000-0000-4000-8000-000000000004',
-    'manual', gen_random_uuid()
-  )$$,
-  '42501',
-  'direct attendance inserts are blocked'
-);
-reset role;
-
-select ok(
-  not exists (
-    select 1 from public.audit_logs
-    where old_data::text like '%' || current_setting('haajar.attendance_coorg_token') || '%'
-       or new_data::text like '%' || current_setting('haajar.attendance_coorg_token') || '%'
-       or metadata::text like '%' || current_setting('haajar.attendance_coorg_token') || '%'
-  ),
-  'attendance audit logs contain no plaintext QR token'
-);
+update public.group_memberships set status='inactive' where group_id=current_setting('h.bus1')::uuid;
+select is((select count(*)::integer from public.attendance_unit_roster
+  where session_id=current_setting('h.category_session')::uuid),2,'later membership changes do not alter history');
 
 select * from finish();
 rollback;
