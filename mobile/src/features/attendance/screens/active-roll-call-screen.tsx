@@ -30,6 +30,8 @@ import {
 import { useCloseRollCall } from "../hooks/use-close-roll-call";
 import { useAttendanceRealtime } from "../hooks/use-attendance-realtime";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
+import { OfflineRosterStatus } from "../offline/components/offline-roster-status";
+import { useOfflineRosterCache } from "../offline/hooks/use-offline-roster-cache";
 import type { RollCallDashboard } from "../types/attendance-contracts";
 import type { AttendanceRealtimeState } from "../config/attendance-realtime";
 
@@ -53,6 +55,17 @@ export function ActiveRollCallScreen(): JSX.Element {
     dashboardQuery.data?.rollCall.status === "active"
   );
   const closeMutation = useCloseRollCall();
+  const dashboardAccessRevoked =
+    dashboardQuery.isError &&
+    isAppError(dashboardQuery.error) &&
+    (dashboardQuery.error.code === appErrorCodes.authenticationRequired ||
+      dashboardQuery.error.code === appErrorCodes.permissionDenied);
+  const offlineRoster = useOfflineRosterCache(
+    dashboardQuery.data,
+    groupQuery.data ?? undefined,
+    rollCallId,
+    dashboardAccessRevoked
+  );
   const [filter, setFilter] = useState<AttendanceDashboardFilter>("all");
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -143,6 +156,7 @@ export function ActiveRollCallScreen(): JSX.Element {
       groupId={groupId}
       groupName={group.name}
       isClosing={closeMutation.isPending}
+      offlineRoster={offlineRoster}
       onBack={() => router.back()}
       onClose={() => {
         Alert.alert(
@@ -184,12 +198,21 @@ export function ActiveRollCallScreen(): JSX.Element {
         })
       }
       onRefresh={() => void refresh()}
-      onScan={() =>
-        router.push({
-          pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]/scanner",
-          params: { eventId, groupId, rollCallId },
-        })
-      }
+      onScan={() => {
+        void (async () => {
+          if (offlineRoster.status.state !== "ready") {
+            const downloaded = await offlineRoster.refresh();
+            if (!downloaded) {
+              setFeedback("Download the current roster before opening the scanner.");
+              return;
+            }
+          }
+          router.push({
+            pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]/scanner",
+            params: { eventId, groupId, rollCallId },
+          });
+        })();
+      }}
       onSearch={setSearch}
       refreshing={refreshing}
       realtimeState={realtimeState}
@@ -210,6 +233,7 @@ interface DashboardContentProps {
   isClosing: boolean;
   refreshing: boolean;
   realtimeState: AttendanceRealtimeState;
+  offlineRoster: ReturnType<typeof useOfflineRosterCache>;
   onBack: () => void;
   onRefresh: () => void;
   onFilter: (filter: AttendanceDashboardFilter) => void;
@@ -283,6 +307,13 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
             </Text>
           ) : null}
         </View>
+      ) : null}
+
+      {!closed ? (
+        <OfflineRosterStatus
+          onRefresh={() => void props.offlineRoster.refresh()}
+          status={props.offlineRoster.status}
+        />
       ) : null}
 
       {!closed ? (
