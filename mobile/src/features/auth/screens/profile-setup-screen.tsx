@@ -7,6 +7,7 @@ import { PageHeader, PhoneField, PrimaryButton, ScreenContainer, TextField } fro
 import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
 import { safeAuthReturnTo } from "../services/auth-return";
+import { clearPendingAuthReturnTo } from "../services/pending-auth-return";
 
 function isValidPhone(value: string): boolean {
   const digits = value.replace(/\D/g, "");
@@ -26,7 +27,7 @@ export function ProfileSetupScreen(): JSX.Element {
 
   useEffect(() => {
     if (!profileLoading && profile?.profile_completed) {
-      router.replace(safeReturnTo as never);
+      void clearPendingAuthReturnTo().finally(() => router.replace(safeReturnTo as never));
     }
   }, [profile, profileLoading, router, safeReturnTo]);
 
@@ -44,6 +45,7 @@ export function ProfileSetupScreen(): JSX.Element {
     setSaving(true);
     try {
       await saveProfile({ fullName, phone });
+      await clearPendingAuthReturnTo();
       router.replace(safeReturnTo as never);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save your profile.");

@@ -7,7 +7,8 @@ import { PrimaryButton, ScreenContainer } from "@/components";
 import { APP_NAME, APP_VERSION } from "@/constants/app";
 import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
-import { safeAuthReturnTo } from "../services/auth-return";
+import { resolvePostAuthRoute, safeAuthReturnTo } from "../services/auth-return";
+import { clearPendingAuthReturnTo } from "../services/pending-auth-return";
 
 export function SignInScreen(): JSX.Element {
   const router = useRouter();
@@ -22,10 +23,11 @@ export function SignInScreen(): JSX.Element {
     if (loading || profileLoading || !session) {
       return;
     }
-    if (profile?.profile_completed) {
-      router.replace(safeReturnTo as never);
+    const route = resolvePostAuthRoute(Boolean(profile?.profile_completed), safeReturnTo);
+    if (route.kind === "destination") {
+      void clearPendingAuthReturnTo().finally(() => router.replace(route.href as never));
     } else {
-      router.replace({ pathname: "/profile-setup", params: { returnTo: safeReturnTo } });
+      router.replace({ pathname: "/profile-setup", params: { returnTo: route.returnTo } });
     }
   }, [loading, profile, profileLoading, router, safeReturnTo, session]);
 
@@ -33,7 +35,7 @@ export function SignInScreen(): JSX.Element {
     setSubmitting(true);
     setAuthError(null);
     try {
-      const completed = await signInWithGoogle();
+      const completed = await signInWithGoogle(safeReturnTo);
       if (!completed) return;
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Could not sign in with Google.");

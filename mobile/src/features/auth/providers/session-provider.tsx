@@ -19,7 +19,7 @@ interface SessionContextValue {
   profileLoading: boolean;
   configurationError: string | null;
   refreshProfile: () => Promise<void>;
-  signInWithGoogle: () => Promise<boolean>;
+  signInWithGoogle: (returnTo?: string) => Promise<boolean>;
   saveProfile: (values: { fullName: string; phone: string }) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -108,16 +108,19 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
     }
   }, [loadProfile, session]);
 
-  const handleGoogleSignIn = useCallback(async (): Promise<boolean> => {
-    setConfigurationError(null);
-    const nextSession = await openGoogleSignIn();
-    if (!nextSession) {
-      return false;
-    }
-    setSession(nextSession);
-    await loadProfile(nextSession.user.id);
-    return true;
-  }, [loadProfile]);
+  const handleGoogleSignIn = useCallback(
+    async (returnTo?: string): Promise<boolean> => {
+      setConfigurationError(null);
+      const nextSession = await openGoogleSignIn(returnTo);
+      if (!nextSession) {
+        return false;
+      }
+      setSession(nextSession);
+      await loadProfile(nextSession.user.id);
+      return true;
+    },
+    [loadProfile]
+  );
 
   const handleSaveProfile = useCallback(
     async (values: { fullName: string; phone: string }): Promise<void> => {
