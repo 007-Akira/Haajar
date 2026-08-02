@@ -3,7 +3,7 @@ import type { JSX, ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { getSupabaseClient, type Profile } from "@/lib/supabase";
-import { queryClient, queryKeys } from "@/lib/query";
+import { queryClient } from "@/lib/query";
 import { revokeCurrentPushDevice } from "@/features/notifications/services/push-notification-service";
 import { clearOfflineAttendanceCache } from "@/features/attendance/offline/services/offline-roster-cache";
 import {
@@ -29,8 +29,7 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 function clearSessionSensitiveCaches(): void {
-  queryClient.removeQueries({ queryKey: queryKeys.qr.all });
-  queryClient.getMutationCache().clear();
+  queryClient.clear();
 }
 
 export interface SessionProviderProps {

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { usePreventScreenCapture } from "expo-screen-capture";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
 import { Share, StyleSheet, Text, View } from "react-native";
@@ -19,6 +18,7 @@ import {
 import { useSession } from "@/features/auth";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
+import { SensitiveContentCover, useSensitiveScreenPrivacy } from "@/features/privacy";
 import { colors, layout, radii, shadows, spacing, typography } from "@/theme";
 
 import { useEphemeralGroupInvitation } from "../hooks/use-ephemeral-group-invitation";
@@ -28,13 +28,17 @@ import {
 } from "../types/group-invitation-models";
 
 export function GroupInvitationScreen(): JSX.Element {
-  usePreventScreenCapture("haajar-group-invitation");
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const { user } = useSession();
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const invitationState = useEphemeralGroupInvitation(groupId, user?.id);
+  const privacy = useSensitiveScreenPrivacy({
+    protectionKey: "haajar-group-invitation",
+    onBackground: invitationState.clear,
+    onBlur: invitationState.clear,
+  });
   const [activityMessage, setActivityMessage] = useState("");
   const backAction = {
     accessibilityLabel: "Go back to group details",
@@ -45,6 +49,8 @@ export function GroupInvitationScreen(): JSX.Element {
     },
     testID: "group-invitation-back",
   };
+
+  if (privacy.obscured) return <SensitiveContentCover />;
 
   if (groupQuery.isLoading || membershipQuery.isLoading || membershipQuery.sessionLoading) {
     return (

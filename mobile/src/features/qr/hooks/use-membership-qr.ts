@@ -15,6 +15,6 @@ export function useMembershipQr(membershipId?: string, active = true) {
     queryFn: () => getMembershipQr(membershipId!),
     enabled: !loading && active && Boolean(membershipId && user?.id),
     staleTime: Infinity,
-    gcTime: 5 * 60 * 1000,
+    gcTime: 0,
   });
 }

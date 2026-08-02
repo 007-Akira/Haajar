@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
@@ -18,21 +18,25 @@ import {
   SecondaryButton,
 } from "@/components";
 import { useSession } from "@/features/auth";
+import { SensitiveContentCover, useSensitiveScreenPrivacy } from "@/features/privacy";
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { useMembershipQr } from "@/features/qr/hooks/use-membership-qr";
 import { buildMembershipQrPayload } from "@/features/qr/types/qr-models";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
+import { queryKeys } from "@/lib/query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useGroup } from "../hooks/use-group";
 import { useGroupMembership } from "../hooks/use-group-membership";
 
 export function MyGroupQRScreen(): JSX.Element {
-  usePreventScreenCapture("haajar-membership-qr");
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
-  const { profile } = useSession();
+  const { profile, user } = useSession();
+  const queryClient = useQueryClient();
   const qrCaptureRef = useRef<View>(null);
+  const transientImageRef = useRef<string | null>(null);
   const [activityMessage, setActivityMessage] = useState("");
   const [imageActionPending, setImageActionPending] = useState(false);
   const groupQuery = useGroup(groupId);
@@ -40,6 +44,25 @@ export function MyGroupQRScreen(): JSX.Element {
   const membership = membershipQuery.data;
   const hasActiveMembership = membership?.status === "active";
   const qrQuery = useMembershipQr(membership?.id, hasActiveMembership);
+  const clearTransientImage = useCallback(() => {
+    const uri = transientImageRef.current;
+    transientImageRef.current = null;
+    if (uri) void FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
+  }, []);
+  const clearSensitiveState = useCallback(() => {
+    clearTransientImage();
+    if (membership?.id && user?.id) {
+      queryClient.removeQueries({
+        exact: true,
+        queryKey: queryKeys.qr.membership(membership.id, user.id),
+      });
+    }
+  }, [clearTransientImage, membership, queryClient, user]);
+  const privacy = useSensitiveScreenPrivacy({
+    protectionKey: "haajar-membership-qr",
+    onBackground: clearSensitiveState,
+    onBlur: clearSensitiveState,
+  });
   const backAction = {
     accessibilityLabel: "Go back to group details",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -49,7 +72,9 @@ export function MyGroupQRScreen(): JSX.Element {
 
   async function captureQrImage(): Promise<string> {
     if (!qrCaptureRef.current) throw new Error("QR image is not ready.");
-    return captureRef(qrCaptureRef, { format: "png", quality: 1, result: "tmpfile" });
+    const uri = await captureRef(qrCaptureRef, { format: "png", quality: 1, result: "tmpfile" });
+    transientImageRef.current = uri;
+    return uri;
   }
 
   async function shareQr(): Promise<void> {
@@ -71,6 +96,7 @@ export function MyGroupQRScreen(): JSX.Element {
     } catch {
       setActivityMessage("Could not share the QR image. Please try again.");
     } finally {
+      clearTransientImage();
       setImageActionPending(false);
     }
   }
@@ -91,6 +117,7 @@ export function MyGroupQRScreen(): JSX.Element {
     } catch {
       setActivityMessage("Could not save the QR image. Please try again.");
     } finally {
+      clearTransientImage();
       setImageActionPending(false);
     }
   }
@@ -151,6 +178,8 @@ export function MyGroupQRScreen(): JSX.Element {
   const qr = qrQuery.data;
   const payload = buildMembershipQrPayload(qr.version, qr.token);
   const memberName = profile?.full_name?.trim() || "Haajar member";
+
+  if (privacy.obscured) return <SensitiveContentCover />;
 
   return (
     <ScreenContainer
