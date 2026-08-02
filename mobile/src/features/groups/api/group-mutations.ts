@@ -52,6 +52,24 @@ export interface ChangeGroupMemberRoleResult {
   qrRotated: boolean;
 }
 
+export async function transferOperationalGroupMembership(input: {
+  membershipId: string;
+  targetGroupId: string;
+}) {
+  const { data, error } = await getSupabaseClient().rpc("transfer_operational_group_membership", {
+    source_membership_id: input.membershipId,
+    target_operational_group_id: input.targetGroupId,
+  });
+  if (error) throwSupabaseError(error, "transferOperationalGroupMembership");
+  const row = data[0];
+  if (!row)
+    throw new AppError({
+      code: appErrorCodes.database,
+      message: userSafeErrorMessages[appErrorCodes.database],
+    });
+  return row;
+}
+
 export async function changeGroupMemberRole({
   membershipId,
   role,

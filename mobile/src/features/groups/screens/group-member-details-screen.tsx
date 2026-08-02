@@ -176,6 +176,21 @@ export function GroupMemberDetailsScreen(): JSX.Element {
         </View>
       </View>
 
+      {group.groupKind === "operational" &&
+      group.parentGroupId &&
+      eventMembership?.status === "active" &&
+      eventMembership.role === "super_organiser" &&
+      member.status === "active" ? (
+        <SecondaryButton
+          fullWidth
+          label="Transfer Subgroup"
+          onPress={() =>
+            router.push(`/events/${eventId}/groups/${groupId}/members/${membershipId}/transfer`)
+          }
+          testID="transfer-subgroup-action"
+        />
+      ) : null}
+
       {successfulRole ? (
         <View accessibilityRole="alert" style={styles.successCard} testID="role-change-success">
           <Text style={styles.sectionTitle}>Role updated</Text>
