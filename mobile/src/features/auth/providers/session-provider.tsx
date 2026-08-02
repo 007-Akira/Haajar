@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { getSupabaseClient, type Profile } from "@/lib/supabase";
 import { queryClient, queryKeys } from "@/lib/query";
+import { revokeCurrentPushDevice } from "@/features/notifications/services/push-notification-service";
 import {
   getProfile,
   saveProfile as persistProfile,
@@ -133,6 +134,7 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
   );
 
   const signOut = useCallback(async (): Promise<void> => {
+    await revokeCurrentPushDevice();
     const { error } = await getSupabaseClient().auth.signOut();
     if (error) {
       throw error;

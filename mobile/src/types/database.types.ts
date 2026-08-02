@@ -991,6 +991,14 @@ export type Database = {
           qr_version: number;
         }[];
       };
+      register_push_device: {
+        Args: {
+          device_platform: string;
+          push_token: string;
+          target_app_instance_id: string;
+        };
+        Returns: string;
+      };
       resolve_group_invitation: {
         Args: { invitation_token: string };
         Returns: Json;
@@ -1010,6 +1018,10 @@ export type Database = {
           phone: string;
           resolution_status: string;
         }[];
+      };
+      revoke_push_device: {
+        Args: { target_app_instance_id: string };
+        Returns: boolean;
       };
       review_join_request: {
         Args: {
