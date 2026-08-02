@@ -4,6 +4,8 @@ select no_plan();
 
 select has_column('public','groups','group_kind','groups have a constrained hierarchy kind');
 select has_column('public','groups','parent_group_id','groups support category parents');
+select has_column('public','group_memberships','category_group_id',
+  'operational memberships carry a database-derived category scope');
 select has_table('public','attendance_sessions','attendance sessions exist');
 select has_table('public','attendance_units','operational attendance units exist');
 select has_table('public','attendance_unit_operators','temporary operators exist');
@@ -35,6 +37,13 @@ select has_function('public','mark_attendance_manual',array['uuid','uuid','uuid'
   'manual mark RPC exists');
 select has_function('public','close_roll_call',array['uuid'],'atomic close RPC exists');
 select has_function('public','get_roll_call_dashboard',array['uuid'],'dashboard RPC exists');
+select has_function('public','transfer_operational_group_membership',array['uuid','uuid'],
+  'secured atomic subgroup transfer RPC exists');
+select ok(exists(select 1 from pg_index i join pg_class c on c.oid=i.indexrelid
+  join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
+  and c.relname='group_memberships_one_active_operational_per_category'
+  and i.indisunique and i.indpred is not null),
+  'active operational membership has a concurrency-safe category uniqueness index');
 
 select ok((select bool_and(prosecdef and proconfig @> array['search_path=']) from pg_proc where oid in (
   'public.create_general_attendance_session(uuid,text,text,jsonb)'::regprocedure,
@@ -43,7 +52,8 @@ select ok((select bool_and(prosecdef and proconfig @> array['search_path=']) fro
   'public.mark_attendance_present(uuid,text,text,uuid)'::regprocedure,
   'public.mark_attendance_manual(uuid,uuid,uuid)'::regprocedure,
   'public.close_roll_call(uuid)'::regprocedure,
-  'public.get_roll_call_dashboard(uuid)'::regprocedure)),
+  'public.get_roll_call_dashboard(uuid)'::regprocedure,
+  'public.transfer_operational_group_membership(uuid,uuid)'::regprocedure)),
   'attendance RPCs are security definer with fixed empty search path');
 select ok(exists(select 1 from pg_publication_tables where pubname='supabase_realtime'
   and schemaname='public' and tablename='attendance_records'),

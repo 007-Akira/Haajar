@@ -33,6 +33,18 @@ test("groups support category and operational hierarchy without changing applied
   assert.match(schema, /create_operational_group/);
 });
 
+test("active operational membership is exclusive per category with an atomic transfer path", () => {
+  assert.match(schema, /category_group_id uuid references public\.groups/);
+  assert.match(schema, /group_memberships_one_active_operational_per_category/);
+  assert.match(schema, /where status = 'active' and category_group_id is not null/);
+  assert.match(schema, /CATEGORY_MEMBERSHIP_CONFLICT/);
+  assert.match(schema, /transfer_operational_group_membership/);
+  assert.match(schema, /pg_advisory_xact_lock/);
+  assert.match(schema, /set status='inactive'/);
+  assert.match(schema, /public\.issue_membership_qr\(target_membership_id\)/);
+  assert.match(schema, /group_membership\.transferred/);
+});
+
 test("attendance uses sessions, units, temporary operators, and immutable roster snapshots", () => {
   for (const table of [
     "attendance_sessions",

@@ -26,6 +26,11 @@ insert into public.event_members(event_id,user_id,role,status) values
 insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at) values
 (current_setting('h.bus1')::uuid,'22000000-0000-4000-8000-000000000002','organiser','active','22000000-0000-4000-8000-000000000001',now()),
 (current_setting('h.bus2')::uuid,'22000000-0000-4000-8000-000000000003','organiser','active','22000000-0000-4000-8000-000000000001',now());
+select throws_ok(format($sql$insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at)
+  values(%L::uuid,'22000000-0000-4000-8000-000000000002','organiser','active',
+  '22000000-0000-4000-8000-000000000001',now())$sql$,current_setting('h.bus2')),
+  '23505','Member already belongs to an operational subgroup in this category',
+  'elevated role assignment cannot bypass sibling membership exclusivity');
 
 select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
@@ -59,6 +64,29 @@ select is((public.get_roll_call_dashboard(current_setting('h.category_session'):
   2,'super organiser sees aggregate snapshot total');
 select is(jsonb_array_length(public.get_roll_call_dashboard(current_setting('h.category_session')::uuid)->'units'),
   2,'category dashboard includes per-subgroup progress');
+select set_config('h.bus1_membership',(select id::text from public.group_memberships
+  where group_id=current_setting('h.bus1')::uuid
+    and user_id='22000000-0000-4000-8000-000000000002'),true);
+select lives_ok(format('select * from public.transfer_operational_group_membership(%L::uuid,%L::uuid)',
+  current_setting('h.bus1_membership'),current_setting('h.bus2')),
+  'event super organiser atomically transfers a member to a sibling subgroup');
+select is((select count(*)::integer from public.group_memberships gm
+  where gm.category_group_id=current_setting('h.category')::uuid
+    and gm.user_id='22000000-0000-4000-8000-000000000002' and gm.status='active'),1,
+  'transfer leaves exactly one active operational membership in the category');
+select is((select group_id from public.group_memberships
+  where category_group_id=current_setting('h.category')::uuid
+    and user_id='22000000-0000-4000-8000-000000000002' and status='active'),
+  current_setting('h.bus2')::uuid,'transfer activates the requested sibling subgroup');
+select is((select group_id from public.attendance_unit_roster
+  where session_id=current_setting('h.category_session')::uuid
+    and user_id='22000000-0000-4000-8000-000000000002'),
+  current_setting('h.bus1')::uuid,'existing attendance snapshot retains the original subgroup');
+select ok(not exists(select 1 from public.audit_logs
+  where action='group_membership.transferred'
+    and (old_data::text ilike '%qr_token%' or new_data::text ilike '%qr_token%'
+      or metadata::text ilike '%qr_token%')),
+  'transfer audit does not contain a plain QR token');
 select set_config('h.general',public.create_general_attendance_session(current_setting('h.event')::uuid,
   'General check',null,jsonb_build_array(jsonb_build_object('user_id','22000000-0000-4000-8000-000000000004',
   'can_scan',true,'can_mark_manually',true)))::text,true);

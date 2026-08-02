@@ -50,6 +50,66 @@ before insert or update of event_id, group_kind, parent_group_id on public.group
 for each row execute function public.enforce_group_hierarchy();
 revoke all on function public.enforce_group_hierarchy() from public, anon, authenticated;
 
+-- Operational membership is exclusive within a category. The denormalised
+-- category key is always derived by the database and cannot be selected by a
+-- client. The partial unique index is the final concurrency-safe guard.
+alter table public.group_memberships
+  add column category_group_id uuid references public.groups(id) on delete restrict;
+
+create or replace function public.enforce_operational_membership_exclusivity()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare target_group public.groups%rowtype;
+begin
+  select * into target_group from public.groups where id = new.group_id;
+  if not found then
+    raise exception 'Group not found' using errcode = '23503';
+  end if;
+
+  new.category_group_id := case
+    when target_group.group_kind = 'operational' then target_group.parent_group_id
+    else null
+  end;
+
+  if new.status = 'active' and new.category_group_id is not null and exists(
+    select 1 from public.group_memberships sibling
+    where sibling.category_group_id = new.category_group_id
+      and sibling.user_id = new.user_id
+      and sibling.status = 'active'
+      and sibling.id <> new.id
+  ) then
+    raise exception 'Member already belongs to an operational subgroup in this category'
+      using errcode = '23505', detail = 'CATEGORY_MEMBERSHIP_CONFLICT';
+  end if;
+  return new;
+end $$;
+
+create trigger group_memberships_enforce_category_exclusivity
+before insert or update of group_id, user_id, status, category_group_id
+on public.group_memberships for each row
+execute function public.enforce_operational_membership_exclusivity();
+
+create unique index group_memberships_one_active_operational_per_category
+  on public.group_memberships(category_group_id, user_id)
+  where status = 'active' and category_group_id is not null;
+create index group_memberships_category_status_idx
+  on public.group_memberships(category_group_id, status, user_id);
+
+create or replace function public.refresh_group_membership_category_scope()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if old.group_kind is distinct from new.group_kind
+    or old.parent_group_id is distinct from new.parent_group_id then
+    update public.group_memberships set group_id = group_id where group_id = new.id;
+  end if;
+  return new;
+end $$;
+create trigger groups_refresh_membership_category_scope
+after update of group_kind, parent_group_id on public.groups
+for each row execute function public.refresh_group_membership_category_scope();
+
+revoke all on function public.enforce_operational_membership_exclusivity(),
+  public.refresh_group_membership_category_scope() from public, anon, authenticated;
+
 create or replace function public.create_category_group(target_event_id uuid, group_name text,
   group_description text default null)
 returns uuid language plpgsql volatile security definer set search_path = '' as $$
@@ -85,8 +145,14 @@ begin
   insert into public.groups(event_id,name,description,created_by,status,group_kind,parent_group_id)
     values(category.event_id,btrim(group_name),nullif(btrim(group_description),''),caller_id,'active','operational',category.id)
     returning id into new_group_id;
-  insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at)
-    values(new_group_id,caller_id,'organiser','active',caller_id,now());
+  -- Event super organisers already manage every child unit. Give the creator an
+  -- operational organiser membership only when it does not violate exclusivity.
+  if not public.is_event_super_organiser(category.event_id,caller_id)
+    and not exists(select 1 from public.group_memberships
+    where category_group_id=category.id and user_id=caller_id and status='active') then
+    insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at)
+      values(new_group_id,caller_id,'organiser','active',caller_id,now());
+  end if;
   return new_group_id;
 end $$;
 
@@ -109,6 +175,92 @@ begin
 end $$;
 revoke all on function public.create_group(uuid,text,text) from public,anon,authenticated;
 grant execute on function public.create_group(uuid,text,text) to authenticated;
+
+create or replace function public.transfer_operational_group_membership(
+  source_membership_id uuid,
+  target_operational_group_id uuid
+)
+returns table (
+  group_membership_id uuid,
+  source_group_id uuid,
+  target_group_id uuid,
+  qr_version integer
+)
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  caller_id uuid := auth.uid();
+  source_membership public.group_memberships%rowtype;
+  source_group public.groups%rowtype;
+  target_group public.groups%rowtype;
+  target_membership_id uuid;
+  issued_version integer;
+  discarded_credential_id uuid;
+  discarded_plain_token text;
+begin
+  if caller_id is null then
+    raise exception 'Authentication required' using errcode='42501';
+  end if;
+  select * into source_membership from public.group_memberships
+    where id=source_membership_id for update;
+  if not found or source_membership.status<>'active' then
+    raise exception 'Active source membership required' using errcode='P0002';
+  end if;
+  select * into source_group from public.groups where id=source_membership.group_id for share;
+  select * into target_group from public.groups where id=target_operational_group_id for share;
+  if not found or source_group.group_kind<>'operational'
+    or target_group.group_kind<>'operational'
+    or source_group.parent_group_id is null
+    or source_group.parent_group_id is distinct from target_group.parent_group_id then
+    raise exception 'Transfer requires sibling operational groups' using errcode='22023';
+  end if;
+  if target_group.status<>'active'
+    or not exists(select 1 from public.groups
+      where id=source_group.parent_group_id and status='active' and group_kind='category')
+    or not exists(select 1 from public.events where id=source_group.event_id and status='active') then
+    raise exception 'Active event, category, and target group required' using errcode='55000';
+  end if;
+  if not public.is_event_super_organiser(source_group.event_id,caller_id) then
+    raise exception 'Event super organiser permission required' using errcode='42501';
+  end if;
+
+  -- Serialise transfers/assignments for this user and category. The unique
+  -- index remains authoritative for every other concurrent write path.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(source_group.parent_group_id::text || ':' || source_membership.user_id::text, 0)
+  );
+
+  update public.group_memberships set status='inactive',updated_at=now()
+    where id=source_membership.id;
+  update public.qr_credentials set status='revoked',revoked_at=now()
+    where group_membership_id=source_membership.id and status='active';
+
+  insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at)
+    values(target_group.id,source_membership.user_id,source_membership.role,'active',caller_id,now())
+  on conflict(group_id,user_id) do update set
+    role=excluded.role,status='active',approved_by=caller_id,approved_at=now(),updated_at=now()
+  returning id into target_membership_id;
+
+  select issued.qr_credential_id,issued.qr_token,issued.qr_version
+    into discarded_credential_id,discarded_plain_token,issued_version
+    from public.issue_membership_qr(target_membership_id) issued;
+
+  perform public.write_haajar_audit(source_group.event_id,target_group.id,caller_id,
+    'group_membership',target_membership_id,'group_membership.transferred',
+    jsonb_build_object('source_group_id',source_group.id,'role',source_membership.role),
+    jsonb_build_object('target_group_id',target_group.id,'role',source_membership.role,
+      'qr_version',issued_version),
+    jsonb_build_object('category_group_id',source_group.parent_group_id));
+
+  group_membership_id:=target_membership_id;
+  source_group_id:=source_group.id;
+  target_group_id:=target_group.id;
+  qr_version:=issued_version;
+  return next;
+end $$;
+revoke all on function public.transfer_operational_group_membership(uuid,uuid)
+  from public,anon,authenticated;
+grant execute on function public.transfer_operational_group_membership(uuid,uuid)
+  to authenticated;
 
 create table public.attendance_sessions (
   id uuid primary key default gen_random_uuid(),
