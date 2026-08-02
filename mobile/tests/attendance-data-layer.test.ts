@@ -105,6 +105,7 @@ test("already-marked and closed results remain non-mutating outcomes", () => {
 test("attendance cache invalidation is user scoped and targeted", () => {
   assert.deepEqual(getCreateRollCallCacheTargets("group-1", "actor-1"), [
     ["attendance", "active", "group-1", "actor-1"],
+    ["attendance", "history", "group-1", "actor-1"],
     ["groups", "detail", "group-1", "actor-1"],
   ]);
   assert.deepEqual(
@@ -118,6 +119,7 @@ test("attendance cache invalidation is user scoped and targeted", () => {
     [
       ["attendance", "dashboard", "roll-call-1", "actor-1"],
       ["attendance", "roll-call", "roll-call-1", "actor-1"],
+      ["attendance", "history", "group-1", "actor-1"],
       ["attendance", "member", "roll-call-1", "membership-1", "actor-1"],
       ["groups", "detail", "group-1", "actor-1"],
     ]
@@ -132,6 +134,7 @@ test("attendance cache invalidation is user scoped and targeted", () => {
       ["attendance", "active", "group-1", "actor-1"],
       ["attendance", "roll-call", "roll-call-1", "actor-1"],
       ["attendance", "dashboard", "roll-call-1", "actor-1"],
+      ["attendance", "history", "group-1", "actor-1"],
       ["groups", "detail", "group-1", "actor-1"],
     ]
   );

@@ -11,6 +11,7 @@ export interface RollCallSummaryCardProps {
   name: string;
   groupName: string;
   startedAt: string;
+  closedAt?: string;
   createdBy: string;
   presentCount: number;
   unmarkedCount: number;
@@ -30,6 +31,9 @@ export function RollCallSummaryCard(props: RollCallSummaryCardProps): JSX.Elemen
           <Text style={styles.name}>{props.name}</Text>
           <Text style={styles.metadata}>{props.groupName}</Text>
           <Text style={styles.metadata}>{`${props.startedAt} · ${props.createdBy}`}</Text>
+          {props.closedAt ? (
+            <Text style={styles.metadata}>{`Closed ${props.closedAt}`}</Text>
+          ) : null}
         </View>
         <StatusBadge status={props.status ?? "active"} />
       </View>

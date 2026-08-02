@@ -35,6 +35,13 @@ values
     'authenticated', 'authenticated', 'attendance-outsider@haajar.local', '', now(),
     '{"provider":"email","providers":["email"]}',
     '{"full_name":"Attendance Outsider"}', now(), now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '20000000-0000-4000-8000-000000000005',
+    'authenticated', 'authenticated', 'attendance-later@haajar.local', '', now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Attendance Later Member"}', now(), now()
   );
 
 update public.profiles
@@ -73,7 +80,9 @@ values
   (current_setting('haajar.attendance_event_id')::uuid,
    '20000000-0000-4000-8000-000000000003', 'member', 'active'),
   (current_setting('haajar.attendance_event_id')::uuid,
-   '20000000-0000-4000-8000-000000000004', 'member', 'active');
+   '20000000-0000-4000-8000-000000000004', 'member', 'active'),
+  (current_setting('haajar.attendance_event_id')::uuid,
+   '20000000-0000-4000-8000-000000000005', 'member', 'active');
 
 insert into public.group_memberships (
   group_id, user_id, role, status, approved_by, approved_at
@@ -328,6 +337,75 @@ select is(
   'closed',
   'a closed roll call rejects further marking'
 );
+
+select is(
+  (select total_roster from public.get_roll_call_history(
+    current_setting('haajar.attendance_group_id')::uuid
+  ) limit 1),
+  3::bigint,
+  'history totals come from the frozen roll-call roster'
+);
+select is(
+  (select present_count from public.get_roll_call_history(
+    current_setting('haajar.attendance_group_id')::uuid
+  ) limit 1),
+  2::bigint,
+  'closed history preserves the final present count'
+);
+reset role;
+
+update public.group_memberships set status = 'inactive'
+where id = current_setting('haajar.attendance_member_membership_id')::uuid;
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  jsonb_array_length(
+    public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
+      -> 'present_members'
+  ),
+  2,
+  'a member removed after closure remains in historical attendance'
+);
+reset role;
+update public.group_memberships set status = 'active'
+where id = current_setting('haajar.attendance_member_membership_id')::uuid;
+
+insert into public.group_memberships (
+  group_id, user_id, role, status, approved_by, approved_at
+) values (
+  current_setting('haajar.attendance_group_id')::uuid,
+  '20000000-0000-4000-8000-000000000005',
+  'member', 'active', '20000000-0000-4000-8000-000000000001', now()
+);
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+select is(
+  (public.get_roll_call_dashboard(current_setting('haajar.roll_call_id')::uuid)
+    #>> '{counts,total_roster}')::integer,
+  3,
+  'a member added later does not appear in an old roll-call roster'
+);
+select set_config(
+  'haajar.second_roll_call_id',
+  public.create_roll_call(
+    current_setting('haajar.attendance_group_id')::uuid,
+    'Arrival check', null
+  )::text,
+  true
+);
+select is(
+  (select roll_call_id from public.get_roll_call_history(
+    current_setting('haajar.attendance_group_id')::uuid
+  ) limit 1),
+  current_setting('haajar.second_roll_call_id')::uuid,
+  'roll-call history is ordered newest first'
+);
+select is(
+  (select count(*)::integer from public.roll_call_roster_members
+   where roll_call_id = current_setting('haajar.second_roll_call_id')::uuid),
+  4,
+  'a later member appears only in roll calls created after joining'
+);
 reset role;
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
@@ -338,6 +416,13 @@ select throws_ok(
   )$$,
   '42501',
   'an unrelated group member cannot read dashboard member data'
+);
+select throws_ok(
+  $$select * from public.get_roll_call_history(
+    current_setting('haajar.attendance_group_id')::uuid
+  )$$,
+  '42501',
+  'an unrelated user cannot read roll-call history'
 );
 select is(
   (select count(*)::integer from public.attendance_records

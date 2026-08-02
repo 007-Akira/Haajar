@@ -887,6 +887,23 @@ export type Database = {
         Args: { target_roll_call_id: string };
         Returns: Json;
       };
+      get_roll_call_history: {
+        Args: { target_group_id: string };
+        Returns: {
+          closed_at: string;
+          created_by: string;
+          created_by_name: string;
+          event_id: string;
+          group_id: string;
+          present_count: number;
+          remaining_count: number;
+          roll_call_id: string;
+          started_at: string;
+          status: string;
+          title: string;
+          total_roster: number;
+        }[];
+      };
       is_active_event_member: {
         Args: { target_event_id: string; target_user_id?: string };
         Returns: boolean;

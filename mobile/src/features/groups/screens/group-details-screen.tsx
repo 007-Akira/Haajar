@@ -207,6 +207,14 @@ export function GroupDetailsScreen(): JSX.Element {
       return;
     }
 
+    if (actionId === "attendance-history") {
+      router.push({
+        pathname: "/events/[eventId]/groups/[groupId]/roll-calls",
+        params: groupRouteParams,
+      });
+      return;
+    }
+
     if (actionId === "registration-form") {
       router.push({
         pathname: "/events/[eventId]/groups/[groupId]/registration-form" as never,

@@ -8,6 +8,7 @@ export function getAttendanceDashboardState(
   groupStatus?: string | null,
   eventStatus?: string | null
 ): AttendanceDashboardState {
+  if (dashboard.rollCall.status === "closed") return "closed";
   if (groupStatus === "archived" || eventStatus === "archived") return "archived";
   if (
     !dashboard.permissions.canScan &&
@@ -16,7 +17,6 @@ export function getAttendanceDashboardState(
   ) {
     return "unauthorised";
   }
-  if (dashboard.rollCall.status === "closed") return "closed";
   if ((dashboard.counts?.totalRoster ?? 0) === 0) return "empty";
   return "active";
 }

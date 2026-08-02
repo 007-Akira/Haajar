@@ -90,6 +90,10 @@ select has_function(
   'public', 'get_roll_call_dashboard', array['uuid'],
   'roll-call dashboard RPC exists'
 );
+select has_function(
+  'public', 'get_roll_call_history', array['uuid'],
+  'secured roll-call history RPC exists'
+);
 
 select ok(
   (select bool_and(prosecdef) from pg_proc
@@ -99,7 +103,8 @@ select ok(
      'public.mark_attendance_present(uuid, text, text, uuid)'::regprocedure,
      'public.mark_attendance_manual(uuid, uuid, uuid)'::regprocedure,
      'public.close_roll_call(uuid)'::regprocedure,
-     'public.get_roll_call_dashboard(uuid)'::regprocedure
+     'public.get_roll_call_dashboard(uuid)'::regprocedure,
+     'public.get_roll_call_history(uuid)'::regprocedure
    )),
   'public attendance RPCs are security definer functions'
 );
@@ -111,7 +116,8 @@ select ok(
      'public.mark_attendance_present(uuid, text, text, uuid)'::regprocedure,
      'public.mark_attendance_manual(uuid, uuid, uuid)'::regprocedure,
      'public.close_roll_call(uuid)'::regprocedure,
-     'public.get_roll_call_dashboard(uuid)'::regprocedure
+     'public.get_roll_call_dashboard(uuid)'::regprocedure,
+     'public.get_roll_call_history(uuid)'::regprocedure
    )),
   'public attendance RPCs use an empty fixed search path'
 );

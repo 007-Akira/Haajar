@@ -240,7 +240,14 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
       />
       <RollCallSummaryCard
         absentCount={closed ? counts.remaining : undefined}
-        createdBy={getRollCallCreatorName(props.dashboard)}
+        closedAt={
+          props.dashboard.rollCall.closedAt
+            ? formatDateTime(props.dashboard.rollCall.closedAt)
+            : undefined
+        }
+        createdBy={
+          props.dashboard.rollCall.createdByName ?? getRollCallCreatorName(props.dashboard)
+        }
         groupName={props.groupName}
         name={props.dashboard.rollCall.title}
         presentCount={counts.present}
@@ -284,8 +291,18 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
 
       <View style={styles.section}>
         <SectionHeader
-          description={`${counts.totalRoster} members in the roster captured when this roll call started.`}
-          title="Attendance roster"
+          description={
+            props.dashboard.permissions.canViewFullHistory === false
+              ? "Your attendance record from the captured roster."
+              : `${counts.totalRoster} members in the roster captured when this roll call started.`
+          }
+          title={
+            closed
+              ? props.dashboard.permissions.canViewFullHistory === false
+                ? "Your attendance"
+                : "Final attendance"
+              : "Attendance roster"
+          }
         />
         <TextField
           accessibilityLabel="Search attendance roster"
@@ -332,6 +349,8 @@ function DashboardContent(props: DashboardContentProps): JSX.Element {
                 name={member.displayName}
                 phone={member.phone ?? "Phone unavailable"}
                 status={member.status}
+                markedBy={member.markedByName ?? undefined}
+                markingMethod={member.markingMethod ?? undefined}
                 testID={`attendance-member-${member.membershipId}`}
               />
             ))}

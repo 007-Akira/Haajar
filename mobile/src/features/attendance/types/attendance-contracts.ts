@@ -33,6 +33,8 @@ export type ManualAttendanceRpcRow =
 export type CloseRollCallRpcRow =
   Database["public"]["Functions"]["close_roll_call"]["Returns"][number];
 export type RollCallDashboardRpcResult = Json;
+export type RollCallHistoryRpcRow =
+  Database["public"]["Functions"]["get_roll_call_history"]["Returns"][number];
 
 export type CanonicalAttendanceOutcome =
   | "valid"
@@ -73,6 +75,23 @@ export interface RollCallDashboardMember {
   status: DashboardMemberStatus;
   markedAt: string | null;
   markingMethod: AttendanceMarkingMethod | null;
+  markedBy?: string | null;
+  markedByName?: string | null;
+}
+
+export interface RollCallHistoryItem {
+  id: string;
+  eventId: string;
+  groupId: string;
+  title: string;
+  status: RollCallStatus;
+  startedAt: string;
+  closedAt: string | null;
+  createdBy: string;
+  createdByName: string;
+  totalRoster: number;
+  presentCount: number;
+  remainingCount: number;
 }
 
 export interface RollCallDashboard {
@@ -86,11 +105,18 @@ export interface RollCallDashboard {
     startedAt: string;
     closedAt: string | null;
     createdBy: string | null;
+    createdByName?: string | null;
+    closedByName?: string | null;
   };
   counts: { totalRoster: number; present: number; remaining: number } | null;
   presentMembers: RollCallDashboardMember[];
   remainingMembers: RollCallDashboardMember[];
-  permissions: { canScan: boolean; canMarkManually: boolean; canClose: boolean };
+  permissions: {
+    canScan: boolean;
+    canMarkManually: boolean;
+    canClose: boolean;
+    canViewFullHistory?: boolean;
+  };
 }
 
 export interface AttendanceMutationResult {

@@ -11,6 +11,7 @@ interface AttendanceCacheContext {
 export function getCreateRollCallCacheTargets(groupId: string, userId: string) {
   return [
     queryKeys.attendance.activeByGroup(groupId, userId),
+    queryKeys.attendance.history(groupId, userId),
     queryKeys.groups.detail(groupId, userId),
   ] as const;
 }
@@ -21,6 +22,7 @@ export function getAttendanceMarkCacheTargets(
   const targets: QueryKey[] = [
     queryKeys.attendance.dashboard(context.rollCallId, context.userId),
     queryKeys.attendance.rollCall(context.rollCallId, context.userId),
+    queryKeys.attendance.history(context.groupId, context.userId),
   ];
   if (context.membershipId) {
     targets.push(
@@ -36,6 +38,7 @@ export function getCloseRollCallCacheTargets(context: AttendanceCacheContext) {
     queryKeys.attendance.activeByGroup(context.groupId, context.userId),
     queryKeys.attendance.rollCall(context.rollCallId, context.userId),
     queryKeys.attendance.dashboard(context.rollCallId, context.userId),
+    queryKeys.attendance.history(context.groupId, context.userId),
     queryKeys.groups.detail(context.groupId, context.userId),
   ] as const;
 }

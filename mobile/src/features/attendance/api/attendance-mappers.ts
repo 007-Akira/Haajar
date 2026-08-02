@@ -13,6 +13,8 @@ import type {
   QrAttendanceRpcRow,
   RollCallDashboard,
   RollCallDashboardMember,
+  RollCallHistoryItem,
+  RollCallHistoryRpcRow,
 } from "../types/attendance-contracts";
 
 type AttendanceRpcRow = QrAttendanceRpcRow | ManualAttendanceRpcRow;
@@ -113,6 +115,8 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
       startedAt: rollCall.started_at,
       closedAt: nullableString(rollCall.closed_at),
       createdBy: nullableString(rollCall.created_by),
+      createdByName: nullableString(rollCall.created_by_name),
+      closedByName: nullableString(rollCall.closed_by_name),
     },
     counts: countsValue
       ? {
@@ -127,6 +131,7 @@ export function mapRollCallDashboard(value: Json): RollCallDashboard {
       canScan: permissions.can_scan === true,
       canMarkManually: permissions.can_mark_manually === true,
       canClose: permissions.can_close === true,
+      canViewFullHistory: permissions.can_view_full_history === true,
     },
   };
 }
@@ -153,8 +158,39 @@ function mapMembers(value: Json | undefined): RollCallDashboardMember[] {
       status: member.status as RollCallDashboardMember["status"],
       markedAt: nullableString(member.marked_at),
       markingMethod: isMarkingMethod(member.marking_method) ? member.marking_method : null,
+      markedBy: nullableString(member.marked_by),
+      markedByName: nullableString(member.marked_by_name),
     };
   });
+}
+
+export function mapRollCallHistoryItem(row: RollCallHistoryRpcRow): RollCallHistoryItem {
+  if (
+    !row.roll_call_id ||
+    !row.event_id ||
+    !row.group_id ||
+    !row.title ||
+    !row.started_at ||
+    !row.created_by ||
+    !row.created_by_name ||
+    (row.status !== "active" && row.status !== "closed")
+  ) {
+    throw invalidResponseError();
+  }
+  return {
+    id: row.roll_call_id,
+    eventId: row.event_id,
+    groupId: row.group_id,
+    title: row.title,
+    status: row.status,
+    startedAt: row.started_at,
+    closedAt: row.closed_at ?? null,
+    createdBy: row.created_by,
+    createdByName: row.created_by_name,
+    totalRoster: row.total_roster,
+    presentCount: row.present_count,
+    remainingCount: row.remaining_count,
+  };
 }
 
 function asObject(value: Json | undefined): Record<string, Json | undefined> {

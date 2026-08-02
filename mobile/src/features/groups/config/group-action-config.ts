@@ -65,7 +65,7 @@ const roleActionConfiguration: Record<GroupDisplayRole, RoleActionConfiguration>
   "co-organiser": {
     defaultPrimary: "scan-qr",
     priority: [],
-    more: ["absentees", "view-members", "offline-roster"],
+    more: ["absentees", "view-members", "attendance-history", "offline-roster"],
     showsRollCallState: true,
   },
   organiser: {

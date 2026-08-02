@@ -11,6 +11,8 @@ export interface AttendanceMemberRowProps {
   phone: string;
   status: AttendanceStatus;
   markedAt?: string;
+  markingMethod?: "qr" | "manual";
+  markedBy?: string;
   testID?: string;
 }
 
@@ -19,6 +21,8 @@ export function AttendanceMemberRow({
   phone,
   status,
   markedAt,
+  markingMethod,
+  markedBy,
   testID,
 }: AttendanceMemberRowProps): JSX.Element {
   return (
@@ -27,6 +31,12 @@ export function AttendanceMemberRow({
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.meta}>{phone}</Text>
         {markedAt ? <Text style={styles.meta}>{`Marked ${markedAt}`}</Text> : null}
+        {markingMethod ? (
+          <Text
+            style={styles.meta}
+          >{`Method: ${markingMethod === "qr" ? "QR ticket" : "Manual"}`}</Text>
+        ) : null}
+        {markedBy ? <Text style={styles.meta}>{`Marked by ${markedBy}`}</Text> : null}
       </View>
       {status === "unmarked" ? (
         <Text style={styles.unmarked}>[ UNMARKED ]</Text>

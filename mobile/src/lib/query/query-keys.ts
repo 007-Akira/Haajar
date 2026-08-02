@@ -68,6 +68,8 @@ export const queryKeys = {
       ["attendance", "roll-call", rollCallId, userId] as const,
     dashboard: (rollCallId: string, userId: string) =>
       ["attendance", "dashboard", rollCallId, userId] as const,
+    history: (groupId: string, userId: string) =>
+      ["attendance", "history", groupId, userId] as const,
     memberState: (rollCallId: string, membershipId: string, userId: string) =>
       ["attendance", "member", rollCallId, membershipId, userId] as const,
   },
