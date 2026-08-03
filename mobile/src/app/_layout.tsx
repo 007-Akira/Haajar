@@ -1,7 +1,8 @@
 import type { JSX } from "react";
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
+import { allowScreenCaptureAsync } from "expo-screen-capture";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native";
@@ -18,6 +19,19 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout(): JSX.Element | null {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const isSensitiveRoute = /\/events\/[^/]+\/groups\/[^/]+\/(?:qr|invite)$/.test(pathname);
+    if (!isSensitiveRoute) {
+      // Recover from a process/activity restart that occurs before the focused
+      // sensitive screen has a chance to run its normal blur cleanup.
+      void Promise.all([
+        allowScreenCaptureAsync("haajar-membership-qr"),
+        allowScreenCaptureAsync("haajar-group-invitation"),
+      ]).catch(() => undefined);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

@@ -25,16 +25,20 @@ export function NotificationProvider({ children }: { children: ReactNode }): JSX
   const { profile, user } = useSession();
 
   useEffect(() => {
-    void configureAndroidNotificationChannel();
+    void configureAndroidNotificationChannel().catch(() => undefined);
   }, []);
 
   useEffect(() => {
     if (!user || !profile?.profile_completed) return undefined;
-    void getPushPermissionState().then((state) => {
-      if (state === "enabled") void registerCurrentExpoPushToken();
-    });
+    void getPushPermissionState()
+      .then((state) => {
+        if (state === "enabled") {
+          void registerCurrentExpoPushToken().catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
     const tokenSubscription = Notifications.addPushTokenListener(() => {
-      void registerCurrentExpoPushToken();
+      void registerCurrentExpoPushToken().catch(() => undefined);
     });
     return () => tokenSubscription.remove();
   }, [profile?.profile_completed, user]);
@@ -44,7 +48,9 @@ export function NotificationProvider({ children }: { children: ReactNode }): JSX
       const route = sanitizeNotificationRoute(response?.notification.request.content.data?.route);
       if (route) router.push(route as never);
     }
-    void Notifications.getLastNotificationResponseAsync().then(openResponse);
+    void Notifications.getLastNotificationResponseAsync()
+      .then(openResponse)
+      .catch(() => undefined);
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener(openResponse);
     return () => responseSubscription.remove();
