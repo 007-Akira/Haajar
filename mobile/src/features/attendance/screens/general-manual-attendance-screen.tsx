@@ -12,14 +12,17 @@ import {
   TextField,
 } from "@/components";
 import { colors, layout, spacing } from "@/theme";
-import { StyleSheet, View } from "react-native";
+import { appErrorCodes, isAppError } from "@/lib/errors";
+import { StyleSheet, Text, View } from "react-native";
+
+import { getManualAttendanceTarget } from "../config/manual-attendance-view";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
 import { useMarkManualAttendance } from "../hooks/use-mark-manual-attendance";
+import type { RollCallDashboard, RollCallDashboardMember } from "../types/attendance-contracts";
 export function GeneralManualAttendanceScreen(): JSX.Element {
   const { eventId, sessionId } = useLocalSearchParams<{ eventId: string; sessionId: string }>();
   const router = useRouter();
   const dashboard = useRollCallDashboard(sessionId);
-  const mutation = useMarkManualAttendance();
   const [search, setSearch] = useState("");
   const back = {
     accessibilityLabel: "Go back",
@@ -55,28 +58,76 @@ export function GeneralManualAttendanceScreen(): JSX.Element {
       <PageHeader leadingAction={back} subtitle="General attendance" title="Mark Manually" />
       <TextField label="Search" value={search} onChangeText={setSearch} />
       {members.map((member) => (
-        <View key={member.rosterEntryId ?? member.userId} style={styles.row}>
-          <AttendanceMemberRow
-            name={member.displayName}
-            phone={member.phone ?? "Phone unavailable"}
-            status={member.status}
-          />
-          <PrimaryButton
-            label="Mark Present"
-            loading={mutation.isPending}
-            onPress={() =>
-              void mutation
-                .markManualAttendance({
-                  groupId: eventId,
-                  rollCallId: sessionId,
-                  membershipId: member.membershipId,
-                })
-                .then(() => dashboard.refetch())
-            }
-          />
-        </View>
+        <GeneralManualRow
+          dashboard={dashboard.data}
+          eventId={eventId}
+          key={member.rosterEntryId ?? member.userId}
+          member={member}
+          onMarked={() => void dashboard.refetch()}
+        />
       ))}
     </ScreenContainer>
   );
 }
-const styles = StyleSheet.create({ content: { gap: spacing.md }, row: { gap: spacing.sm } });
+
+function GeneralManualRow({
+  dashboard,
+  eventId,
+  member,
+  onMarked,
+}: {
+  dashboard: RollCallDashboard;
+  eventId: string;
+  member: RollCallDashboardMember;
+  onMarked: () => void;
+}): JSX.Element {
+  const mutation = useMarkManualAttendance();
+  const [error, setError] = useState("");
+  const target = getManualAttendanceTarget(dashboard, member);
+
+  async function markPresent(): Promise<void> {
+    setError("");
+    try {
+      const result = await mutation.markManualAttendance({
+        groupId: eventId,
+        rollCallId: target.rollCallId,
+        membershipId: target.membershipId,
+      });
+      if (result.outcome === "marked" || result.outcome === "already_marked") {
+        onMarked();
+      } else {
+        setError("This member could not be marked present.");
+      }
+    } catch (caught) {
+      setError(
+        isAppError(caught) && caught.code === appErrorCodes.network
+          ? "Network unavailable. Attendance was not changed."
+          : "Attendance could not be updated safely."
+      );
+    }
+  }
+
+  return (
+    <View style={styles.row}>
+      <AttendanceMemberRow
+        name={member.displayName}
+        phone={member.phone ?? "Phone unavailable"}
+        status={member.status}
+      />
+      <PrimaryButton
+        label="Mark Present"
+        loading={mutation.isPending}
+        disabled={mutation.isPending}
+        onPress={() => void markPresent()}
+        testID={`general-mark-present-${member.rosterEntryId ?? member.userId}`}
+      />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { gap: spacing.md },
+  row: { gap: spacing.sm },
+  error: { color: colors.danger },
+});

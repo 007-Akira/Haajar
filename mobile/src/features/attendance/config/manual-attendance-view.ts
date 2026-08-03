@@ -25,3 +25,13 @@ export function getManualAttendanceMembers(
 export function canManageManualAttendance(dashboard: RollCallDashboard): boolean {
   return dashboard.rollCall.status === "active" && dashboard.permissions.canMarkManually;
 }
+
+export function getManualAttendanceTarget(
+  dashboard: RollCallDashboard,
+  member: RollCallDashboardMember
+): { rollCallId: string; membershipId: string } {
+  return {
+    rollCallId: dashboard.rollCall.attendanceUnitId ?? dashboard.rollCall.id,
+    membershipId: member.rosterEntryId ?? member.membershipId,
+  };
+}

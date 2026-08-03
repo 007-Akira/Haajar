@@ -6,6 +6,7 @@ import { mapAttendanceMutationResult } from "../src/features/attendance/api/atte
 import {
   canManageManualAttendance,
   getManualAttendanceMembers,
+  getManualAttendanceTarget,
 } from "../src/features/attendance/config/manual-attendance-view";
 import { createMutationGuard } from "../src/features/attendance/config/mutation-guard";
 import type { RollCallDashboard } from "../src/features/attendance/types/attendance-contracts";
@@ -79,6 +80,29 @@ test("manual attendance visibility follows backend permission and active status"
       rollCall: { ...dashboard.rollCall, status: "closed" },
     }),
     false
+  );
+});
+
+test("manual marking uses the attendance unit and exact roster entry", () => {
+  const targetDashboard: RollCallDashboard = {
+    ...dashboard,
+    rollCall: {
+      ...dashboard.rollCall,
+      id: "session-or-unit",
+      attendanceUnitId: "attendance-unit",
+    },
+    remainingMembers: [
+      { ...dashboard.remainingMembers[0]!, rosterEntryId: "roster-entry" },
+      ...dashboard.remainingMembers.slice(1),
+    ],
+  };
+
+  assert.deepEqual(
+    getManualAttendanceTarget(targetDashboard, targetDashboard.remainingMembers[0]!),
+    {
+      rollCallId: "attendance-unit",
+      membershipId: "roster-entry",
+    }
   );
 });
 

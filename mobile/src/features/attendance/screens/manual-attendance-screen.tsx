@@ -25,6 +25,7 @@ import { colors, layout, spacing, typography } from "@/theme";
 import {
   canManageManualAttendance,
   getManualAttendanceMembers,
+  getManualAttendanceTarget,
   type ManualAttendanceRoleFilter,
 } from "../config/manual-attendance-view";
 import { useMarkManualAttendance } from "../hooks/use-mark-manual-attendance";
@@ -190,7 +191,8 @@ export function ManualAttendanceScreen(): JSX.Element {
               key={member.membershipId}
               member={member}
               onMarked={() => void dashboardQuery.refetch()}
-              rollCallId={rollCallId}
+              rollCallId={getManualAttendanceTarget(dashboard, member).rollCallId}
+              targetMembershipId={getManualAttendanceTarget(dashboard, member).membershipId}
             />
           ))}
         </View>
@@ -202,6 +204,7 @@ export function ManualAttendanceScreen(): JSX.Element {
 interface ManualRosterRowProps {
   groupId: string;
   rollCallId: string;
+  targetMembershipId: string;
   member: RollCallDashboardMember;
   onMarked: () => void;
 }
@@ -211,6 +214,7 @@ function ManualRosterRow({
   member,
   onMarked,
   rollCallId,
+  targetMembershipId,
 }: ManualRosterRowProps): JSX.Element {
   const mutation = useMarkManualAttendance();
   const [error, setError] = useState("");
@@ -220,7 +224,7 @@ function ManualRosterRow({
     try {
       const result = await mutation.markManualAttendance({
         groupId,
-        membershipId: member.membershipId,
+        membershipId: targetMembershipId,
         rollCallId,
       });
       if (result.outcome === "marked" || result.outcome === "already_marked") onMarked();
