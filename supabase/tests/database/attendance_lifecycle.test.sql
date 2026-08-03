@@ -43,6 +43,14 @@ select is((select count(*)::integer from public.attendance_unit_roster
   where session_id=current_setting('h.category_session')::uuid),2,'category aggregate roster contains unique child members');
 select is((select count(distinct user_id)::integer from public.attendance_unit_roster
   where session_id=current_setting('h.category_session')::uuid),2,'category roster does not double-count users');
+select is((select count(*)::integer from public.attendance_unit_roster
+  where attendance_unit_id=(select id from public.attendance_units
+    where session_id=current_setting('h.category_session')::uuid
+      and group_id=current_setting('h.bus1')::uuid)),1,'first child unit captures only its subgroup roster');
+select is((select count(*)::integer from public.attendance_unit_roster
+  where attendance_unit_id=(select id from public.attendance_units
+    where session_id=current_setting('h.category_session')::uuid
+      and group_id=current_setting('h.bus2')::uuid)),1,'second child unit captures only its subgroup roster');
 select set_config('h.bus1_unit',(select id::text from public.attendance_units
   where session_id=current_setting('h.category_session')::uuid and group_id=current_setting('h.bus1')::uuid),true);
 select set_config('h.bus2_unit',(select id::text from public.attendance_units
@@ -95,6 +103,14 @@ select is((select count(*)::integer from public.attendance_units where session_i
   1,'General creates exactly one event unit');
 select is((select count(*)::integer from public.attendance_units where session_id=current_setting('h.general')::uuid
   and group_id is not null),0,'General creates no subgroup units');
+select is((select count(*)::integer from public.attendance_unit_roster
+  where session_id=current_setting('h.general')::uuid),5,
+  'General snapshots the complete active event roster');
+select ok((select can_scan and can_mark_manually from public.attendance_unit_operators
+  where attendance_unit_id=(select id from public.attendance_units
+    where session_id=current_setting('h.general')::uuid)
+    and user_id='22000000-0000-4000-8000-000000000004'),
+  'selected General volunteer receives the requested scan and manual permissions');
 
 select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000005',true);
 set local role authenticated;

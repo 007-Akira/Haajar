@@ -24,6 +24,10 @@ select ok(not has_table_privilege('authenticated','public.attendance_sessions','
   and not has_table_privilege('authenticated','public.attendance_unit_roster','INSERT')
   and not has_table_privilege('authenticated','public.attendance_records','INSERT'),
   'mobile cannot insert attendance state directly');
+select ok(not has_schema_privilege('authenticated','private','USAGE')
+  and not has_table_privilege('authenticated','private.qr_encryption_keys','SELECT')
+  and not has_table_privilege('authenticated','private.push_encryption_keys','SELECT'),
+  'authenticated clients cannot access private encryption material');
 
 select has_function('public','create_general_attendance_session',array['uuid','text','text','jsonb'],
   'General session RPC exists');

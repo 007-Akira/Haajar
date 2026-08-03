@@ -1,0 +1,101 @@
+name: Database tests
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/database-tests.yml"
+      - "supabase/**"
+      - "docs/database-testing.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/database-tests.yml"
+      - "supabase/**"
+      - "docs/database-testing.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_NON_INTERACTIVE: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+
+      - name: Show tool versions
+        run: |
+          docker --version
+          supabase --version
+
+      - name: Start isolated local Supabase
+        run: supabase start
+
+      - name: Apply all migrations to a clean database
+        run: supabase db reset --local --no-seed
+
+      - name: Lint local database
+        run: supabase db lint --local --level error
+
+      - name: Check migration schema drift
+        run: |
+          supabase db diff --local --schema public,private > /tmp/haajar-schema-drift.sql
+          if grep -Eiq '^(create|alter|drop|grant|revoke|comment|insert|update|delete)[[:space:]]' /tmp/haajar-schema-drift.sql; then
+            echo "Schema drift detected after applying migrations."
+            cat /tmp/haajar-schema-drift.sql
+            exit 1
+          fi
+
+      - name: Run schema and RLS assertions
+        run: |
+          supabase test db supabase/tests/database/attendance_schema.test.sql
+          supabase test db supabase/tests/database/registration_schema.test.sql
+          supabase test db supabase/tests/database/push_notification_schema.test.sql
+          supabase test db supabase/tests/database/data_layer.test.sql
+
+      - name: Run registration lifecycle tests
+        run: supabase test db supabase/tests/database/registration_lifecycle.test.sql
+
+      - name: Run hierarchy and attendance lifecycle tests
+        run: |
+          supabase test db supabase/tests/database/hierarchy_lifecycle.test.sql
+          supabase test db supabase/tests/database/attendance_lifecycle.test.sql
+          supabase test db supabase/tests/database/attendance_qr_lifecycle.test.sql
+
+      - name: Run offline and concurrency tests
+        run: |
+          supabase test db supabase/tests/database/offline_attendance_sync.test.sql
+          supabase test db supabase/tests/database/attendance_concurrency.test.sql
+
+      - name: Write safe failure diagnostics
+        if: failure()
+        run: |
+          mkdir -p /tmp/haajar-db-diagnostics
+          docker ps --all --filter "name=supabase_" --format "{{.Names}} {{.Status}}" > /tmp/haajar-db-diagnostics/container-status.txt
+          printf '%s\n' "Database workflow failed. Re-run the failing named pgTAP suite locally for TAP output." > /tmp/haajar-db-diagnostics/README.txt
+
+      - name: Upload safe failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-test-diagnostics
+          path: /tmp/haajar-db-diagnostics
+          retention-days: 7
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
