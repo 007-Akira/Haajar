@@ -565,6 +565,7 @@ export type Database = {
           id: string;
           revoked_at: string | null;
           status: string;
+          token_ciphertext: string | null;
           token_hash: string;
         };
         Insert: {
@@ -574,6 +575,7 @@ export type Database = {
           id?: string;
           revoked_at?: string | null;
           status?: string;
+          token_ciphertext?: string | null;
           token_hash: string;
         };
         Update: {
@@ -583,6 +585,7 @@ export type Database = {
           id?: string;
           revoked_at?: string | null;
           status?: string;
+          token_ciphertext?: string | null;
           token_hash?: string;
         };
         Relationships: [

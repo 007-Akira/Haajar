@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(52);
+select plan(53);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -129,6 +129,13 @@ select is(
   24,
   'a manager can create a 96-bit join token'
 );
+select is(
+  (select invitation_token from public.create_group_invitation(
+    current_setting('haajar.lifecycle_group_id')::uuid
+  )),
+  current_setting('haajar.invitation_token'),
+  'reopening the group invitation returns the same active token'
+);
 select isnt(
   (select token_hash from public.group_invitations
    where group_id = current_setting('haajar.lifecycle_group_id')::uuid and status = 'active'),
@@ -148,7 +155,7 @@ select throws_ok(
     current_setting('haajar.lifecycle_group_id')::uuid,
     '[]'::jsonb
   )$$,
-  '23505',
+  '55000',
   'an active member cannot submit another join request'
 );
 reset role;
@@ -188,10 +195,9 @@ select lives_ok(
   ),
   'an authenticated user can submit a valid join request'
 );
-select throws_ok(
-  format(
-    'select public.submit_join_request(%L::uuid, %L::jsonb)',
-    current_setting('haajar.lifecycle_group_id'),
+select is(
+  public.submit_join_request(
+    current_setting('haajar.lifecycle_group_id')::uuid,
     jsonb_build_array(
       jsonb_build_object(
         'question_id',
@@ -203,10 +209,13 @@ select throws_ok(
         current_setting('haajar.batch_question_id')::uuid,
         'answer', '2027'
       )
-    )::text
+    )
   ),
-  '23505',
-  'a duplicate pending request is rejected'
+  (select id from public.join_requests
+   where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+     and user_id = '10000000-0000-4000-8000-000000000002'
+     and status = 'pending'),
+  'a duplicate pending submission returns the existing request idempotently'
 );
 reset role;
 

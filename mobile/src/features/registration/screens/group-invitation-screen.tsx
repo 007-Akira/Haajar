@@ -136,16 +136,17 @@ export function GroupInvitationScreen(): JSX.Element {
         <LabeledDetailRow label="Group" value={group.name} />
         <LabeledDetailRow label="Trip" value={group.eventName ?? "Trip"} />
         <Text style={styles.help}>
-          Generate a new private invitation. Creating another invitation revokes the previous one.
+          This group has one private invitation. The same code and QR can be shared whenever a new
+          member needs to join.
         </Text>
       </View>
 
       {!invitation ? (
         <PrimaryButton
-          accessibilityLabel="Generate a group invitation"
+          accessibilityLabel="Show the group invitation"
           disabled={invitationState.isGenerating}
           fullWidth
-          label="Generate Invitation"
+          label="Show Group Invitation"
           loading={invitationState.isGenerating}
           onPress={() => void invitationState.generate()}
           testID="generate-group-invitation"
@@ -181,12 +182,6 @@ export function GroupInvitationScreen(): JSX.Element {
               label="Share Invitation"
               onPress={() => void share()}
               testID="share-group-invitation"
-            />
-            <SecondaryButton
-              fullWidth
-              label="Generate New Invitation"
-              onPress={() => void invitationState.generate()}
-              testID="regenerate-group-invitation"
             />
           </View>
         </View>
