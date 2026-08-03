@@ -1,4 +1,5 @@
 import type { MembershipQrResolutionStatus } from "@/features/qr/types/qr-models";
+import type { AttendanceQrResolutionStatus } from "../types/attendance-contracts";
 
 export type ScannerPhase = "ready" | "resolving" | "verifying" | "marking" | "result";
 
@@ -47,10 +48,16 @@ export interface ScannerResultCopy {
 }
 
 export function getResolutionResultCopy(
-  status: Exclude<MembershipQrResolutionStatus, "valid">
+  status:
+    Exclude<MembershipQrResolutionStatus, "valid"> | Exclude<AttendanceQrResolutionStatus, "valid">
 ): ScannerResultCopy {
-  const results: Record<Exclude<MembershipQrResolutionStatus, "valid">, ScannerResultCopy> = {
+  const results: Record<string, ScannerResultCopy> = {
     invalid: {
+      tone: "error",
+      title: "Invalid ticket",
+      message: "This is not a valid Haajar membership ticket.",
+    },
+    invalid_qr: {
       tone: "error",
       title: "Invalid ticket",
       message: "This is not a valid Haajar membership ticket.",
@@ -64,6 +71,21 @@ export function getResolutionResultCopy(
       tone: "error",
       title: "Wrong group",
       message: "This ticket belongs to another group and cannot be used here.",
+    },
+    wrong_unit: {
+      tone: "error",
+      title: "Wrong attendance unit",
+      message: "This ticket cannot be used for the current attendance unit.",
+    },
+    not_in_roster: {
+      tone: "error",
+      title: "Not in roster",
+      message: "This member was not included in the attendance roster snapshot.",
+    },
+    closed_unit: {
+      tone: "error",
+      title: "Attendance closed",
+      message: "This attendance unit is no longer accepting marks.",
     },
     inactive_membership: {
       tone: "error",

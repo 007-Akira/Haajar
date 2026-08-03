@@ -6,11 +6,7 @@ import {
   createScannerGate,
   getResolutionResultCopy,
 } from "../src/features/attendance/config/scanner-state";
-import {
-  mapMembershipQrResolution,
-  redactQrToken,
-  redactedQrToken,
-} from "../src/features/qr/types/qr-models";
+import { redactQrToken, redactedQrToken } from "../src/features/qr/types/qr-models";
 
 test("scanner gate pauses, resumes, and debounces repeated frames", () => {
   let now = 1000;
@@ -38,23 +34,14 @@ test("wrong-group and revoked results remain non-destructive", () => {
 });
 
 test("valid resolution contains verification fields but no credential secret", () => {
-  const result = mapMembershipQrResolution({
-    resolution_status: "valid",
-    membership_id: "membership-1",
-    member_user_id: "user-1",
-    display_name: "Mathews",
-    phone: "9800000000",
-    group_id: "group-1",
-    group_name: "Bus 2",
-    member_role: "member",
-    membership_status: "active",
-    credential_status: "active",
-    credential_version: 2,
-  });
-  assert.equal(result.status, "valid");
-  assert.equal(result.status === "valid" && result.displayName, "Mathews");
-  assert.equal("token" in result, false);
-  assert.equal("tokenHash" in result, false);
+  const api = readFileSync(
+    new URL("../src/features/attendance/api/attendance-qr.ts", import.meta.url),
+    "utf8"
+  );
+  const mappedResult = api.match(/return \{\s*status,(.*?)\n\s*\};/s)?.[1] ?? "";
+  assert.match(mappedResult, /displayName/);
+  assert.match(mappedResult, /rosterEntryId/);
+  assert.doesNotMatch(mappedResult, /presentedToken|tokenHash|credential/i);
 });
 
 test("scanner requests permission and supports Android settings and unavailable state", () => {
@@ -67,28 +54,28 @@ test("scanner requests permission and supports Android settings and unavailable 
   assert.match(appConfig, /expo-camera/);
 });
 
-test("resolver receives only opaque scan payload and expected group", () => {
+test("resolver receives only opaque scan payload and expected attendance unit", () => {
   const screen = scannerSource();
   const resolverHook = readFileSync(
-    new URL("../src/features/qr/hooks/use-resolve-membership-qr.ts", import.meta.url),
+    new URL("../src/features/attendance/hooks/use-attendance-qr.ts", import.meta.url),
     "utf8"
   );
   const resolverApi = readFileSync(
-    new URL("../src/features/qr/api/qr-queries.ts", import.meta.url),
+    new URL("../src/features/attendance/api/attendance-qr.ts", import.meta.url),
     "utf8"
   );
-  assert.match(screen, /expectedGroupId: groupId/);
+  assert.match(screen, /attendanceUnitId/);
   assert.match(screen, /presentedToken: scan\.data/);
-  assert.match(resolverApi, /presented_token: presentedToken/);
-  assert.match(resolverApi, /expected_group_id: expectedGroupId/);
-  const safeVariables = resolverHook.match(/interface SafeResolutionVariables \{([^}]*)\}/s)?.[1];
-  assert.equal(safeVariables?.includes("presentedToken"), false);
+  assert.match(resolverApi, /presented_token: input\.presentedToken/);
+  assert.match(resolverApi, /attendance_unit_id: input\.attendanceUnitId/);
+  assert.match(resolverHook, /mutationFn: async \(attendanceUnitId: string\)/);
+  assert.match(resolverHook, /secret\.take\(\)/);
 });
 
 test("confirmation uses secured mark hook and handles already-marked result", () => {
   const screen = scannerSource();
-  assert.match(screen, /useMarkQrAttendance/);
-  assert.match(screen, /attendanceMutation\.markQrAttendance/);
+  assert.match(screen, /useMarkAttendanceRosterPresent/);
+  assert.match(screen, /rosterAttendanceMutation\.mark/);
   assert.match(screen, /marked\.outcome === "already_marked"/);
   assert.match(screen, /MemberVerificationSheet/);
   assert.match(screen, /confirmPresent/);
@@ -97,7 +84,7 @@ test("confirmation uses secured mark hook and handles already-marked result", ()
 test("raw QR is ephemeral, cleared on background and unmount, and never logged", () => {
   const screen = scannerSource();
   const resolverHook = readFileSync(
-    new URL("../src/features/qr/hooks/use-resolve-membership-qr.ts", import.meta.url),
+    new URL("../src/features/attendance/hooks/use-attendance-qr.ts", import.meta.url),
     "utf8"
   );
   assert.match(screen, /createEphemeralSecretStore/);

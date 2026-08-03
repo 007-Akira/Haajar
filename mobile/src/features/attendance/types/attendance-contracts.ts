@@ -31,6 +31,38 @@ export type CloseRollCallRpcRow =
 export type RollCallDashboardRpcResult = Json;
 export type RollCallHistoryRpcRow =
   Database["public"]["Functions"]["get_roll_call_history"]["Returns"][number];
+export type ResolveAttendanceQrRpcRow =
+  Database["public"]["Functions"]["resolve_attendance_qr"]["Returns"][number];
+export type MarkAttendanceRosterRpcRow =
+  Database["public"]["Functions"]["mark_attendance_roster_present"]["Returns"][number];
+
+export type AttendanceQrResolutionStatus =
+  | "valid"
+  | "invalid_qr"
+  | "revoked"
+  | "wrong_unit"
+  | "wrong_group"
+  | "not_in_roster"
+  | "inactive_membership"
+  | "closed_unit"
+  | "archived"
+  | "unauthorised";
+
+export type AttendanceQrResolution =
+  | {
+      status: "valid";
+      attendanceUnitId: string;
+      rosterEntryId: string;
+      memberUserId: string;
+      displayName: string;
+      phone: string | null;
+      role: string;
+      sourceGroupId: string | null;
+      sourceGroupName: string | null;
+      alreadyMarked: boolean;
+      markedAt: string | null;
+    }
+  | { status: Exclude<AttendanceQrResolutionStatus, "valid"> };
 
 export type CanonicalAttendanceOutcome =
   | "valid"

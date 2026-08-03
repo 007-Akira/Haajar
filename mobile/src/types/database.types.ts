@@ -1494,6 +1494,7 @@ export type Database = {
         Args: {
           attendance_unit_id: string;
           client_operation_id: string;
+          presented_token: string;
           roster_entry_id: string;
         };
         Returns: {

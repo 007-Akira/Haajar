@@ -1,1 +1,1 @@
-export { GeneralScannerUnavailableScreen as default } from "@/features/attendance/screens/general-scanner-unavailable-screen";
+export { ScannerScreen as default } from "@/features/attendance/screens/scanner-screen";

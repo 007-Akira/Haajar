@@ -23,9 +23,8 @@ import {
   type ScanResultTone,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
+import { useEvent } from "@/features/events/hooks/use-event";
 import { useSession } from "@/features/auth";
-import { useResolveMembershipQr } from "@/features/qr/hooks/use-resolve-membership-qr";
-import type { MembershipQrResolution } from "@/features/qr/types/qr-models";
 import { appErrorCodes, isAppError } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
 
@@ -35,7 +34,8 @@ import {
   getResolutionResultCopy,
   type ScannerPhase,
 } from "../config/scanner-state";
-import { useMarkQrAttendance } from "../hooks/use-mark-qr-attendance";
+import { useMarkAttendanceRosterPresent, useResolveAttendanceQr } from "../hooks/use-attendance-qr";
+import type { AttendanceQrResolution } from "../types/attendance-contracts";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
 import {
   getCachedOfflineRoster,
@@ -48,7 +48,8 @@ import {
   syncPendingAttendance,
 } from "../offline/services/offline-attendance-queue";
 
-type ValidResolution = Extract<MembershipQrResolution, { status: "valid" }>;
+type ValidResolution = Extract<AttendanceQrResolution, { status: "valid" }>;
+type ScannerVerification = ValidResolution & { membershipId?: string };
 
 interface ResultState {
   tone: ScanResultTone;
@@ -61,21 +62,25 @@ export function ScannerScreen(): JSX.Element {
   const router = useRouter();
   const { user } = useSession();
   const netInfo = useNetInfo();
-  const { eventId, groupId, rollCallId } = useLocalSearchParams<{
+  const params = useLocalSearchParams<{
     eventId: string;
-    groupId: string;
-    rollCallId: string;
+    groupId?: string;
+    rollCallId?: string;
+    sessionId?: string;
   }>();
+  const { eventId, groupId } = params;
+  const rollCallId = params.rollCallId ?? params.sessionId ?? "";
   const groupQuery = useGroup(groupId);
+  const eventQuery = useEvent(eventId);
   const dashboardQuery = useRollCallDashboard(rollCallId);
-  const resolver = useResolveMembershipQr();
-  const attendanceMutation = useMarkQrAttendance();
+  const resolver = useResolveAttendanceQr();
+  const rosterAttendanceMutation = useMarkAttendanceRosterPresent(rollCallId);
   const [permission, requestPermission] = useCameraPermissions();
   const [phase, setPhase] = useState<ScannerPhase>("ready");
   const [appActive, setAppActive] = useState(AppState.currentState === "active");
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [cameraUnavailable, setCameraUnavailable] = useState(false);
-  const [verification, setVerification] = useState<ValidResolution | null>(null);
+  const [verification, setVerification] = useState<ScannerVerification | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [verifiedOffline, setVerifiedOffline] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
@@ -145,6 +150,9 @@ export function ScannerScreen(): JSX.Element {
 
   const dashboard = dashboardQuery.data;
   const group = groupQuery.data;
+  const event = eventQuery.data;
+  const general = dashboard?.rollCall.scopeType === "general";
+  const attendanceUnitId = dashboard?.rollCall.attendanceUnitId;
   const canScan =
     dashboard?.permissions.canScan === true &&
     dashboard.rollCall.status === "active" &&
@@ -153,7 +161,7 @@ export function ScannerScreen(): JSX.Element {
     permission?.granted === true && !cameraUnavailable && appActive && phase === "ready" && canScan;
 
   useEffect(() => {
-    if (!user || !rollCallId) return;
+    if (!user || !rollCallId || general) return;
     void getPendingSyncCount(user.id, rollCallId).then(setPendingSyncCount);
     void getOfflineRosterStatus(user.id, rollCallId).then((value) =>
       setOfflineReady(value.state === "ready")
@@ -163,10 +171,10 @@ export function ScannerScreen(): JSX.Element {
         getPendingSyncCount(user.id, rollCallId).then(setPendingSyncCount)
       );
     }
-  }, [netInfo.isConnected, rollCallId, user]);
+  }, [general, netInfo.isConnected, rollCallId, user]);
 
   async function resolveLocally(payload: string): Promise<boolean> {
-    if (!user || !group) return false;
+    if (!user || !group || !groupId || general) return false;
     const local = await resolveOfflineQr({ userId: user.id, rollCallId, groupId, payload });
     tokenStore.clear();
     if (local.status !== "valid") {
@@ -196,15 +204,16 @@ export function ScannerScreen(): JSX.Element {
     setVerification({
       status: "valid",
       membershipId: member.membershipId,
+      attendanceUnitId: dashboard?.rollCall.attendanceUnitId ?? rollCallId,
+      rosterEntryId: member.membershipId,
       memberUserId: member.userId,
       displayName: member.displayName,
       phone: member.phone,
-      groupId,
-      groupName: group.name,
-      role: member.role as ValidResolution["role"],
-      membershipStatus: "active",
-      credentialStatus: "active",
-      credentialVersion: 1,
+      role: member.role,
+      sourceGroupId: groupId,
+      sourceGroupName: group.name,
+      alreadyMarked: false,
+      markedAt: null,
     });
     setVerifiedOffline(true);
     setPhase("verifying");
@@ -218,11 +227,21 @@ export function ScannerScreen(): JSX.Element {
     tokenStore.set(scan.data);
     try {
       if (netInfo.isConnected === false) {
+        if (general) {
+          tokenStore.clear();
+          showResult({
+            tone: "error",
+            title: "General scanning is online only",
+            message: "Reconnect before scanning General attendance tickets.",
+          });
+          return;
+        }
         await resolveLocally(scan.data);
         return;
       }
-      const resolution = await resolver.resolveMembershipQr({
-        expectedGroupId: groupId,
+      if (!attendanceUnitId) throw new Error("Attendance unit unavailable");
+      const resolution = await resolver.resolve({
+        attendanceUnitId,
         presentedToken: scan.data,
       });
       if (!mountedRef.current || !appActiveRef.current || operation !== operationRef.current) {
@@ -238,7 +257,7 @@ export function ScannerScreen(): JSX.Element {
     } catch (error) {
       if (!mountedRef.current || !appActiveRef.current || operation !== operationRef.current)
         return;
-      if (isAppError(error) && error.code === appErrorCodes.network) {
+      if (!general && isAppError(error) && error.code === appErrorCodes.network) {
         await resolveLocally(scan.data);
         return;
       }
@@ -267,8 +286,8 @@ export function ScannerScreen(): JSX.Element {
       const queued = await enqueueOfflineAttendance({
         userId: user.id,
         rollCallId,
-        groupId,
-        membershipId: verification.membershipId,
+        groupId: groupId!,
+        membershipId: verification.membershipId!,
       });
       setPendingSyncCount(await getPendingSyncCount(user.id, rollCallId));
       showResult(
@@ -282,22 +301,15 @@ export function ScannerScreen(): JSX.Element {
       );
       return;
     }
-    const presentedToken = tokenStore.take();
-    if (!presentedToken) {
-      showResult({
-        tone: "error",
-        title: "Scan expired",
-        message: "Scan the member ticket again before confirming attendance.",
-      });
-      return;
-    }
     setPhase("marking");
     const operation = ++operationRef.current;
     try {
-      const marked = await attendanceMutation.markQrAttendance({
-        groupId,
+      const presentedToken = tokenStore.take();
+      if (!presentedToken) throw new Error("QR scan expired.");
+      const marked = await rosterAttendanceMutation.mark({
+        attendanceUnitId: verification.attendanceUnitId,
+        rosterEntryId: verification.rosterEntryId,
         presentedToken,
-        rollCallId,
       });
       if (!mountedRef.current || !appActiveRef.current || operation !== operationRef.current)
         return;
@@ -344,27 +356,45 @@ export function ScannerScreen(): JSX.Element {
     }
   }
 
-  if (groupQuery.isPending || dashboardQuery.isPending || permission === null) {
+  if (
+    (!groupId ? eventQuery.isPending : groupQuery.isPending) ||
+    dashboardQuery.isPending ||
+    permission === null
+  ) {
     return (
       <ScannerState>
         <LoadingSkeleton lines={5} testID="scanner-loading" />
       </ScannerState>
     );
   }
-  if (groupQuery.isError || dashboardQuery.isError || !group || !dashboard) {
+  if (
+    (groupId ? groupQuery.isError || !group : eventQuery.isError || !event) ||
+    dashboardQuery.isError ||
+    !dashboard
+  ) {
     return (
       <ScannerState>
         <EmptyState
           actionLabel="Retry"
           description="The active roll call could not be loaded."
-          onActionPress={() => void Promise.all([groupQuery.refetch(), dashboardQuery.refetch()])}
+          onActionPress={() =>
+            void Promise.all([
+              groupId ? groupQuery.refetch() : eventQuery.refetch(),
+              dashboardQuery.refetch(),
+            ])
+          }
           testID="scanner-load-error"
           title="Scanner unavailable"
         />
       </ScannerState>
     );
   }
-  if (!canScan || group.status === "archived" || group.eventStatus === "archived") {
+  if (
+    !canScan ||
+    (groupId
+      ? group?.status === "archived" || group?.eventStatus === "archived"
+      : event?.status === "archived")
+  ) {
     return (
       <ScannerState>
         <EmptyState
@@ -417,7 +447,9 @@ export function ScannerScreen(): JSX.Element {
   }
 
   const existingAttendance = [...dashboard.presentMembers, ...dashboard.remainingMembers].find(
-    (member) => member.membershipId === verification?.membershipId
+    (member) =>
+      member.rosterEntryId === verification?.rosterEntryId ||
+      member.userId === verification?.memberUserId
   );
 
   return (
@@ -434,7 +466,7 @@ export function ScannerScreen(): JSX.Element {
       />
       <ScannerOverlay
         flashEnabled={flashEnabled}
-        groupName={group.name}
+        groupName={group?.name ?? event?.name ?? "General attendance"}
         onToggleFlash={() => setFlashEnabled((value) => !value)}
         paused={!scanningEnabled}
         rollCallName={dashboard.rollCall.title}
@@ -456,14 +488,18 @@ export function ScannerScreen(): JSX.Element {
       </View>
       <View style={styles.connectivity} testID="scanner-connectivity">
         <Text style={styles.connectivityText}>
-          {netInfo.isConnected === false
-            ? offlineReady
-              ? "[ OFFLINE READY ]"
-              : "[ ROSTER OUTDATED ]"
-            : "[ ONLINE ]"}
-          {` · ${pendingSyncCount} PENDING SYNC`}
+          {general
+            ? netInfo.isConnected === false
+              ? "[ GENERAL REQUIRES ONLINE ]"
+              : "[ GENERAL · ONLINE ]"
+            : netInfo.isConnected === false
+              ? offlineReady
+                ? "[ OFFLINE READY ]"
+                : "[ ROSTER OUTDATED ]"
+              : "[ ONLINE ]"}
+          {!general ? ` · ${pendingSyncCount} PENDING SYNC` : ""}
         </Text>
-        {pendingSyncCount > 0 && netInfo.isConnected ? (
+        {!general && pendingSyncCount > 0 && netInfo.isConnected ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Retry pending attendance synchronization"
@@ -484,7 +520,10 @@ export function ScannerScreen(): JSX.Element {
       <MemberVerificationSheet
         attendanceStatus={existingAttendance?.status ?? "unmarked"}
         confirmLoading={phase === "marking"}
-        groupName={verification?.groupName ?? group.name}
+        groupName={
+          verification?.sourceGroupName ??
+          (general ? "General attendance" : (group?.name ?? "Group"))
+        }
         memberName={verification?.displayName ?? "Member"}
         onCancel={resumeScanner}
         onConfirm={() => void confirmPresent()}
@@ -493,11 +532,13 @@ export function ScannerScreen(): JSX.Element {
           existingAttendance?.markedAt ? formatTime(existingAttendance.markedAt) : undefined
         }
         role={
-          verification?.role === "super_organiser"
+          verification?.role === "super_organiser" || verification?.role === "super organiser"
             ? "super organiser"
-            : verification?.role === "co_organiser"
+            : verification?.role === "co_organiser" || verification?.role === "co-organiser"
               ? "co-organiser"
-              : (verification?.role ?? "member")
+              : verification?.role === "organiser"
+                ? "organiser"
+                : "member"
         }
         testID="member-verification-sheet"
         visible={verification !== null}

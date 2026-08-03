@@ -28,8 +28,12 @@ test("General dashboard follows backend permissions and contains no offline cont
   assert.doesNotMatch(dashboard, /OfflineRoster|offline roster|pending sync/i);
 });
 
-test("General scanner remains fail-closed until attendance-context resolution exists", () => {
-  const scanner = read("../src/features/attendance/screens/general-scanner-unavailable-screen.tsx");
-  assert.match(scanner, /safely blocked/);
-  assert.doesNotMatch(scanner, /markAttendance|presentedToken|groupId/);
+test("General scanner uses the canonical attendance-unit resolver and remains online-only", () => {
+  const route = read("../src/app/events/[eventId]/attendance/general/[sessionId]/scanner.tsx");
+  const scanner = read("../src/features/attendance/screens/scanner-screen.tsx");
+  assert.match(route, /ScannerScreen/);
+  assert.match(scanner, /useResolveAttendanceQr/);
+  assert.match(scanner, /attendanceUnitId/);
+  assert.match(scanner, /General scanning is online only/);
+  assert.match(scanner, /if \(!user \|\| !rollCallId \|\| general\) return/);
 });
