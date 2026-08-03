@@ -1,7 +1,10 @@
+import { getRandomValues as getExpoRandomValues } from "expo-crypto";
+
 export type RandomValuesProvider = (values: Uint8Array<ArrayBuffer>) => Uint8Array<ArrayBuffer>;
 
 export function createClientOperationId(
-  getRandomValues: RandomValuesProvider = (values) => globalThis.crypto.getRandomValues(values)
+  getRandomValues: RandomValuesProvider = (values) =>
+    getExpoRandomValues(values) as Uint8Array<ArrayBuffer>
 ): string {
   const bytes = getRandomValues(new Uint8Array(new ArrayBuffer(16)));
   bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
