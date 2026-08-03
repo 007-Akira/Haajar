@@ -1490,6 +1490,21 @@ export type Database = {
           result_status: string;
         }[];
       };
+      mark_attendance_roster_present: {
+        Args: {
+          attendance_unit_id: string;
+          client_operation_id: string;
+          roster_entry_id: string;
+        };
+        Returns: {
+          attendance_record_id: string;
+          marked_at: string;
+          marking_method: string;
+          member_user_id: string;
+          membership_id: string;
+          result_status: string;
+        }[];
+      };
       publish_registration_form: {
         Args: { target_form_id: string };
         Returns: string;
@@ -1509,6 +1524,22 @@ export type Database = {
           target_app_instance_id: string;
         };
         Returns: string;
+      };
+      resolve_attendance_qr: {
+        Args: { attendance_unit_id: string; presented_token: string };
+        Returns: {
+          already_marked: boolean;
+          display_name: string;
+          marked_at: string;
+          member_user_id: string;
+          phone: string;
+          resolution_status: string;
+          resolved_attendance_unit_id: string;
+          role_snapshot: string;
+          roster_entry_id: string;
+          source_group_id: string;
+          source_group_name: string;
+        }[];
       };
       resolve_group_invitation: {
         Args: { invitation_token: string };
