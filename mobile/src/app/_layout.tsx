@@ -13,6 +13,7 @@ import "../global.css";
 import { SessionProvider } from "@/features/auth";
 import { NotificationProvider } from "@/features/notifications";
 import { QueryProvider } from "@/lib/query";
+import { AndroidBackGuard } from "@/lib/navigation/android-back-guard";
 import { fontAssets } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -49,6 +50,7 @@ export default function RootLayout(): JSX.Element | null {
         <QueryProvider>
           <SessionProvider>
             <NotificationProvider>
+              <AndroidBackGuard />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="sign-in" />
