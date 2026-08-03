@@ -84,7 +84,10 @@ export function SessionProvider({ children }: SessionProviderProps): JSX.Element
         if (data.session) {
           void loadProfile(data.session.user.id);
         } else {
-          await clearOfflineAttendanceCache();
+          // Local attendance storage is an optional operational cache. A cache
+          // cleanup failure must never turn into an authentication/configuration
+          // failure or disable Google sign-in.
+          await clearOfflineAttendanceCache().catch(() => undefined);
         }
       })
       .catch((error: unknown) => setConfigurationError(messageFromError(error)))
