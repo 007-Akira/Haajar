@@ -34,12 +34,23 @@ const migrationSource = readFileSync(
   ),
   "utf8"
 );
+const hardeningMigrationSource = readFileSync(
+  new URL(
+    "../../supabase/migrations/20260802002000_harden_push_delivery_routes.sql",
+    import.meta.url
+  ),
+  "utf8"
+);
 const workerSource = readFileSync(
   new URL("../../supabase/functions/send-push-notifications/index.ts", import.meta.url),
   "utf8"
 );
 
 test("notification taps accept only the operational route allowlist", () => {
+  assert.equal(
+    sanitizeNotificationRoute(`/events/${eventId}/attendance/general/${rollCallId}`),
+    `/events/${eventId}/attendance/general/${rollCallId}`
+  );
   assert.equal(
     sanitizeNotificationRoute(`/events/${eventId}/groups/${groupId}/roll-calls/${rollCallId}`),
     `/events/${eventId}/groups/${groupId}/roll-calls/${rollCallId}`
@@ -92,6 +103,13 @@ test("attendance-session recipients come from the active snapshot and delivery i
   assert.match(migrationSource, /'attendance-session-started:' \|\| new\.session_id/);
   assert.match(migrationSource, /attendance_unit_roster/);
   assert.match(migrationSource, /'Roll call has started'/);
+  assert.match(hardeningMigrationSource, /attendance_unit_roster/);
+  assert.match(hardeningMigrationSource, /event_membership\.status = 'active'/);
+  assert.match(hardeningMigrationSource, /group_membership\.status = 'active'/);
+  assert.match(hardeningMigrationSource, /session\.scope_type = 'general'/);
+  assert.match(hardeningMigrationSource, /roster\.user_id = delivery\.user_id/);
+  assert.match(hardeningMigrationSource, /device\.status = 'active'/);
+  assert.match(hardeningMigrationSource, /attendance\/general\/' \|\| new\.session_id/);
 });
 
 test("join-request alerts require an explicit organiser preference", () => {
@@ -109,4 +127,7 @@ test("notification payloads and worker logs contain no sensitive member fields",
   assert.doesNotMatch(workerSource, /console\.(log|debug|info|warn|error)/);
   assert.match(workerSource, /PUSH_WORKER_SECRET/);
   assert.match(workerSource, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(workerSource, /isAllowedInternalRoute/);
+  assert.match(workerSource, /INVALID_NOTIFICATION_ROUTE/);
+  assert.match(workerSource, /request\.method !== "POST"/);
 });
