@@ -15,7 +15,7 @@ export interface ScannerOverlayProps {
 
 export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
   return (
-    <View style={styles.container} testID={props.testID}>
+    <View pointerEvents="box-none" style={styles.container} testID={props.testID}>
       <View style={styles.meta}>
         <Text style={styles.group}>{props.groupName}</Text>
         <Text style={styles.rollCall}>{props.rollCallName}</Text>

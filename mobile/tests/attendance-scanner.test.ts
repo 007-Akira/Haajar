@@ -54,6 +54,21 @@ test("scanner requests permission and supports Android settings and unavailable 
   assert.match(appConfig, /expo-camera/);
 });
 
+test("scanner close control stays tappable and exits even without navigation history", () => {
+  const screen = scannerSource();
+  const overlay = readFileSync(
+    new URL("../src/components/scanner/scanner-overlay.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(screen, /function closeScanner\(\)/);
+  assert.match(screen, /router\.canGoBack\(\)/);
+  assert.match(screen, /router\.replace\(/);
+  assert.match(screen, /onPress=\{closeScanner\}/);
+  assert.match(screen, /zIndex: 10/);
+  assert.match(screen, /elevation: 10/);
+  assert.match(overlay, /pointerEvents="box-none"/);
+});
+
 test("resolver receives only opaque scan payload and expected attendance unit", () => {
   const screen = scannerSource();
   const resolverHook = readFileSync(

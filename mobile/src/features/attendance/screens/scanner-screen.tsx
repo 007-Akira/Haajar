@@ -92,6 +92,24 @@ export function ScannerScreen(): JSX.Element {
   const operationRef = useRef(0);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  function closeScanner(): void {
+    operationRef.current += 1;
+    clearResultTimer();
+    tokenStore.clear();
+    gate.pause();
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(
+      (groupId
+        ? `/events/${eventId}/groups/${groupId}/roll-calls/${rollCallId}`
+        : `/events/${eventId}/attendance/general/${rollCallId}`) as never
+    );
+  }
+
   function clearResultTimer(): void {
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
     resultTimerRef.current = null;
@@ -428,7 +446,7 @@ export function ScannerScreen(): JSX.Element {
             testID="open-camera-settings"
           />
         )}
-        <SecondaryButton fullWidth label="Cancel" onPress={() => router.back()} />
+        <SecondaryButton fullWidth label="Cancel" onPress={closeScanner} />
       </ScannerState>
     );
   }
@@ -476,8 +494,9 @@ export function ScannerScreen(): JSX.Element {
         <Pressable
           accessibilityLabel="Close scanner"
           accessibilityRole="button"
-          onPress={() => router.back()}
-          style={styles.close}
+          hitSlop={spacing.sm}
+          onPress={closeScanner}
+          style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
           testID="close-scanner-button"
         >
           <Ionicons color={colors.textInverse} name="close" size={layout.iconSize} />
@@ -623,12 +642,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
+    zIndex: 10,
+    elevation: 10,
   },
   close: {
     width: layout.minimumTouchTarget,
     height: layout.minimumTouchTarget,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.textInverse,
+    borderWidth: layout.borderWidth,
+    borderRadius: layout.minimumTouchTarget / 2,
   },
+  closePressed: { opacity: 0.7 },
   headerLabel: { ...typography.technicalLabel, color: colors.textInverse },
 });
