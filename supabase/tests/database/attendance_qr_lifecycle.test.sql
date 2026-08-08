@@ -55,6 +55,19 @@ select is((select count(*)::integer from public.notification_deliveries delivery
   join public.notification_jobs job on job.id=delivery.job_id
   where job.entity_id=current_setting('qt.session')::uuid),1,
   'category targeting deduplicates the roster member to one registered device delivery');
+select is((select title from public.notification_jobs
+  where entity_id=current_setting('qt.session')::uuid),'Roll call is active',
+  'category notification uses the attendance-start title');
+select is((select body from public.notification_jobs
+  where entity_id=current_setting('qt.session')::uuid),
+  E'QR Attendance Event • Travel\nStarted by: QR Owner',
+  'category notification names the trip, category, and safe organiser display name');
+select is((select group_id from public.notification_jobs
+  where entity_id=current_setting('qt.session')::uuid),current_setting('qt.category')::uuid,
+  'category notification is scoped to the category rather than its first child unit');
+select is((select route from public.notification_jobs
+  where entity_id=current_setting('qt.session')::uuid),'/events/' || current_setting('qt.event'),
+  'category members receive a member-safe trip route');
 
 select set_config('request.jwt.claim.sub','24000000-0000-4000-8000-000000000003',true);
 set local role authenticated;
@@ -135,6 +148,10 @@ select is((select count(*)::integer from public.notification_deliveries delivery
   join public.notification_jobs job on job.id=delivery.job_id
   where job.entity_id=current_setting('qt.general')::uuid),1,
   'General notification targets the event roster member once per registered device');
+select is((select body from public.notification_jobs
+  where entity_id=current_setting('qt.general')::uuid),
+  E'QR Attendance Event • General\nStarted by: QR Owner',
+  'General notification names the trip, General scope, and organiser');
 select ok(not exists(select 1 from public.audit_logs
   where old_data::text like '%' || current_setting('qt.token') || '%'
     or new_data::text like '%' || current_setting('qt.token') || '%'

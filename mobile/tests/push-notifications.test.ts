@@ -41,12 +41,24 @@ const hardeningMigrationSource = readFileSync(
   ),
   "utf8"
 );
+const attendanceNotificationMigrationSource = readFileSync(
+  new URL(
+    "../../supabase/migrations/20260808000300_attendance_start_notifications.sql",
+    import.meta.url
+  ),
+  "utf8"
+);
 const workerSource = readFileSync(
   new URL("../../supabase/functions/send-push-notifications/index.ts", import.meta.url),
   "utf8"
 );
 
 test("notification taps accept only the operational route allowlist", () => {
+  assert.equal(sanitizeNotificationRoute(`/events/${eventId}`), `/events/${eventId}`);
+  assert.equal(
+    sanitizeNotificationRoute(`/events/${eventId}/groups/${groupId}`),
+    `/events/${eventId}/groups/${groupId}`
+  );
   assert.equal(
     sanitizeNotificationRoute(`/events/${eventId}/attendance/general/${rollCallId}`),
     `/events/${eventId}/attendance/general/${rollCallId}`
@@ -66,7 +78,6 @@ test("notification taps accept only the operational route allowlist", () => {
     "javascript:alert(1)",
     "haajar://groups",
     `/events/${eventId}/../profile`,
-    `/events/${eventId}`,
     "/groups",
   ]) {
     assert.equal(sanitizeNotificationRoute(route), null, route);
@@ -110,6 +121,20 @@ test("attendance-session recipients come from the active snapshot and delivery i
   assert.match(hardeningMigrationSource, /roster\.user_id = delivery\.user_id/);
   assert.match(hardeningMigrationSource, /device\.status = 'active'/);
   assert.match(hardeningMigrationSource, /attendance\/general\/' \|\| new\.session_id/);
+  assert.match(attendanceNotificationMigrationSource, /'Roll call is active'/);
+  assert.match(
+    attendanceNotificationMigrationSource,
+    /target_event\.name \|\| ' • ' \|\| scope_label/
+  );
+  assert.match(attendanceNotificationMigrationSource, /'Started by: ' \|\| organiser_name/);
+  assert.match(attendanceNotificationMigrationSource, /'Started by an organiser'/);
+  assert.match(attendanceNotificationMigrationSource, /target_session\.category_group_id/);
+  assert.match(attendanceNotificationMigrationSource, /target_group\.group_kind = 'operational'/);
+  assert.match(attendanceNotificationMigrationSource, /device\.status = 'active'/);
+  assert.match(
+    attendanceNotificationMigrationSource,
+    /on conflict \(job_id, device_id\) do nothing/
+  );
 });
 
 test("join-request alerts require an explicit organiser preference", () => {
