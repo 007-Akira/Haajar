@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useState, type JSX } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -40,6 +40,7 @@ export function TripDetailsScreen(): JSX.Element {
   const archiveMutation = useArchiveEvent();
   const deleteMutation = useDeleteEvent();
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [tripSettingsOpen, setTripSettingsOpen] = useState(false);
   const backAction = {
     accessibilityLabel: "Go back",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -207,6 +208,16 @@ export function TripDetailsScreen(): JSX.Element {
         subtitle={event.status === "archived" ? "Archived trip" : "Active trip"}
         testID="trip-details-header"
         title={event.name}
+        trailingAction={
+          event.status === "active" && canManageEvent(membershipQuery.data.role)
+            ? {
+                accessibilityLabel: "Edit trip",
+                icon: <Ionicons color={colors.textPrimary} name="pencil" size={layout.iconSize} />,
+                onPress: () => router.push(`/events/${event.id}/edit` as Href),
+                testID: "edit-trip-action",
+              }
+            : undefined
+        }
       />
 
       {event.status === "archived" ? (
@@ -323,45 +334,58 @@ export function TripDetailsScreen(): JSX.Element {
       ) : null}
 
       {canManageEvent(membershipQuery.data.role) ? (
-        <View style={styles.dangerZone} testID="trip-lifecycle-controls">
-          <SectionHeader
-            title="Trip Settings"
-            description="Lifecycle changes are permission checked by the server."
-          />
-          {event.status === "active" ? (
-            <SecondaryButton
-              fullWidth
-              label="Edit Trip"
-              onPress={() => router.push(`/events/${event.id}/edit` as Href)}
-              testID="edit-trip-action"
+        <View style={styles.settingsSection}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: tripSettingsOpen }}
+            onPress={() => {
+              setTripSettingsOpen((open) => !open);
+              if (tripSettingsOpen) setDeleteConfirmation("");
+            }}
+            style={({ pressed }) => [styles.settingsToggle, pressed && styles.settingsPressed]}
+            testID="trip-settings-toggle"
+          >
+            <Ionicons
+              color={colors.textInverse}
+              name={tripSettingsOpen ? "chevron-up" : "settings-outline"}
+              size={layout.iconSize}
             />
+            <Text style={styles.settingsToggleLabel}>TRIP SETTINGS</Text>
+          </Pressable>
+          {tripSettingsOpen ? (
+            <View style={styles.dangerZone} testID="trip-lifecycle-controls">
+              <SectionHeader
+                title="Trip Settings"
+                description="Archive or permanently delete this trip. These changes are permission checked by the server."
+              />
+              {event.status === "active" ? (
+                <SecondaryButton
+                  fullWidth
+                  label="Archive Trip"
+                  loading={archiveMutation.isPending}
+                  onPress={archiveTrip}
+                  testID="archive-trip-action"
+                />
+              ) : null}
+              <Text style={styles.destructiveCopy}>
+                Permanent deletion only succeeds for an unused trip and cannot be undone.
+              </Text>
+              <TextField
+                label={`Type ${event.name} to confirm`}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                testID="delete-trip-confirmation"
+              />
+              <SecondaryButton
+                fullWidth
+                label="Delete Trip Permanently"
+                disabled={deleteConfirmation !== event.name || deleteMutation.isPending}
+                loading={deleteMutation.isPending}
+                onPress={deleteTrip}
+                testID="delete-trip-action"
+              />
+            </View>
           ) : null}
-          {event.status === "active" ? (
-            <SecondaryButton
-              fullWidth
-              label="Archive Trip"
-              loading={archiveMutation.isPending}
-              onPress={archiveTrip}
-              testID="archive-trip-action"
-            />
-          ) : null}
-          <Text style={styles.destructiveCopy}>
-            Permanent deletion only succeeds for an unused trip and cannot be undone.
-          </Text>
-          <TextField
-            label={`Type ${event.name} to confirm`}
-            value={deleteConfirmation}
-            onChangeText={setDeleteConfirmation}
-            testID="delete-trip-confirmation"
-          />
-          <SecondaryButton
-            fullWidth
-            label="Delete Trip Permanently"
-            disabled={deleteConfirmation !== event.name || deleteMutation.isPending}
-            loading={deleteMutation.isPending}
-            onPress={deleteTrip}
-            testID="delete-trip-action"
-          />
         </View>
       ) : null}
     </ScreenContainer>
@@ -401,12 +425,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   dangerZone: {
+    alignSelf: "stretch",
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: layout.borderWidth,
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
   },
+  settingsSection: { alignItems: "flex-start", gap: spacing.sm },
+  settingsToggle: {
+    minHeight: layout.minimumTouchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.textPrimary,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.borderStrong,
+  },
+  settingsToggleLabel: { ...typography.technicalLabel, color: colors.textInverse },
+  settingsPressed: { opacity: 0.75 },
   destructiveCopy: { ...typography.body, color: colors.danger },
 });
 
