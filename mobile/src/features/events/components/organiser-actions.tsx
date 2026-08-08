@@ -28,7 +28,7 @@ export function OrganiserActions({
           <View style={styles.action}>
             <PrimaryButton
               fullWidth
-              inkLabel
+              highContrast
               label="Start General Attendance"
               onPress={onStartGeneralAttendance}
               testID="start-general-attendance-button"

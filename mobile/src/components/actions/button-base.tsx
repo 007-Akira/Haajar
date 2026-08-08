@@ -11,7 +11,7 @@ export interface ButtonBaseProps {
   loading?: boolean;
   fullWidth?: boolean;
   leadingIcon?: ReactNode;
-  inkLabel?: boolean;
+  highContrast?: boolean;
   testID?: string;
 }
 
@@ -27,7 +27,7 @@ export function ButtonBase({
   loading = false,
   fullWidth = false,
   leadingIcon,
-  inkLabel = false,
+  highContrast = false,
   testID,
   variant,
 }: InternalButtonProps): JSX.Element {
@@ -44,25 +44,24 @@ export function ButtonBase({
       style={({ pressed }) => [
         styles.base,
         isPrimary ? styles.primary : styles.secondary,
+        highContrast && styles.highContrast,
         fullWidth && styles.fullWidth,
-        pressed && (isPrimary ? styles.primaryPressed : styles.secondaryPressed),
+        pressed &&
+          (highContrast
+            ? styles.highContrastPressed
+            : isPrimary
+              ? styles.primaryPressed
+              : styles.secondaryPressed),
         isDisabled && styles.disabled,
       ]}
       testID={testID}
     >
       {loading ? (
-        <ActivityIndicator
-          color={isPrimary && !inkLabel ? colors.textInverse : colors.textPrimary}
-        />
+        <ActivityIndicator color={isPrimary ? colors.textInverse : colors.textPrimary} />
       ) : (
         <View style={styles.content}>
           {leadingIcon}
-          <Text
-            style={[
-              styles.label,
-              isPrimary && !inkLabel ? styles.primaryLabel : styles.secondaryLabel,
-            ]}
-          >
+          <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
             {label.toUpperCase()}
           </Text>
         </View>
@@ -90,6 +89,16 @@ const styles = StyleSheet.create({
   primaryPressed: {
     backgroundColor: colors.accentPressed,
     borderColor: colors.accentPressed,
+    ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
+  },
+  highContrast: {
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.accent,
+  },
+  highContrastPressed: {
+    backgroundColor: colors.accentPressed,
+    borderColor: colors.textPrimary,
     ...shadows.none,
     transform: [{ translateX: 2 }, { translateY: 2 }],
   },
