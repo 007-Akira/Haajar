@@ -19,7 +19,7 @@ import { useSession } from "@/features/auth";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
 import { SensitiveContentCover, useSensitiveScreenPrivacy } from "@/features/privacy";
-import { colors, layout, radii, shadows, spacing, typography } from "@/theme";
+import { colors, layout, palette, radii, shadows, spacing, typography } from "@/theme";
 
 import { useEphemeralGroupInvitation } from "../hooks/use-ephemeral-group-invitation";
 import {
@@ -156,8 +156,8 @@ export function GroupInvitationScreen(): JSX.Element {
           <Text style={styles.heading}>Invitation ready</Text>
           <View accessibilityLabel="Invitation QR code" style={styles.qrBox}>
             <QRCode
-              backgroundColor={colors.surface}
-              color={colors.textPrimary}
+              backgroundColor={palette.white}
+              color={palette.black}
               size={layout.qrPlaceholderSize}
               value={invitation.deepLink}
             />
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   contextCard: {
     gap: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: palette.white,
     borderColor: colors.borderStrong,
     borderWidth: layout.borderWidth,
     borderRadius: radii.md,

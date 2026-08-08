@@ -12,6 +12,8 @@ export interface ScannerOverlayProps {
   onClose: () => void;
   onToggleFlash: () => void;
   testID?: string;
+  instruction?: string;
+  readyLabel?: string;
 }
 
 export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
@@ -20,7 +22,9 @@ export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
       <View style={styles.meta}>
         <Text style={styles.group}>{props.groupName}</Text>
         <Text style={styles.rollCall}>{props.rollCallName}</Text>
-        <Text style={styles.connection}>{props.paused ? "PROCESSING" : "READY TO SCAN"}</Text>
+        <Text style={styles.connection}>
+          {props.paused ? "PROCESSING" : (props.readyLabel ?? "READY TO SCAN")}
+        </Text>
       </View>
       <View accessibilityLabel="QR scan frame" accessibilityRole="image" style={styles.frame}>
         <View style={[styles.corner, styles.topLeft]} />
@@ -28,7 +32,9 @@ export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
         <View style={[styles.corner, styles.bottomLeft]} />
         <View style={[styles.corner, styles.bottomRight]} />
       </View>
-      <Text style={styles.instruction}>Align the member’s group QR inside the frame.</Text>
+      <Text style={styles.instruction}>
+        {props.instruction ?? "Align the member’s group QR inside the frame."}
+      </Text>
       <View style={styles.controls}>
         <Pressable
           accessibilityLabel="Close scanner"

@@ -26,6 +26,7 @@ import { useEvent } from "@/features/events/hooks/use-event";
 import { useSession } from "@/features/auth";
 import { appErrorCodes, isAppError } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
+import { classifyHaajarQrPayload } from "@/features/qr/types/haajar-qr-payload";
 
 import { createEphemeralSecretStore } from "../config/ephemeral-secret";
 import {
@@ -239,6 +240,14 @@ export function ScannerScreen(): JSX.Element {
 
   async function handleBarcodeScanned(scan: BarcodeScanningResult): Promise<void> {
     if (!scanningEnabled || !gate.tryAcquire()) return;
+    if (classifyHaajarQrPayload(scan.data).type === "invitation") {
+      showResult({
+        tone: "error",
+        title: "Wrong QR type",
+        message: "This is a group invitation, not a membership QR.",
+      });
+      return;
+    }
     const operation = ++operationRef.current;
     setPhase("resolving");
     tokenStore.set(scan.data);
