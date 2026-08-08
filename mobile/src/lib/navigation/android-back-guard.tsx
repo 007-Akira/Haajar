@@ -14,7 +14,10 @@ export function AndroidBackGuard(): JSX.Element | null {
     if (Platform.OS !== "android") return;
 
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (router.canGoBack()) return false;
+      if (router.canGoBack()) {
+        router.back();
+        return true;
+      }
 
       const fallback = resolveBackFallback(pathname);
       if (fallback) {
