@@ -60,6 +60,13 @@ jobs:
             exit 1
           fi
 
+      - name: Enable disposable concurrency test connections
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)"
+          test -n "$db_container"
+          docker exec "$db_container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+            -c "grant execute on function extensions.dblink_connect_u(text,text) to postgres, supabase_admin;"
+
       - name: Run every pgTAP suite
         run: supabase test db
 

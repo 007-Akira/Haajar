@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(54);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -372,9 +372,9 @@ select throws_ok(
      where group_id = current_setting('haajar.lifecycle_group_id')::uuid
        and user_id = '10000000-0000-4000-8000-000000000002')
   )$$,
-  '42501',
+  'P0002',
   null,
-  'an unrelated user cannot retrieve a member QR credential'
+  'an unrelated user cannot enumerate or retrieve a member QR credential'
 );
 reset role;
 
@@ -488,13 +488,14 @@ select set_config(
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
 select ok(
-  (select qr_token is not null from public.change_group_membership_role(
+  (select qr_credential_id is not null and qr_token is null
+    from public.change_group_membership_role(
     (select id from public.group_memberships
      where group_id = current_setting('haajar.lifecycle_group_id')::uuid
        and user_id = '10000000-0000-4000-8000-000000000002'),
     'co_organiser'
   )),
-  'an authorised role change returns a replacement QR token'
+  'an authorised role change rotates the QR without exposing its plaintext token'
 );
 reset role;
 
@@ -687,15 +688,15 @@ where id = current_setting('haajar.lifecycle_event_id')::uuid;
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
-select set_config(
-  'haajar.member_role_qr_token',
-  (select qr_token from public.change_group_membership_role(
+select ok(
+  (select qr_credential_id is not null and qr_token is null
+    from public.change_group_membership_role(
     (select id from public.group_memberships
      where group_id = current_setting('haajar.lifecycle_group_id')::uuid
        and user_id = '10000000-0000-4000-8000-000000000002'),
     'member'
   )),
-  true
+  'role rotation returns credential metadata without exposing the replacement token'
 );
 select is(
   (select resolution_status from public.resolve_membership_qr(
@@ -705,6 +706,23 @@ select is(
   'revoked',
   'a role change invalidates the prior credential for resolution'
 );
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+select set_config(
+  'haajar.member_role_qr_token',
+  (select qr_token from public.get_membership_qr(
+    (select id from public.group_memberships
+     where group_id = current_setting('haajar.lifecycle_group_id')::uuid
+       and user_id = '10000000-0000-4000-8000-000000000002')
+  )),
+  true
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
 select is(
   (select resolution_status from public.resolve_membership_qr(
     current_setting('haajar.member_role_qr_token'),
