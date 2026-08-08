@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import {
   CameraView,
   useCameraPermissions,
@@ -485,22 +484,13 @@ export function ScannerScreen(): JSX.Element {
       <ScannerOverlay
         flashEnabled={flashEnabled}
         groupName={group?.name ?? event?.name ?? "General attendance"}
+        onClose={closeScanner}
         onToggleFlash={() => setFlashEnabled((value) => !value)}
         paused={!scanningEnabled}
         rollCallName={dashboard.rollCall.title}
         testID="scanner-overlay"
       />
       <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Close scanner"
-          accessibilityRole="button"
-          hitSlop={spacing.sm}
-          onPress={closeScanner}
-          style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
-          testID="close-scanner-button"
-        >
-          <Ionicons color={colors.textInverse} name="close" size={layout.iconSize} />
-        </Pressable>
         <Text style={styles.headerLabel}>
           {phase === "resolving" ? "VERIFYING TICKET" : "SCAN TICKETS"}
         </Text>
@@ -640,21 +630,10 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     gap: spacing.sm,
     zIndex: 10,
     elevation: 10,
   },
-  close: {
-    width: layout.minimumTouchTarget,
-    height: layout.minimumTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.textInverse,
-    borderWidth: layout.borderWidth,
-    borderRadius: layout.minimumTouchTarget / 2,
-  },
-  closePressed: { opacity: 0.7 },
   headerLabel: { ...typography.technicalLabel, color: colors.textInverse },
 });

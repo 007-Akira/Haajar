@@ -9,6 +9,7 @@ export interface ScannerOverlayProps {
   rollCallName: string;
   flashEnabled: boolean;
   paused?: boolean;
+  onClose: () => void;
   onToggleFlash: () => void;
   testID?: string;
 }
@@ -28,20 +29,32 @@ export function ScannerOverlay(props: ScannerOverlayProps): JSX.Element {
         <View style={[styles.corner, styles.bottomRight]} />
       </View>
       <Text style={styles.instruction}>Align the member’s group QR inside the frame.</Text>
-      <Pressable
-        accessibilityLabel={props.flashEnabled ? "Turn flash off" : "Turn flash on"}
-        accessibilityRole="button"
-        onPress={props.onToggleFlash}
-        style={styles.flash}
-        testID="scanner-flash-toggle"
-      >
-        <Ionicons
-          color={props.flashEnabled ? colors.accent : colors.textInverse}
-          name={props.flashEnabled ? "flash" : "flash-outline"}
-          size={layout.iconSize}
-        />
-        <Text style={styles.flashLabel}>{props.flashEnabled ? "FLASH ON" : "FLASH OFF"}</Text>
-      </Pressable>
+      <View style={styles.controls}>
+        <Pressable
+          accessibilityLabel="Close scanner"
+          accessibilityRole="button"
+          onPress={props.onClose}
+          style={({ pressed }) => [styles.close, pressed && styles.controlPressed]}
+          testID="close-scanner-button"
+        >
+          <Ionicons color={colors.textPrimary} name="close" size={layout.iconSize} />
+          <Text style={styles.closeLabel}>CLOSE SCANNER</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={props.flashEnabled ? "Turn flash off" : "Turn flash on"}
+          accessibilityRole="button"
+          onPress={props.onToggleFlash}
+          style={({ pressed }) => [styles.flash, pressed && styles.controlPressed]}
+          testID="scanner-flash-toggle"
+        >
+          <Ionicons
+            color={props.flashEnabled ? colors.accent : colors.textInverse}
+            name={props.flashEnabled ? "flash" : "flash-outline"}
+            size={layout.iconSize}
+          />
+          <Text style={styles.flashLabel}>{props.flashEnabled ? "FLASH ON" : "FLASH OFF"}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -105,10 +118,29 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     textAlign: "center",
   },
+  controls: {
+    alignSelf: "stretch",
+    gap: spacing.xs,
+  },
+  close: {
+    minHeight: layout.minimumTouchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+    borderColor: colors.borderStrong,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
+  },
+  closeLabel: { ...typography.button, color: colors.textPrimary },
+  controlPressed: { opacity: 0.75 },
   flash: {
     minHeight: layout.minimumTouchTarget,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     borderColor: colors.gridLine,
