@@ -92,3 +92,59 @@ export async function changeGroupMemberRole({
     qrRotated: Boolean(result.qr_credential_id),
   };
 }
+
+export type GroupLifecycleResult =
+  | "archived"
+  | "deleted"
+  | "can_delete"
+  | "requires_archive"
+  | "active_attendance"
+  | "pending_sync"
+  | "has_history"
+  | "has_children"
+  | "unauthorised"
+  | "not_found";
+
+export async function updateGroup(input: { groupId: string; name: string; description?: string }) {
+  const name = input.name.trim();
+  if (!name)
+    throw new AppError({
+      code: appErrorCodes.validation,
+      message: userSafeErrorMessages[appErrorCodes.validation],
+    });
+  const { error } = await getSupabaseClient().rpc("update_group", {
+    target_group_id: input.groupId,
+    group_name: name,
+    group_description: input.description?.trim() ?? "",
+  });
+  if (error) throwSupabaseError(error, "updateGroup");
+}
+
+export async function archiveGroup(groupId: string): Promise<GroupLifecycleResult> {
+  const { data, error } = await getSupabaseClient().rpc("archive_group", {
+    target_group_id: groupId,
+  });
+  if (error) throwSupabaseError(error, "archiveGroup");
+  return data as GroupLifecycleResult;
+}
+export async function getGroupDeleteEligibility(groupId: string): Promise<GroupLifecycleResult> {
+  const { data, error } = await getSupabaseClient().rpc("get_group_delete_eligibility", {
+    target_group_id: groupId,
+  });
+  if (error) throwSupabaseError(error, "getGroupDeleteEligibility");
+  return data as GroupLifecycleResult;
+}
+export async function deleteGroup(groupId: string): Promise<GroupLifecycleResult> {
+  const { data, error } = await getSupabaseClient().rpc("delete_group", {
+    target_group_id: groupId,
+  });
+  if (error) throwSupabaseError(error, "deleteGroup");
+  return data as GroupLifecycleResult;
+}
+export async function setMyGroupArchived(groupId: string, archived: boolean): Promise<void> {
+  const { error } = await getSupabaseClient().rpc("set_my_group_archived", {
+    target_group_id: groupId,
+    archived,
+  });
+  if (error) throwSupabaseError(error, "setMyGroupArchived");
+}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -32,6 +32,7 @@ import type { GroupActionId } from "../config/group-action-config";
 import { useGroup } from "../hooks/use-group";
 import { useGroupMembers } from "../hooks/use-group-members";
 import { useGroupMembership } from "../hooks/use-group-membership";
+import { useArchiveGroup, useDeleteGroup } from "../hooks/use-group-lifecycle";
 
 type RoleFilter = "all" | UserRole;
 
@@ -43,11 +44,14 @@ export function GroupDetailsScreen(): JSX.Element {
   const [activityMessage, setActivityMessage] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
   const activeRollCallQuery = useActiveRollCall(groupId);
   const eventGroupsQuery = useEventGroups(groupQuery.data?.eventId);
+  const archiveMutation = useArchiveGroup();
+  const deleteMutation = useDeleteGroup();
   const canManageRequests =
     membershipQuery.data?.status === "active" &&
     (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
@@ -196,6 +200,43 @@ export function GroupDetailsScreen(): JSX.Element {
   function cycleRoleFilter(): void {
     const currentIndex = roleFilters.indexOf(roleFilter);
     setRoleFilter(roleFilters[(currentIndex + 1) % roleFilters.length] ?? "all");
+  }
+
+  const canEditLifecycle =
+    userRole === "super organiser" ||
+    (group.groupKind === "operational" && userRole === "organiser");
+  const canDeleteLifecycle = userRole === "super organiser";
+
+  function archiveCurrentGroup(): void {
+    const impact =
+      group.groupKind === "category"
+        ? `This will also archive ${childGroups.filter((child) => child.status === "active").length} active subgroup(s). Existing membership and attendance history remains available.`
+        : "This stops new joining and attendance activity. Existing membership and attendance history remains available.";
+    Alert.alert(`Archive ${group.name}?`, impact, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Archive Group",
+        style: "destructive",
+        onPress: () =>
+          archiveMutation.mutate(group.id, {
+            onSuccess: (result) =>
+              result === "archived"
+                ? refresh()
+                : Alert.alert("Group not archived", groupLifecycleMessage(result)),
+            onError: (error) => Alert.alert("Group not archived", error.message),
+          }),
+      },
+    ]);
+  }
+
+  function deleteCurrentGroup(): void {
+    deleteMutation.mutate(group.id, {
+      onSuccess: (result) => {
+        if (result === "deleted") router.replace(`/events/${group.eventId}` as never);
+        else Alert.alert("Group not deleted", groupLifecycleMessage(result));
+      },
+      onError: (error) => Alert.alert("Group not deleted", error.message),
+    });
   }
 
   async function callMember(name: string, phone: string | null): Promise<void> {
@@ -513,6 +554,59 @@ export function GroupDetailsScreen(): JSX.Element {
           )}
         </View>
       )}
+
+      {canEditLifecycle ? (
+        <View style={styles.dangerZone} testID="group-lifecycle-controls">
+          <SectionHeader
+            title="Group Settings"
+            description="Metadata and lifecycle changes are checked by the server."
+          />
+          {!isArchived ? (
+            <SecondaryButton
+              fullWidth
+              label="Edit Group"
+              onPress={() =>
+                router.push({
+                  pathname: "/events/[eventId]/groups/[groupId]/edit" as never,
+                  params: groupRouteParams,
+                })
+              }
+              testID="edit-group-action"
+            />
+          ) : null}
+          {!isArchived ? (
+            <SecondaryButton
+              fullWidth
+              label="Archive Group"
+              loading={archiveMutation.isPending}
+              onPress={archiveCurrentGroup}
+              testID="archive-group-action"
+            />
+          ) : null}
+          {canDeleteLifecycle ? (
+            <>
+              <Text style={styles.destructiveCopy}>
+                Permanent deletion only succeeds when this group has no children or required
+                history.
+              </Text>
+              <TextField
+                label={`Type ${group.name} to confirm`}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                testID="delete-group-confirmation"
+              />
+              <SecondaryButton
+                fullWidth
+                label="Delete Group Permanently"
+                disabled={deleteConfirmation !== group.name || deleteMutation.isPending}
+                loading={deleteMutation.isPending}
+                onPress={deleteCurrentGroup}
+                testID="delete-group-action"
+              />
+            </>
+          ) : null}
+        </View>
+      ) : null}
     </ScreenContainer>
   );
 }
@@ -608,4 +702,21 @@ const styles = StyleSheet.create({
     borderWidth: layout.borderWidth,
     borderRadius: radii.sm,
   },
+  dangerZone: {
+    gap: spacing.md,
+    padding: spacing.md,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+  },
+  destructiveCopy: { ...typography.body, color: colors.danger },
 });
+
+function groupLifecycleMessage(result: string): string {
+  if (result === "active_attendance") return "Close active attendance before continuing.";
+  if (result === "pending_sync") return "Attendance changes are waiting to sync. Sync them first.";
+  if (result === "has_children") return "Delete or archive child groups first.";
+  if (result === "requires_archive" || result === "has_history")
+    return "This group has existing activity and cannot be permanently deleted. Archive it instead.";
+  return "This lifecycle change is not currently allowed.";
+}
