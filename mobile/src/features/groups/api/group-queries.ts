@@ -43,23 +43,27 @@ export async function listMyGroupOverview(): Promise<UserGroupOverview> {
   if (error) throwSupabaseError(error, "listMyGroupOverview");
   const overview = jsonObject(data);
   const activeRows = Array.isArray(overview.active_groups) ? overview.active_groups : [];
+  const archivedRows = Array.isArray(overview.archived_groups) ? overview.archived_groups : [];
   const requestRows = Array.isArray(overview.requests) ? overview.requests : [];
+  const mapGroup = (raw: Json): UserGroupOverview["activeGroups"][number] => {
+    const row = jsonObject(raw);
+    return {
+      membershipId: String(row.membership_id ?? ""),
+      groupId: String(row.group_id ?? ""),
+      groupName: String(row.group_name ?? "Group"),
+      groupStatus: String(row.group_status ?? "active"),
+      eventId: String(row.event_id ?? ""),
+      eventName: String(row.event_name ?? "Trip"),
+      eventStatus: String(row.event_status ?? "active"),
+      role: String(row.role ?? "member") as UserGroupOverview["activeGroups"][number]["role"],
+      memberCount: Number(row.member_count ?? 0),
+      qrAvailable: row.qr_available === true,
+      personallyArchived: row.personally_archived === true,
+    };
+  };
   return {
-    activeGroups: activeRows.map((raw) => {
-      const row = jsonObject(raw);
-      return {
-        membershipId: String(row.membership_id ?? ""),
-        groupId: String(row.group_id ?? ""),
-        groupName: String(row.group_name ?? "Group"),
-        groupStatus: String(row.group_status ?? "active"),
-        eventId: String(row.event_id ?? ""),
-        eventName: String(row.event_name ?? "Trip"),
-        eventStatus: String(row.event_status ?? "active"),
-        role: String(row.role ?? "member") as UserGroupOverview["activeGroups"][number]["role"],
-        memberCount: Number(row.member_count ?? 0),
-        qrAvailable: row.qr_available === true,
-      };
-    }),
+    activeGroups: activeRows.map(mapGroup),
+    archivedGroups: archivedRows.map(mapGroup),
     requests: requestRows.map((raw) => {
       const row = jsonObject(raw);
       return {

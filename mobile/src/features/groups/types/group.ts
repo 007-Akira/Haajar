@@ -34,6 +34,7 @@ export interface ActiveUserGroup {
   role: GroupMembershipRow["role"];
   memberCount: number;
   qrAvailable: boolean;
+  personallyArchived: boolean;
 }
 
 export interface UserGroupRequest {
@@ -52,6 +53,7 @@ export interface UserGroupRequest {
 
 export interface UserGroupOverview {
   activeGroups: ActiveUserGroup[];
+  archivedGroups: ActiveUserGroup[];
   requests: UserGroupRequest[];
 }
 

@@ -17,6 +17,7 @@ import {
 } from "@/components";
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { useUserGroups } from "@/features/groups/hooks/use-user-groups";
+import { useSetMyGroupArchived } from "@/features/groups/hooks/use-group-lifecycle";
 import type { ActiveUserGroup, UserGroupRequest } from "@/features/groups/types/group";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, opacity, radii, shadows, spacing, typography } from "@/theme";
@@ -28,12 +29,14 @@ export default function GroupsRoute(): JSX.Element {
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState(allEvents);
   const groupsQuery = useUserGroups();
+  const preferenceMutation = useSetMyGroupArchived();
   const overview = groupsQuery.data;
   const eventNames = useMemo(
     () => [
       allEvents,
       ...new Set([
         ...(overview?.activeGroups.map((group) => group.eventName) ?? []),
+        ...(overview?.archivedGroups.map((group) => group.eventName) ?? []),
         ...(overview?.requests.map((request) => request.eventName) ?? []),
       ]),
     ],
@@ -47,6 +50,8 @@ export default function GroupsRoute(): JSX.Element {
       eventName.toLowerCase().includes(normalizedSearch));
   const activeGroups =
     overview?.activeGroups.filter((group) => matches(group.groupName, group.eventName)) ?? [];
+  const archivedGroups =
+    overview?.archivedGroups.filter((group) => matches(group.groupName, group.eventName)) ?? [];
   const pendingRequests =
     overview?.requests.filter(
       (request) => request.status === "pending" && matches(request.groupName, request.eventName)
@@ -85,7 +90,9 @@ export default function GroupsRoute(): JSX.Element {
     );
   }
 
-  const hasAnyData = Boolean(overview?.activeGroups.length || overview?.requests.length);
+  const hasAnyData = Boolean(
+    overview?.activeGroups.length || overview?.archivedGroups.length || overview?.requests.length
+  );
   return (
     <ScreenContainer
       contentContainerStyle={styles.content}
@@ -189,6 +196,40 @@ export default function GroupsRoute(): JSX.Element {
                     <ActiveGroupCard
                       key={group.membershipId}
                       group={group}
+                      actionLabel="Archive for Me"
+                      onAction={() =>
+                        preferenceMutation.mutate({ groupId: group.groupId, archived: true })
+                      }
+                      onPress={() =>
+                        router.push({
+                          pathname: "/events/[eventId]/groups/[groupId]",
+                          params: { eventId: group.eventId, groupId: group.groupId },
+                        })
+                      }
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {archivedGroups.length ? (
+            <View style={styles.section} testID="archived-groups-section">
+              <SectionHeader
+                description="Hidden only from your active Groups view."
+                title="Archived for Me"
+              />
+              {groupByEvent(archivedGroups).map(([eventName, groups]) => (
+                <View key={eventName} style={styles.eventSection}>
+                  <Text style={styles.eventLabel}>{`[ ${eventName.toUpperCase()} ]`}</Text>
+                  {groups.map((group) => (
+                    <ActiveGroupCard
+                      key={group.membershipId}
+                      group={group}
+                      actionLabel="Restore Group"
+                      onAction={() =>
+                        preferenceMutation.mutate({ groupId: group.groupId, archived: false })
+                      }
                       onPress={() =>
                         router.push({
                           pathname: "/events/[eventId]/groups/[groupId]",
@@ -243,30 +284,42 @@ function groupByEvent(groups: ActiveUserGroup[]): [string, ActiveUserGroup[]][] 
   return [...grouped.entries()];
 }
 
-function ActiveGroupCard({ group, onPress }: { group: ActiveUserGroup; onPress: () => void }) {
+function ActiveGroupCard({
+  group,
+  onPress,
+  onAction,
+  actionLabel,
+}: {
+  group: ActiveUserGroup;
+  onPress: () => void;
+  onAction: () => void;
+  actionLabel: string;
+}) {
   return (
-    <Pressable
-      accessibilityLabel={`Open ${group.groupName} in ${group.eventName}`}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-      testID={`active-group-${group.groupId}`}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardCopy}>
-          <Text style={styles.groupName}>{group.groupName}</Text>
-          <Text style={styles.eventName}>{group.eventName}</Text>
+    <View style={styles.card} testID={`active-group-${group.groupId}`}>
+      <Pressable
+        accessibilityLabel={`Open ${group.groupName} in ${group.eventName}`}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.cardCopy}>
+            <Text style={styles.groupName}>{group.groupName}</Text>
+            <Text style={styles.eventName}>{group.eventName}</Text>
+          </View>
+          <RoleBadge role={toGroupDisplayRole(group.role)} />
         </View>
-        <RoleBadge role={toGroupDisplayRole(group.role)} />
-      </View>
-      <View style={styles.cardFooter}>
-        <Text style={styles.metadata}>{`${group.memberCount} ACTIVE MEMBERS`}</Text>
-        <Text style={styles.qrState}>
-          {group.qrAvailable ? "[ QR READY ]" : "[ QR ISSUES ON OPEN ]"}
-        </Text>
-      </View>
-      <Text style={styles.openLabel}>OPEN GROUP →</Text>
-    </Pressable>
+        <View style={styles.cardFooter}>
+          <Text style={styles.metadata}>{`${group.memberCount} ACTIVE MEMBERS`}</Text>
+          <Text style={styles.qrState}>
+            {group.qrAvailable ? "[ QR READY ]" : "[ QR ISSUES ON OPEN ]"}
+          </Text>
+        </View>
+        <Text style={styles.openLabel}>OPEN GROUP →</Text>
+      </Pressable>
+      <SecondaryButton fullWidth label={actionLabel} onPress={onAction} />
+    </View>
   );
 }
 
