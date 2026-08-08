@@ -6,6 +6,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.15";
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       attendance_records: {
@@ -1242,11 +1267,52 @@ export type Database = {
           },
         ];
       };
+      user_group_preferences: {
+        Row: {
+          archived_at: string | null;
+          group_id: string;
+          is_archived: boolean;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          group_id: string;
+          is_archived?: boolean;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          group_id?: string;
+          is_archived?: boolean;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_group_preferences_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_group_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      archive_event: { Args: { target_event_id: string }; Returns: string };
+      archive_group: { Args: { target_group_id: string }; Returns: string };
       can_view_attendance_session: {
         Args: { target_session_id: string; target_user_id?: string };
         Returns: boolean;
@@ -1357,6 +1423,8 @@ export type Database = {
         };
         Returns: string;
       };
+      delete_event: { Args: { target_event_id: string }; Returns: string };
+      delete_group: { Args: { target_group_id: string }; Returns: string };
       get_active_roll_call: {
         Args: { target_group_id: string };
         Returns: {
@@ -1377,9 +1445,17 @@ export type Database = {
           total_roster: number;
         }[];
       };
+      get_event_delete_eligibility: {
+        Args: { target_event_id: string };
+        Returns: string;
+      };
       get_event_member_details: {
         Args: { target_event_id: string; target_user_id: string };
         Returns: Json;
+      };
+      get_group_delete_eligibility: {
+        Args: { target_group_id: string };
+        Returns: string;
       };
       get_join_request_status: {
         Args: { target_request_id: string };
@@ -1596,6 +1672,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      set_my_group_archived: {
+        Args: { archived: boolean; target_group_id: string };
+        Returns: undefined;
+      };
       shares_active_group: {
         Args: { other_user_id: string; target_user_id?: string };
         Returns: boolean;
@@ -1631,6 +1711,22 @@ export type Database = {
           source_group_id: string;
           target_group_id: string;
         }[];
+      };
+      update_event: {
+        Args: {
+          event_description?: string;
+          event_name: string;
+          target_event_id: string;
+        };
+        Returns: undefined;
+      };
+      update_group: {
+        Args: {
+          group_description?: string;
+          group_name: string;
+          target_group_id: string;
+        };
+        Returns: undefined;
       };
       validate_registration_answer: {
         Args: { answer_value: Json; target_question_id: string };
@@ -1772,6 +1868,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
