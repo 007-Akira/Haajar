@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "app.haajar.mobile",
-      "versionCode": 3,
+      "versionCode": 4,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
@@ -29,7 +29,6 @@
     },
     "plugins": [
       "expo-router",
-      "./plugins/withAndroidReleaseSigning",
       "expo-font",
       [
         "expo-splash-screen",
@@ -68,6 +67,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2766c8f7-998f-4c73-8c3a-96ffcfd5b51d"
+      }
+    },
+    "owner": "a-adithya-team"
   }
 }
