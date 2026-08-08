@@ -231,6 +231,9 @@ export function TripDetailsScreen(): JSX.Element {
       <View style={styles.section}>
         <SectionHeader description="The complete trip roster." title="Main Group" />
         <MainGroupCard
+          onViewAttendanceHistory={() =>
+            router.push(`/events/${event.id}/attendance/general/history` as Href)
+          }
           onViewMembers={() =>
             router.push({
               pathname: "/events/[eventId]/members",

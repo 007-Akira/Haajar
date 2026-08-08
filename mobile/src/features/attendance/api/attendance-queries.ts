@@ -41,6 +41,14 @@ export async function getRollCallHistory(groupId: string): Promise<RollCallHisto
   return data.map(mapRollCallHistoryItem);
 }
 
+export async function getGeneralAttendanceHistory(eventId: string): Promise<RollCallHistoryItem[]> {
+  const { data, error } = await getSupabaseClient().rpc("get_general_attendance_history", {
+    target_event_id: eventId,
+  });
+  if (error) throwAttendanceSupabaseError(error, "getGeneralAttendanceHistory");
+  return data.map(mapRollCallHistoryItem);
+}
+
 function validationError(): AppError {
   return new AppError({
     code: appErrorCodes.validation,

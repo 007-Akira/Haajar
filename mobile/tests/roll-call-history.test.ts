@@ -137,3 +137,41 @@ test("history UI is read-only and uses secured query modules", () => {
   assert.match(detailScreen, /!closed/);
   assert.doesNotMatch(historyScreen, /getSupabaseClient|\.from\(|\.insert\(|\.update\(/);
 });
+
+test("Main Group exposes General attendance history through the secured event RPC", () => {
+  const mainGroup = readFileSync(
+    new URL("../src/features/events/components/main-group-card.tsx", import.meta.url),
+    "utf8"
+  );
+  const trip = readFileSync(
+    new URL("../src/features/events/screens/trip-details-screen.tsx", import.meta.url),
+    "utf8"
+  );
+  const screen = readFileSync(
+    new URL(
+      "../src/features/attendance/screens/general-attendance-history-screen.tsx",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  const api = readFileSync(
+    new URL("../src/features/attendance/api/attendance-queries.ts", import.meta.url),
+    "utf8"
+  );
+  const migration = readFileSync(
+    new URL(
+      "../../supabase/migrations/20260808000400_general_attendance_history.sql",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  assert.match(mainGroup, /Attendance History/);
+  assert.match(trip, /attendance\/general\/history/);
+  assert.match(screen, /useGeneralAttendanceHistory/);
+  assert.match(screen, /attendance\/general\/\$\{item\.id\}/);
+  assert.match(api, /rpc\("get_general_attendance_history"/);
+  assert.match(migration, /public\.is_active_event_member/);
+  assert.match(migration, /session\.scope_type = 'general'/);
+  assert.match(migration, /public\.attendance_unit_roster/);
+  assert.doesNotMatch(screen, /getSupabaseClient|\.from\(|\.insert\(|\.update\(/);
+});

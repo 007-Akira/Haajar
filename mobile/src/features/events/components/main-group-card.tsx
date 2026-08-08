@@ -7,12 +7,14 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 export interface MainGroupCardProps {
   participantCount: number;
   onViewMembers: () => void;
+  onViewAttendanceHistory: () => void;
   testID?: string;
 }
 
 export function MainGroupCard({
   participantCount,
   onViewMembers,
+  onViewAttendanceHistory,
   testID,
 }: MainGroupCardProps): JSX.Element {
   return (
@@ -33,6 +35,12 @@ export function MainGroupCard({
         label="View Members"
         onPress={onViewMembers}
         testID="main-group-members-button"
+      />
+      <SecondaryButton
+        fullWidth
+        label="Attendance History"
+        onPress={onViewAttendanceHistory}
+        testID="main-group-attendance-history-button"
       />
     </View>
   );

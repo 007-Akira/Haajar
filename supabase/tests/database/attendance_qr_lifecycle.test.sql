@@ -152,6 +152,12 @@ select is((select body from public.notification_jobs
   where entity_id=current_setting('qt.general')::uuid),
   E'QR Attendance Event • General\nStarted by: QR Owner',
   'General notification names the trip, General scope, and organiser');
+select is((select count(*)::integer from public.get_general_attendance_history(
+  current_setting('qt.event')::uuid)),1,
+  'Main Group history lists the General attendance session');
+select is((select total_roster::integer from public.get_general_attendance_history(
+  current_setting('qt.event')::uuid) where roll_call_id=current_setting('qt.general')::uuid),2,
+  'Main Group history uses the immutable General roster snapshot');
 select ok(not exists(select 1 from public.audit_logs
   where old_data::text like '%' || current_setting('qt.token') || '%'
     or new_data::text like '%' || current_setting('qt.token') || '%'
