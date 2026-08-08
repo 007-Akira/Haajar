@@ -45,6 +45,8 @@ test("personal group archive stays separate from global group status", () => {
   const groupsTab = source("../src/app/(tabs)/groups.tsx");
   const groupApi = source("../src/features/groups/api/group-mutations.ts");
   assert.match(groupsTab, /Archive for Me/);
+  assert.match(groupsTab, /archiveIconOnly/);
+  assert.match(groupsTab, /name="archive-outline"/);
   assert.match(groupsTab, /Restore Group/);
   assert.match(groupApi, /set_my_group_archived/);
 });

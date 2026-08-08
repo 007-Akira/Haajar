@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import type { JSX } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -194,6 +195,7 @@ export default function GroupsRoute(): JSX.Element {
                   <Text style={styles.eventLabel}>{`[ ${eventName.toUpperCase()} ]`}</Text>
                   {groups.map((group) => (
                     <ActiveGroupCard
+                      archiveIconOnly
                       key={group.membershipId}
                       group={group}
                       actionLabel="Archive for Me"
@@ -289,11 +291,13 @@ function ActiveGroupCard({
   onPress,
   onAction,
   actionLabel,
+  archiveIconOnly = false,
 }: {
   group: ActiveUserGroup;
   onPress: () => void;
   onAction: () => void;
   actionLabel: string;
+  archiveIconOnly?: boolean;
 }) {
   return (
     <View style={styles.card} testID={`active-group-${group.groupId}`}>
@@ -318,7 +322,24 @@ function ActiveGroupCard({
         </View>
         <Text style={styles.openLabel}>OPEN GROUP →</Text>
       </Pressable>
-      <SecondaryButton fullWidth label={actionLabel} onPress={onAction} />
+      {archiveIconOnly ? (
+        <View style={styles.cardActionRow}>
+          <Pressable
+            accessibilityLabel={`Archive ${group.groupName} for me`}
+            accessibilityRole="button"
+            onPress={onAction}
+            style={({ pressed }) => [
+              styles.archiveIconButton,
+              pressed && styles.archiveIconPressed,
+            ]}
+            testID={`archive-group-for-me-${group.groupId}`}
+          >
+            <Ionicons color={colors.textInverse} name="archive-outline" size={layout.iconSize} />
+          </Pressable>
+        </View>
+      ) : (
+        <SecondaryButton fullWidth label={actionLabel} onPress={onAction} />
+      )}
     </View>
   );
 }
@@ -393,5 +414,17 @@ const styles = StyleSheet.create({
   metadata: { ...typography.technicalLabel, color: colors.textSecondary },
   qrState: { ...typography.badge, color: colors.success },
   openLabel: { ...typography.technicalLabel, color: colors.accent, textAlign: "right" },
+  cardActionRow: { flexDirection: "row", justifyContent: "flex-end" },
+  archiveIconButton: {
+    width: layout.minimumTouchTarget,
+    height: layout.minimumTouchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.borderStrong,
+    borderWidth: layout.borderWidth,
+    borderRadius: radii.sm,
+  },
+  archiveIconPressed: { opacity: opacity.pressed },
   rejected: { ...typography.technicalLabel, color: colors.danger },
 });
