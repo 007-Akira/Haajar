@@ -3,3 +3,6 @@ Haajar_Documentation_Pack/
 
 # Local visual references; never publish.
 stitch-reference/
+
+# Locally downloaded release artifacts are uploaded to GitHub Releases, not Git.
+/release/
