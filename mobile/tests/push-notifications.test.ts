@@ -52,6 +52,18 @@ const workerSource = readFileSync(
   new URL("../../supabase/functions/send-push-notifications/index.ts", import.meta.url),
   "utf8"
 );
+const inboxMigrationSource = readFileSync(
+  new URL("../../supabase/migrations/20260808000500_notification_inbox.sql", import.meta.url),
+  "utf8"
+);
+const inboxScreenSource = readFileSync(
+  new URL("../src/features/notifications/screens/notifications-screen.tsx", import.meta.url),
+  "utf8"
+);
+const inboxApiSource = readFileSync(
+  new URL("../src/features/notifications/api/notification-queries.ts", import.meta.url),
+  "utf8"
+);
 
 test("notification taps accept only the operational route allowlist", () => {
   assert.equal(sanitizeNotificationRoute(`/events/${eventId}`), `/events/${eventId}`);
@@ -155,4 +167,18 @@ test("notification payloads and worker logs contain no sensitive member fields",
   assert.match(workerSource, /isAllowedInternalRoute/);
   assert.match(workerSource, /INVALID_NOTIFICATION_ROUTE/);
   assert.match(workerSource, /request\.method !== "POST"/);
+});
+
+test("notification tab uses a secured user-scoped inbox with safe routes", () => {
+  assert.match(inboxApiSource, /rpc\("list_my_notifications"/);
+  assert.match(inboxScreenSource, /useNotificationInbox/);
+  assert.match(inboxScreenSource, /sanitizeNotificationRoute/);
+  assert.match(inboxScreenSource, /notifications-empty/);
+  assert.match(inboxScreenSource, /onRefresh/);
+  assert.doesNotMatch(inboxScreenSource, /getSupabaseClient|\.from\(|\.insert\(|\.update\(/);
+  assert.match(inboxMigrationSource, /delivery\.user_id = caller_id/);
+  assert.match(inboxMigrationSource, /security definer/);
+  assert.match(inboxMigrationSource, /set search_path = ''/);
+  assert.match(inboxMigrationSource, /grant execute.*authenticated/s);
+  assert.doesNotMatch(inboxMigrationSource, /token_ciphertext|token_hash|phone|email|qr/);
 });

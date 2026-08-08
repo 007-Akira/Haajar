@@ -1555,6 +1555,18 @@ export type Database = {
         Returns: Json;
       };
       list_my_group_overview: { Args: never; Returns: Json };
+      list_my_notifications: {
+        Args: { notification_limit?: number };
+        Returns: {
+          body: string;
+          created_at: string;
+          delivery_status: string;
+          notification_id: string;
+          notification_type: string;
+          route: string;
+          title: string;
+        }[];
+      };
       mark_attendance_manual: {
         Args: {
           client_operation_id: string;
