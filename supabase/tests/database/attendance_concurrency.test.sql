@@ -17,8 +17,8 @@ reset role;
 insert into public.event_members(event_id,user_id,role,status) values
 (current_setting('ct.event')::uuid,'25000000-0000-4000-8000-000000000002','member','active');
 
-select extensions.dblink_connect_u('membership_one','host=127.0.0.1 dbname=postgres user=postgres');
-select extensions.dblink_connect_u('membership_two','host=127.0.0.1 dbname=postgres user=postgres');
+select extensions.dblink_connect('membership_one','host=127.0.0.1 dbname=postgres user=postgres');
+select extensions.dblink_connect('membership_two','host=127.0.0.1 dbname=postgres user=postgres');
 select extensions.dblink_send_query('membership_one',format($sql$
   insert into public.group_memberships(group_id,user_id,role,status,approved_by,approved_at)
   values(%L::uuid,'25000000-0000-4000-8000-000000000002','member','active',
@@ -56,8 +56,8 @@ select set_config('ct.roster',(select id::text from public.attendance_unit_roste
     and user_id='25000000-0000-4000-8000-000000000002'),false);
 
 create temporary table concurrency_scan_results(result_status text);
-select extensions.dblink_connect_u('scan_one','host=127.0.0.1 dbname=postgres user=postgres');
-select extensions.dblink_connect_u('scan_two','host=127.0.0.1 dbname=postgres user=postgres');
+select extensions.dblink_connect('scan_one','host=127.0.0.1 dbname=postgres user=postgres');
+select extensions.dblink_connect('scan_two','host=127.0.0.1 dbname=postgres user=postgres');
 select extensions.dblink_send_query('scan_one',format($sql$
   select result_status from private.record_unit_attendance(%L::uuid,%L::uuid,'qr',
     '25000000-0000-4000-8000-000000000011'::uuid,'25000000-0000-4000-8000-000000000001'::uuid)$sql$,
