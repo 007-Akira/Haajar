@@ -31,14 +31,14 @@ function configureSigning(buildGradle) {
                 keyPassword haajarSigningValues.keyPassword
             }
         }
-    }`,
+    }`
   );
   contents = contents.replace(
     /release \{\s*(?:\/\/ Caution![\s\S]*?signed-apk-android\.\s*)?signingConfig signingConfigs\.debug/,
     `release {
             if (haajarHasReleaseSigning) {
                 signingConfig signingConfigs.release
-            }`,
+            }`
   );
   buildGradle.contents = contents;
   return buildGradle;
