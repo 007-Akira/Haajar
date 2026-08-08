@@ -17,18 +17,18 @@ export const shadows = {
     elevation: 0,
   },
   hardSmall: {
-    shadowColor: palette.charcoalElevated,
+    shadowColor: palette.black,
     shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 1,
+    elevation: 3,
   },
   hardMedium: {
-    shadowColor: palette.charcoalElevated,
+    shadowColor: palette.black,
     shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 5,
   },
 } satisfies ShadowTokens;
 
