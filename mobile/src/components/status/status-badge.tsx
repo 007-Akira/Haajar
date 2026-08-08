@@ -38,8 +38,8 @@ const statusLabels: Record<Status, string> = {
 
 const appearances: Record<Status, StatusAppearance> = {
   active: {
-    container: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-    text: { color: colors.textPrimary },
+    container: { backgroundColor: colors.accent, borderColor: colors.borderStrong },
+    text: { color: colors.textInverse },
   },
   closed: {
     container: { backgroundColor: colors.gridLine, borderColor: colors.borderStrong },

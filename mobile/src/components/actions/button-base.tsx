@@ -54,7 +54,7 @@ export function ButtonBase({
         <View style={styles.content}>
           {leadingIcon}
           <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
-            {`[ ${label.toUpperCase()} ]`}
+            {label.toUpperCase()}
           </Text>
         </View>
       )}
@@ -71,24 +71,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderWidth: layout.borderWidth,
-    borderRadius: radii.sm,
+    borderRadius: radii.xs,
   },
   primary: {
     ...shadows.hardSmall,
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.accent,
     borderColor: colors.textPrimary,
   },
   primaryPressed: {
     backgroundColor: colors.accentPressed,
     borderColor: colors.accentPressed,
     ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
   },
   secondary: {
+    ...shadows.hardSmall,
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
   },
   secondaryPressed: {
     backgroundColor: colors.gridLine,
+    ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
   },
   disabled: {
     opacity: opacity.disabled,

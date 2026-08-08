@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, shadows, spacing, typography } from "@/theme";
 
 import { AttendanceProgress } from "./attendance-progress";
 import { StatusBadge } from "../status/status-badge";
@@ -66,6 +66,7 @@ function Metric({ label, value }: { label: string; value: number }): JSX.Element
 
 const styles = StyleSheet.create({
   card: {
+    ...shadows.hardMedium,
     gap: spacing.md,
     padding: spacing.md,
     backgroundColor: colors.surface,
@@ -78,8 +79,14 @@ const styles = StyleSheet.create({
   name: { ...typography.headingMedium, color: colors.textPrimary },
   metadata: { ...typography.caption, color: colors.textSecondary },
   counts: { flexDirection: "row", gap: spacing.sm },
-  metric: { flex: 1, gap: spacing.half },
-  metricValue: { ...typography.headingLarge, color: colors.textPrimary },
+  metric: {
+    flex: 1,
+    gap: spacing.half,
+    padding: spacing.sm,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.borderStrong,
+  },
+  metricValue: { ...typography.displayMedium, color: colors.textPrimary },
   metricLabel: { ...typography.technicalLabel, color: colors.textSecondary },
   syncRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   pending: { ...typography.caption, color: colors.textSecondary },

@@ -55,11 +55,13 @@ const styles = StyleSheet.create({
     height: spacing.xs,
     overflow: "hidden",
     backgroundColor: colors.gridLine,
-    borderRadius: radii.pill,
+    borderRadius: radii.none,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.borderStrong,
   },
   fill: {
     height: layout.fullWidth,
     backgroundColor: colors.accent,
-    borderRadius: radii.pill,
+    borderRadius: radii.none,
   },
 });

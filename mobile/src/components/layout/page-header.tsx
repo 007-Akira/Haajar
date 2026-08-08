@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors, spacing, typography } from "@/theme";
+import { colors, layout, spacing, typography } from "@/theme";
 
 import { IconButton } from "../actions/icon-button";
 
@@ -31,8 +31,9 @@ export function PageHeader({
     <View style={styles.container} testID={testID}>
       {leadingAction ? <IconButton {...leadingAction} /> : null}
       <View style={styles.copy}>
+        <Text style={styles.eyebrow}>HAAJAR / FIELD OPERATIONS</Text>
         <Text accessibilityRole="header" style={styles.title}>
-          {title}
+          {title.toUpperCase()}
         </Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
@@ -47,17 +48,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderBottomWidth: layout.focusedBorderWidth,
+    borderBottomColor: colors.borderStrong,
+    overflow: "hidden",
   },
   copy: {
     flex: 1,
     gap: spacing.half,
   },
   title: {
-    ...typography.headingLarge,
+    ...typography.displayMedium,
     color: colors.textPrimary,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  eyebrow: {
+    ...typography.technicalLabel,
+    color: colors.accent,
   },
 });

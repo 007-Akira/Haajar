@@ -36,20 +36,29 @@ export function EventCard({
       accessibilityLabel={accessibilityLabel ?? `${eventName}, ${summary}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.card,
+        active ? styles.activeCard : styles.archivedCard,
+        pressed && styles.pressed,
+      ]}
       testID={testID}
     >
-      <View style={styles.header}>
-        <View style={styles.titleGroup}>
-          <Text style={styles.title}>{eventName}</Text>
-          {date ? <Text style={styles.date}>{date}</Text> : null}
-        </View>
-        {active ? <StatusBadge status="active" /> : null}
+      <View style={[styles.indexRail, active ? styles.activeRail : styles.archivedRail]}>
+        <Text style={[styles.index, !active && styles.archivedIndex]}>{active ? "01" : "02"}</Text>
       </View>
-      <View style={styles.rule} />
-      <View style={styles.footer}>
-        <Text style={styles.metadata}>{summary.toUpperCase()}</Text>
-        <RoleBadge role={userRole} />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.titleGroup}>
+            <Text style={styles.title}>{eventName}</Text>
+            {date ? <Text style={styles.date}>{date}</Text> : null}
+          </View>
+          {active ? <StatusBadge status="active" /> : null}
+        </View>
+        <View style={styles.rule} />
+        <View style={styles.footer}>
+          <Text style={styles.metadata}>{summary.toUpperCase()}</Text>
+          <RoleBadge role={userRole} />
+        </View>
       </View>
     </Pressable>
   );
@@ -58,16 +67,30 @@ export function EventCard({
 const styles = StyleSheet.create({
   card: {
     ...shadows.hardSmall,
-    gap: spacing.md,
-    padding: spacing.md,
+    flexDirection: "row",
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
     borderWidth: layout.borderWidth,
-    borderRadius: radii.md,
+    borderRadius: radii.xs,
   },
+  activeCard: { opacity: 1 },
+  archivedCard: { opacity: 0.8, borderStyle: "dashed", ...shadows.none },
+  indexRail: {
+    width: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: layout.borderWidth,
+    borderRightColor: colors.borderStrong,
+  },
+  activeRail: { backgroundColor: colors.textPrimary },
+  archivedRail: { backgroundColor: colors.surfaceVariant, borderStyle: "dashed" },
+  index: { ...typography.headingLarge, color: colors.textInverse },
+  archivedIndex: { color: colors.textSecondary, opacity: 0.55 },
+  content: { flex: 1, gap: spacing.md, padding: spacing.md },
   pressed: {
     opacity: opacity.pressed,
     ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
   },
   header: {
     flexDirection: "row",

@@ -59,8 +59,8 @@ export function QRMembershipCard({
         style={styles.qrFrame}
       >
         <QRCode
-          backgroundColor={colors.surface}
-          color={isRevoked ? colors.danger : colors.textPrimary}
+          backgroundColor="#FFFFFF"
+          color={colors.textPrimary}
           ecl="M"
           size={layout.qrPlaceholderSize - spacing.lg}
           value={payload}
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     ...shadows.hardMedium,
     gap: spacing.lg,
     padding: spacing.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: "#FFFFFF",
     borderColor: colors.borderStrong,
     borderWidth: layout.borderWidth,
     borderRadius: radii.md,
@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
     height: layout.qrPlaceholderSize,
     alignSelf: "center",
     padding: spacing.sm,
-    backgroundColor: colors.surface,
-    borderColor: colors.borderStrong,
+    backgroundColor: "#FFFFFF",
     borderWidth: layout.focusedBorderWidth,
+    borderColor: colors.textPrimary,
   },
   memberDetails: {
     alignItems: "center",

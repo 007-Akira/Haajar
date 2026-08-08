@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
-import { colors, layout, opacity, radii } from "@/theme";
+import { colors, layout, opacity, radii, shadows } from "@/theme";
 
 export interface IconButtonProps {
   icon: ReactNode;
@@ -44,6 +44,7 @@ export function IconButton({
 
 const styles = StyleSheet.create({
   base: {
+    ...shadows.hardSmall,
     width: layout.iconButtonSize,
     height: layout.iconButtonSize,
     alignItems: "center",
@@ -56,6 +57,8 @@ const styles = StyleSheet.create({
   pressed: {
     backgroundColor: colors.gridLine,
     opacity: opacity.pressed,
+    ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
   },
   disabled: {
     opacity: opacity.disabled,

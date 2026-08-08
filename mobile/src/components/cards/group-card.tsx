@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { colors, layout, opacity, radii, spacing, typography } from "@/theme";
+import { colors, layout, opacity, radii, shadows, spacing, typography } from "@/theme";
 
 import { RoleBadge, type UserRole } from "../status/role-badge";
 import { StatusBadge } from "../status/status-badge";
@@ -52,16 +52,19 @@ export function GroupCard({
 
 const styles = StyleSheet.create({
   container: {
+    ...shadows.hardSmall,
     gap: spacing.md,
     padding: spacing.md,
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderWidth: layout.borderWidth,
     borderRadius: radii.sm,
   },
   pressed: {
     backgroundColor: colors.gridLine,
     opacity: opacity.pressed,
+    ...shadows.none,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
   },
   header: {
     flexDirection: "row",
@@ -88,6 +91,6 @@ const styles = StyleSheet.create({
   },
   openLabel: {
     ...typography.button,
-    color: colors.accent,
+    color: colors.textPrimary,
   },
 });

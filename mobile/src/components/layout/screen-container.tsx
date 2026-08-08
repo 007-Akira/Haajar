@@ -48,7 +48,7 @@ function GridBackground(): JSX.Element {
 export function ScreenContainer({
   children,
   scroll = false,
-  showGrid = false,
+  showGrid = true,
   keyboardSafe = false,
   contentContainerStyle,
   refreshing = false,
@@ -121,13 +121,13 @@ const styles = StyleSheet.create({
     right: spacing.none,
     left: spacing.none,
     height: layout.gridLineWidth,
-    backgroundColor: colors.gridLine,
+    backgroundColor: "rgba(9,9,9,0.035)",
   },
   verticalLine: {
     position: "absolute",
     top: spacing.none,
     bottom: spacing.none,
     width: layout.gridLineWidth,
-    backgroundColor: colors.gridLine,
+    backgroundColor: "rgba(9,9,9,0.035)",
   },
 });
