@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import type { JSX } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState, type JSX } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -9,7 +9,9 @@ import {
   LoadingSkeleton,
   PageHeader,
   ScreenContainer,
+  SecondaryButton,
   SectionHeader,
+  TextField,
 } from "@/components";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
@@ -21,6 +23,7 @@ import { useEvent } from "../hooks/use-event";
 import { useEventGroups } from "../hooks/use-event-groups";
 import { useEventMemberCount } from "../hooks/use-event-member-count";
 import { useEventMembership } from "../hooks/use-event-membership";
+import { useArchiveEvent, useDeleteEvent } from "../hooks/use-event-lifecycle";
 import {
   canManageEvent,
   toEventDisplayRole,
@@ -34,6 +37,9 @@ export function TripDetailsScreen(): JSX.Element {
   const membershipQuery = useEventMembership(params.eventId);
   const groupsQuery = useEventGroups(params.eventId);
   const memberCountQuery = useEventMemberCount(params.eventId);
+  const archiveMutation = useArchiveEvent();
+  const deleteMutation = useDeleteEvent();
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const backAction = {
     accessibilityLabel: "Go back",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -153,6 +159,38 @@ export function TripDetailsScreen(): JSX.Element {
       groupsQuery.refetch(),
       memberCountQuery.refetch(),
     ]);
+  }
+
+  function archiveTrip(): void {
+    Alert.alert(
+      `Archive ${event.name}?`,
+      "This stops new groups, joining and attendance. Existing history remains available.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Archive Trip",
+          style: "destructive",
+          onPress: () =>
+            archiveMutation.mutate(event.id, {
+              onSuccess: (result) =>
+                result === "archived"
+                  ? refresh()
+                  : Alert.alert("Trip not archived", lifecycleMessage(result)),
+              onError: (error) => Alert.alert("Trip not archived", error.message),
+            }),
+        },
+      ]
+    );
+  }
+
+  function deleteTrip(): void {
+    deleteMutation.mutate(event.id, {
+      onSuccess: (result) => {
+        if (result === "deleted") router.replace("/" as never);
+        else Alert.alert("Trip not deleted", lifecycleMessage(result));
+      },
+      onError: (error) => Alert.alert("Trip not deleted", error.message),
+    });
   }
 
   return (
@@ -280,6 +318,49 @@ export function TripDetailsScreen(): JSX.Element {
           testID="organiser-actions"
         />
       ) : null}
+
+      {canManageEvent(membershipQuery.data.role) ? (
+        <View style={styles.dangerZone} testID="trip-lifecycle-controls">
+          <SectionHeader
+            title="Trip Settings"
+            description="Lifecycle changes are permission checked by the server."
+          />
+          {event.status === "active" ? (
+            <SecondaryButton
+              fullWidth
+              label="Edit Trip"
+              onPress={() => router.push(`/events/${event.id}/edit` as Href)}
+              testID="edit-trip-action"
+            />
+          ) : null}
+          {event.status === "active" ? (
+            <SecondaryButton
+              fullWidth
+              label="Archive Trip"
+              loading={archiveMutation.isPending}
+              onPress={archiveTrip}
+              testID="archive-trip-action"
+            />
+          ) : null}
+          <Text style={styles.destructiveCopy}>
+            Permanent deletion only succeeds for an unused trip and cannot be undone.
+          </Text>
+          <TextField
+            label={`Type ${event.name} to confirm`}
+            value={deleteConfirmation}
+            onChangeText={setDeleteConfirmation}
+            testID="delete-trip-confirmation"
+          />
+          <SecondaryButton
+            fullWidth
+            label="Delete Trip Permanently"
+            disabled={deleteConfirmation !== event.name || deleteMutation.isPending}
+            loading={deleteMutation.isPending}
+            onPress={deleteTrip}
+            testID="delete-trip-action"
+          />
+        </View>
+      ) : null}
     </ScreenContainer>
   );
 }
@@ -316,4 +397,20 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
+  dangerZone: {
+    gap: spacing.md,
+    padding: spacing.md,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+  },
+  destructiveCopy: { ...typography.body, color: colors.danger },
 });
+
+function lifecycleMessage(result: string): string {
+  if (result === "active_attendance") return "Close active attendance before continuing.";
+  if (result === "pending_sync") return "Attendance changes are waiting to sync. Sync them first.";
+  if (result === "requires_archive" || result === "has_history")
+    return "This trip has existing activity and cannot be permanently deleted. Archive it instead.";
+  return "This lifecycle change is not currently allowed.";
+}

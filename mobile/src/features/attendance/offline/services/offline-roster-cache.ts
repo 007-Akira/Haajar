@@ -14,6 +14,85 @@ interface SyncMetadataRow {
   member_count: number;
 }
 
+export type OfflineLifecycleScope = { eventId: string } | { groupId: string };
+
+export async function getPendingLifecycleAttendanceCount(
+  userId: string,
+  scope: OfflineLifecycleScope
+): Promise<number> {
+  try {
+    const database = await getOfflineAttendanceDatabase();
+    const row =
+      "groupId" in scope
+        ? await database.getFirstAsync<{ count: number }>(
+            `SELECT count(*) AS count FROM offline_attendance_queue
+           WHERE user_id = ? AND group_id = ? AND sync_state IN ('pending','syncing','failed')`,
+            userId,
+            scope.groupId
+          )
+        : await database.getFirstAsync<{ count: number }>(
+            `SELECT count(*) AS count FROM offline_attendance_queue AS queue
+           JOIN cached_groups AS groups
+             ON groups.user_id = queue.user_id AND groups.group_id = queue.group_id
+           WHERE queue.user_id = ? AND groups.event_id = ?
+             AND queue.sync_state IN ('pending','syncing','failed')`,
+            userId,
+            scope.eventId
+          );
+    return row?.count ?? 0;
+  } catch (cause) {
+    throw storageError(cause);
+  }
+}
+
+export async function clearLifecycleOfflineCache(
+  userId: string,
+  scope: OfflineLifecycleScope
+): Promise<void> {
+  try {
+    const database = await getOfflineAttendanceDatabase();
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      if ("groupId" in scope) {
+        await transaction.runAsync(
+          "DELETE FROM offline_attendance_queue WHERE user_id = ? AND group_id = ?",
+          userId,
+          scope.groupId
+        );
+        await transaction.runAsync(
+          "DELETE FROM offline_sync_metadata WHERE user_id = ? AND group_id = ?",
+          userId,
+          scope.groupId
+        );
+        await transaction.runAsync(
+          "DELETE FROM cached_groups WHERE user_id = ? AND group_id = ?",
+          userId,
+          scope.groupId
+        );
+      } else {
+        await transaction.runAsync(
+          `DELETE FROM offline_attendance_queue WHERE user_id = ? AND group_id IN
+            (SELECT group_id FROM cached_groups WHERE user_id = ? AND event_id = ?)`,
+          userId,
+          userId,
+          scope.eventId
+        );
+        await transaction.runAsync(
+          "DELETE FROM offline_sync_metadata WHERE user_id = ? AND event_id = ?",
+          userId,
+          scope.eventId
+        );
+        await transaction.runAsync(
+          "DELETE FROM cached_groups WHERE user_id = ? AND event_id = ?",
+          userId,
+          scope.eventId
+        );
+      }
+    });
+  } catch (cause) {
+    throw storageError(cause);
+  }
+}
+
 export async function replaceOfflineRosterCache(
   input: OfflineRosterCacheInput
 ): Promise<OfflineRosterStatus> {
