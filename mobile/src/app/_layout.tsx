@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 
 import { SessionProvider } from "@/features/auth";
+import { AppDialogProvider } from "@/components";
 import { NotificationProvider } from "@/features/notifications";
 import { QueryProvider } from "@/lib/query";
 import { AndroidBackGuard } from "@/lib/navigation/android-back-guard";
@@ -49,20 +50,22 @@ export default function RootLayout(): JSX.Element | null {
       <HeroUINativeProvider>
         <QueryProvider>
           <SessionProvider>
-            <NotificationProvider>
-              <AndroidBackGuard />
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" />
-                <Stack.Screen name="sign-in" />
-                <Stack.Screen name="profile-setup" />
-                <Stack.Screen name="auth/callback" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="events" />
-                <Stack.Screen name="join" />
-                <Stack.Screen name="group-requests/[requestId]" />
-              </Stack>
-              <StatusBar style="light" />
-            </NotificationProvider>
+            <AppDialogProvider>
+              <NotificationProvider>
+                <AndroidBackGuard />
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="sign-in" />
+                  <Stack.Screen name="profile-setup" />
+                  <Stack.Screen name="auth/callback" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="events" />
+                  <Stack.Screen name="join" />
+                  <Stack.Screen name="group-requests/[requestId]" />
+                </Stack>
+                <StatusBar style="light" />
+              </NotificationProvider>
+            </AppDialogProvider>
           </SessionProvider>
         </QueryProvider>
       </HeroUINativeProvider>

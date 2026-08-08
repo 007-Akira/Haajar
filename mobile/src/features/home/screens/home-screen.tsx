@@ -124,12 +124,13 @@ export function HomeScreen(): JSX.Element {
               title="No trips yet"
             />
           ) : (
-            eventsQuery.data?.map((event) => (
+            eventsQuery.data?.map((event, index) => (
               <EventCard
                 active={event.status === "active"}
                 date={`Created ${formatCreatedDate(event.createdAt)}`}
                 eventName={event.name}
                 groupCount={event.internalGroupCount}
+                index={index}
                 key={event.id}
                 onPress={() =>
                   router.push({

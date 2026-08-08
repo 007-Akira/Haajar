@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   AttendanceMemberRow,
@@ -16,6 +16,7 @@ import {
   SecondaryButton,
   SectionHeader,
   TextField,
+  useAppDialog,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
@@ -52,6 +53,7 @@ const filters: { label: string; value: AttendanceDashboardFilter }[] = [
 ];
 
 export function ActiveRollCallScreen(): JSX.Element {
+  const dialog = useAppDialog();
   const router = useRouter();
   const { eventId, groupId, rollCallId } = useLocalSearchParams<{
     eventId: string;
@@ -173,7 +175,7 @@ export function ActiveRollCallScreen(): JSX.Element {
       membershipStatus={membershipQuery.data?.status ?? null}
       onBack={() => router.back()}
       onClose={() => {
-        Alert.alert(
+        dialog.alert(
           "Close roll call?",
           "Normal attendance marking stops after closure. The final present and remaining counts will be preserved.",
           [
@@ -191,7 +193,7 @@ export function ActiveRollCallScreen(): JSX.Element {
                       pathname: "/events/[eventId]/groups/[groupId]/roll-calls/[rollCallId]",
                       params: { eventId, groupId, rollCallId },
                     });
-                    Alert.alert(
+                    dialog.alert(
                       "Roll call closed",
                       `${result.presentCount} present · ${result.remainingCount} remaining`
                     );

@@ -96,6 +96,7 @@ export function ComponentPreviewScreen(): JSX.Element {
         date="12 August 2026"
         eventName="Industrial Visit 2026"
         groupCount={4}
+        index={0}
         onPress={() => undefined}
         participantCount={128}
         userRole="organiser"

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useState, type JSX } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -12,6 +12,7 @@ import {
   SecondaryButton,
   SectionHeader,
   TextField,
+  useAppDialog,
 } from "@/components";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
 import { colors, layout, spacing, typography } from "@/theme";
@@ -31,6 +32,7 @@ import {
 } from "../permissions/event-permissions";
 
 export function TripDetailsScreen(): JSX.Element {
+  const dialog = useAppDialog();
   const router = useRouter();
   const params = useLocalSearchParams<{ eventId: string }>();
   const eventQuery = useEvent(params.eventId);
@@ -163,7 +165,7 @@ export function TripDetailsScreen(): JSX.Element {
   }
 
   function archiveTrip(): void {
-    Alert.alert(
+    dialog.alert(
       `Archive ${event.name}?`,
       "This stops new groups, joining and attendance. Existing history remains available.",
       [
@@ -176,8 +178,8 @@ export function TripDetailsScreen(): JSX.Element {
               onSuccess: (result) =>
                 result === "archived"
                   ? refresh()
-                  : Alert.alert("Trip not archived", lifecycleMessage(result)),
-              onError: (error) => Alert.alert("Trip not archived", error.message),
+                  : dialog.alert("Trip not archived", lifecycleMessage(result)),
+              onError: (error) => dialog.alert("Trip not archived", error.message),
             }),
         },
       ]
@@ -188,9 +190,9 @@ export function TripDetailsScreen(): JSX.Element {
     deleteMutation.mutate(event.id, {
       onSuccess: (result) => {
         if (result === "deleted") router.replace("/" as never);
-        else Alert.alert("Trip not deleted", lifecycleMessage(result));
+        else dialog.alert("Trip not deleted", lifecycleMessage(result));
       },
-      onError: (error) => Alert.alert("Trip not deleted", error.message),
+      onError: (error) => dialog.alert("Trip not deleted", error.message),
     });
   }
 

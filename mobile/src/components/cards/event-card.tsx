@@ -7,6 +7,7 @@ import { RoleBadge, type UserRole } from "../status/role-badge";
 import { StatusBadge } from "../status/status-badge";
 
 export interface EventCardProps {
+  index: number;
   eventName: string;
   date?: string;
   participantCount: number;
@@ -19,6 +20,7 @@ export interface EventCardProps {
 }
 
 export function EventCard({
+  index,
   eventName,
   date,
   participantCount,
@@ -30,6 +32,7 @@ export function EventCard({
   testID,
 }: EventCardProps): JSX.Element {
   const summary = `${participantCount} participants, ${groupCount} groups`;
+  const displayIndex = String(index + 1).padStart(2, "0");
 
   return (
     <Pressable
@@ -44,7 +47,7 @@ export function EventCard({
       testID={testID}
     >
       <View style={[styles.indexRail, active ? styles.activeRail : styles.archivedRail]}>
-        <Text style={[styles.index, !active && styles.archivedIndex]}>{active ? "01" : "02"}</Text>
+        <Text style={[styles.index, !active && styles.archivedIndex]}>{displayIndex}</Text>
       </View>
       <View style={styles.content}>
         <View style={styles.header}>

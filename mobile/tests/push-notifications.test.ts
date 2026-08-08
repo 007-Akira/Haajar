@@ -56,6 +56,10 @@ const inboxMigrationSource = readFileSync(
   new URL("../../supabase/migrations/20260808000500_notification_inbox.sql", import.meta.url),
   "utf8"
 );
+const recipientMigrationSource = readFileSync(
+  new URL("../../supabase/migrations/20260808000600_notification_recipients.sql", import.meta.url),
+  "utf8"
+);
 const inboxScreenSource = readFileSync(
   new URL("../src/features/notifications/screens/notifications-screen.tsx", import.meta.url),
   "utf8"
@@ -181,4 +185,10 @@ test("notification tab uses a secured user-scoped inbox with safe routes", () =>
   assert.match(inboxMigrationSource, /set search_path = ''/);
   assert.match(inboxMigrationSource, /grant execute.*authenticated/s);
   assert.doesNotMatch(inboxMigrationSource, /token_ciphertext|token_hash|phone|email|qr/);
+  assert.match(recipientMigrationSource, /create table public\.notification_recipients/);
+  assert.match(recipientMigrationSource, /primary key \(job_id, user_id\)/);
+  assert.match(recipientMigrationSource, /values \(queued_job_id, new\.user_id\)/);
+  assert.match(recipientMigrationSource, /recipient\.user_id = caller_id/);
+  assert.match(recipientMigrationSource, /now\(\) - interval '7 days'/);
+  assert.match(recipientMigrationSource, /left join public\.notification_deliveries/);
 });

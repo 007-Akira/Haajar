@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Alert, BackHandler, StyleSheet, Text, View } from "react-native";
+import { BackHandler, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -12,6 +12,7 @@ import {
   ScreenContainer,
   SecondaryButton,
   SectionHeader,
+  useAppDialog,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
@@ -55,6 +56,7 @@ function mutationMessage(error: unknown): string {
 }
 
 export function RegistrationFormBuilderScreen(): JSX.Element {
+  const dialog = useAppDialog();
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const groupQuery = useGroup(groupId);
@@ -91,7 +93,7 @@ export function RegistrationFormBuilderScreen(): JSX.Element {
       router.back();
       return;
     }
-    Alert.alert("Discard unsaved changes?", "Your latest form edits have not been saved.", [
+    dialog.alert("Discard unsaved changes?", "Your latest form edits have not been saved.", [
       { text: "Keep Editing", style: "cancel" },
       {
         text: "Discard",
@@ -102,7 +104,7 @@ export function RegistrationFormBuilderScreen(): JSX.Element {
         },
       },
     ]);
-  }, [dirty, mode, router]);
+  }, [dialog, dirty, mode, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -187,7 +189,7 @@ export function RegistrationFormBuilderScreen(): JSX.Element {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !form) return;
 
-    Alert.alert(
+    dialog.alert(
       "Publish and lock this form?",
       "Members can submit this form after publication. Questions and options can never be changed again.",
       [

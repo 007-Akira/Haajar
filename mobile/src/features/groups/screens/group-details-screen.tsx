@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -18,6 +18,7 @@ import {
   StatusBadge,
   TextField,
   type UserRole,
+  useAppDialog,
 } from "@/components";
 import { toGroupDisplayRole } from "@/features/events/permissions/event-permissions";
 import { isAppError, userSafeErrorMessages } from "@/lib/errors";
@@ -39,6 +40,7 @@ type RoleFilter = "all" | UserRole;
 const roleFilters: RoleFilter[] = ["all", "member", "co-organiser", "organiser", "super organiser"];
 
 export function GroupDetailsScreen(): JSX.Element {
+  const dialog = useAppDialog();
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ eventId: string; groupId: string }>();
   const [activityMessage, setActivityMessage] = useState("");
@@ -213,7 +215,7 @@ export function GroupDetailsScreen(): JSX.Element {
       group.groupKind === "category"
         ? `This will also archive ${childGroups.filter((child) => child.status === "active").length} active subgroup(s). Existing membership and attendance history remains available.`
         : "This stops new joining and attendance activity. Existing membership and attendance history remains available.";
-    Alert.alert(`Archive ${group.name}?`, impact, [
+    dialog.alert(`Archive ${group.name}?`, impact, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Archive Group",
@@ -223,8 +225,8 @@ export function GroupDetailsScreen(): JSX.Element {
             onSuccess: (result) =>
               result === "archived"
                 ? refresh()
-                : Alert.alert("Group not archived", groupLifecycleMessage(result)),
-            onError: (error) => Alert.alert("Group not archived", error.message),
+                : dialog.alert("Group not archived", groupLifecycleMessage(result)),
+            onError: (error) => dialog.alert("Group not archived", error.message),
           }),
       },
     ]);
@@ -234,9 +236,9 @@ export function GroupDetailsScreen(): JSX.Element {
     deleteMutation.mutate(group.id, {
       onSuccess: (result) => {
         if (result === "deleted") router.replace(`/events/${group.eventId}` as never);
-        else Alert.alert("Group not deleted", groupLifecycleMessage(result));
+        else dialog.alert("Group not deleted", groupLifecycleMessage(result));
       },
-      onError: (error) => Alert.alert("Group not deleted", error.message),
+      onError: (error) => dialog.alert("Group not deleted", error.message),
     });
   }
 

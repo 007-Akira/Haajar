@@ -142,7 +142,7 @@ The [database CI workflow](.github/workflows/database-tests.yml) performs the sa
 
 ## Beta release
 
-The current candidate is **Haajar v0.9.0-beta.1** (`app.haajar.mobile`, Android versionCode `4`). It is intended for a small closed group of Android testers and will be distributed as a standalone, release-signed APK through [GitHub Releases](https://github.com/007-Akira/Haajar/releases).
+The current candidate is **Haajar v0.9.0-beta.2** (`app.haajar.mobile`, Android versionCode `5`). It is intended for a small closed group of Android testers and will be distributed as a standalone, release-signed APK through [GitHub Releases](https://github.com/007-Akira/Haajar/releases).
 
 Release builds use EAS-managed Android credentials. Keystores and signing passwords are never committed. Every future beta must use the same release key so Android can install it as an update.
 

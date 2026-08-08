@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, type JSX } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import {
   EmptyState,
   LoadingSkeleton,
@@ -9,6 +9,7 @@ import {
   PrimaryButton,
   ScreenContainer,
   TextField,
+  useAppDialog,
 } from "@/components";
 import { useEvent } from "@/features/events/hooks/use-event";
 import { useEventMembership } from "@/features/events/hooks/use-event-membership";
@@ -52,6 +53,7 @@ function EditTripForm({
   event: { id: string; name: string; description: string | null };
   onBack: () => void;
 }): JSX.Element {
+  const dialog = useAppDialog();
   const mutation = useUpdateEvent();
   const [name, setName] = useState(event.name);
   const [description, setDescription] = useState(event.description ?? "");
@@ -95,7 +97,7 @@ function EditTripForm({
             { eventId: event.id, name, description },
             {
               onSuccess: onBack,
-              onError: (error) => Alert.alert("Trip not updated", error.message),
+              onError: (error) => dialog.alert("Trip not updated", error.message),
             }
           )
         }

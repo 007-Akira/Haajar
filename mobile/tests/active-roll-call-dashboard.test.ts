@@ -149,7 +149,7 @@ test("screen confirms closure and uses secured hooks without direct writes", () 
 
   assert.equal(screen.includes("useRollCallDashboard"), true);
   assert.equal(screen.includes("useCloseRollCall"), true);
-  assert.equal(screen.includes('Alert.alert(\n          "Close roll call?"'), true);
+  assert.equal(screen.includes('dialog.alert(\n          "Close roll call?"'), true);
   assert.equal(closeHook.includes("getCloseRollCallCacheTargets"), true);
   assert.equal(mutationApi.includes('rpc("close_roll_call"'), true);
   assert.equal(/getSupabaseClient|\.from\(|\.insert\(|\.update\(/.test(screen), false);

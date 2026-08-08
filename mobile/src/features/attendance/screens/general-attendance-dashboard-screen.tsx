@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import type { JSX } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   AttendanceMemberRow,
@@ -15,6 +15,7 @@ import {
   SecondaryButton,
   SectionHeader,
   TextField,
+  useAppDialog,
 } from "@/components";
 import { useEvent } from "@/features/events/hooks/use-event";
 import { useEventMembership } from "@/features/events/hooks/use-event-membership";
@@ -27,6 +28,7 @@ import { useGeneralOperators } from "../hooks/use-general-attendance";
 import { useRollCallDashboard } from "../hooks/use-roll-call-dashboard";
 
 export function GeneralAttendanceDashboardScreen(): JSX.Element {
+  const dialog = useAppDialog();
   const { eventId, sessionId } = useLocalSearchParams<{ eventId: string; sessionId: string }>();
   const router = useRouter();
   const event = useEvent(eventId);
@@ -161,7 +163,7 @@ export function GeneralAttendanceDashboardScreen(): JSX.Element {
               label="Close Attendance"
               loading={close.isPending}
               onPress={() =>
-                Alert.alert("Close General attendance?", "Normal attendance marking will stop.", [
+                dialog.alert("Close General attendance?", "Normal attendance marking will stop.", [
                   { text: "Cancel", style: "cancel" },
                   {
                     text: "Close",

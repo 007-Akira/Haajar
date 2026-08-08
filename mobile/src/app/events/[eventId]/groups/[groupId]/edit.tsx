@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, type JSX } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import {
   EmptyState,
   LoadingSkeleton,
@@ -9,6 +9,7 @@ import {
   PrimaryButton,
   ScreenContainer,
   TextField,
+  useAppDialog,
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
@@ -55,6 +56,7 @@ function EditGroupForm({
   group: { id: string; name: string; description: string | null; groupKind: string };
   onBack: () => void;
 }): JSX.Element {
+  const dialog = useAppDialog();
   const mutation = useUpdateGroup();
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");
@@ -98,7 +100,7 @@ function EditGroupForm({
             { groupId: group.id, name, description },
             {
               onSuccess: onBack,
-              onError: (error) => Alert.alert("Group not updated", error.message),
+              onError: (error) => dialog.alert("Group not updated", error.message),
             }
           )
         }

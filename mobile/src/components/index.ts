@@ -22,6 +22,8 @@ export { EmptyState } from "./feedback/empty-state";
 export type { EmptyStateProps } from "./feedback/empty-state";
 export { LoadingSkeleton } from "./feedback/loading-skeleton";
 export type { LoadingSkeletonProps } from "./feedback/loading-skeleton";
+export { AppDialogProvider, useAppDialog } from "./feedback/app-dialog";
+export type { AppDialogAction } from "./feedback/app-dialog";
 export { PhoneField } from "./forms/phone-field";
 export type { PhoneFieldProps } from "./forms/phone-field";
 export { TextField } from "./forms/text-field";
