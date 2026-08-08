@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   EmptyState,
@@ -45,6 +45,7 @@ export function GroupDetailsScreen(): JSX.Element {
   const [memberQuery, setMemberQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const membersQuery = useGroupMembers(groupId);
@@ -356,6 +357,20 @@ export function GroupDetailsScreen(): JSX.Element {
         subtitle={group.eventName ?? "Trip"}
         testID="group-details-header"
         title={group.name}
+        trailingAction={
+          !isArchived && canEditLifecycle
+            ? {
+                accessibilityLabel: "Edit group",
+                icon: <Ionicons color={colors.textPrimary} name="pencil" size={layout.iconSize} />,
+                onPress: () =>
+                  router.push({
+                    pathname: "/events/[eventId]/groups/[groupId]/edit" as never,
+                    params: groupRouteParams,
+                  }),
+                testID: "edit-group-action",
+              }
+            : undefined
+        }
       />
 
       {isArchived ? (
@@ -555,55 +570,63 @@ export function GroupDetailsScreen(): JSX.Element {
         </View>
       )}
 
-      {canEditLifecycle ? (
-        <View style={styles.dangerZone} testID="group-lifecycle-controls">
-          <SectionHeader
-            title="Group Settings"
-            description="Metadata and lifecycle changes are checked by the server."
-          />
-          {!isArchived ? (
-            <SecondaryButton
-              fullWidth
-              label="Edit Group"
-              onPress={() =>
-                router.push({
-                  pathname: "/events/[eventId]/groups/[groupId]/edit" as never,
-                  params: groupRouteParams,
-                })
-              }
-              testID="edit-group-action"
+      {canEditLifecycle && (!isArchived || canDeleteLifecycle) ? (
+        <View style={styles.settingsSection}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: groupSettingsOpen }}
+            onPress={() => {
+              setGroupSettingsOpen((open) => !open);
+              if (groupSettingsOpen) setDeleteConfirmation("");
+            }}
+            style={({ pressed }) => [styles.settingsToggle, pressed && styles.settingsPressed]}
+            testID="group-settings-toggle"
+          >
+            <Ionicons
+              color={colors.textInverse}
+              name={groupSettingsOpen ? "chevron-up" : "settings-outline"}
+              size={layout.iconSize}
             />
-          ) : null}
-          {!isArchived ? (
-            <SecondaryButton
-              fullWidth
-              label="Archive Group"
-              loading={archiveMutation.isPending}
-              onPress={archiveCurrentGroup}
-              testID="archive-group-action"
-            />
-          ) : null}
-          {canDeleteLifecycle ? (
-            <>
-              <Text style={styles.destructiveCopy}>
-                Permanent deletion only succeeds when this group has no children or required
-                history.
-              </Text>
-              <TextField
-                label={`Type ${group.name} to confirm`}
-                value={deleteConfirmation}
-                onChangeText={setDeleteConfirmation}
-                testID="delete-group-confirmation"
+            <Text style={styles.settingsToggleLabel}>GROUP SETTINGS</Text>
+          </Pressable>
+          {groupSettingsOpen ? (
+            <View style={styles.dangerZone} testID="group-lifecycle-controls">
+              <SectionHeader
+                title="Group Settings"
+                description="Archive or permanently delete this group. These changes are checked by the server."
               />
-              <SecondaryButton
-                fullWidth
-                label="Delete Group Permanently"
-                disabled={deleteConfirmation !== group.name || deleteMutation.isPending}
-                loading={deleteMutation.isPending}
-                onPress={deleteCurrentGroup}
-                testID="delete-group-action"
-              />
-            </>
+              {!isArchived ? (
+                <SecondaryButton
+                  fullWidth
+                  label="Archive Group"
+                  loading={archiveMutation.isPending}
+                  onPress={archiveCurrentGroup}
+                  testID="archive-group-action"
+                />
+              ) : null}
+              {canDeleteLifecycle ? (
+                <>
+                  <Text style={styles.destructiveCopy}>
+                    Permanent deletion only succeeds when this group has no children or required
+                    history.
+                  </Text>
+                  <TextField
+                    label={`Type ${group.name} to confirm`}
+                    value={deleteConfirmation}
+                    onChangeText={setDeleteConfirmation}
+                    testID="delete-group-confirmation"
+                  />
+                  <SecondaryButton
+                    fullWidth
+                    label="Delete Group Permanently"
+                    disabled={deleteConfirmation !== group.name || deleteMutation.isPending}
+                    loading={deleteMutation.isPending}
+                    onPress={deleteCurrentGroup}
+                    testID="delete-group-action"
+                  />
+                </>
+              ) : null}
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -703,12 +726,26 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   dangerZone: {
+    alignSelf: "stretch",
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: layout.borderWidth,
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
   },
+  settingsSection: { alignItems: "flex-start", gap: spacing.sm },
+  settingsToggle: {
+    minHeight: layout.minimumTouchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.textPrimary,
+    borderWidth: layout.borderWidth,
+    borderColor: colors.borderStrong,
+  },
+  settingsToggleLabel: { ...typography.technicalLabel, color: colors.textInverse },
+  settingsPressed: { opacity: 0.75 },
   destructiveCopy: { ...typography.body, color: colors.danger },
 });
 

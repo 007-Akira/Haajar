@@ -26,6 +26,10 @@ test("destructive controls require typed names and explain category impact", () 
   assert.match(trip, /name="pencil"/);
   assert.match(trip, /trip-settings-toggle/);
   assert.match(trip, /tripSettingsOpen \?/);
+  assert.match(group, /trailingAction/);
+  assert.match(group, /name="pencil"/);
+  assert.match(group, /group-settings-toggle/);
+  assert.match(group, /groupSettingsOpen \?/);
 });
 
 test("offline attendance blocks lifecycle mutations until sync", () => {
