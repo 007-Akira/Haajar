@@ -45,7 +45,8 @@ export function HomeScreen(): JSX.Element {
     >
       <View style={styles.header}>
         <View style={styles.greetingGroup}>
-          <Text style={styles.eyebrow}>[ HAAJAR HOME ]</Text>
+          <Text style={styles.eyebrow}>HAAJAR / ATTENDANCE SYSTEM</Text>
+          <Text style={styles.wordmark}>HAAJAR</Text>
           <Text accessibilityRole="header" style={styles.greeting}>
             {`Good evening, ${firstName}`}
           </Text>
@@ -66,7 +67,7 @@ export function HomeScreen(): JSX.Element {
 
       <View style={styles.quickActions}>
         <View style={styles.quickAction}>
-          <SecondaryButton
+          <PrimaryButton
             fullWidth
             label="Join Group"
             onPress={() => router.push("/join" as never)}
@@ -74,7 +75,7 @@ export function HomeScreen(): JSX.Element {
           />
         </View>
         <View style={styles.quickAction}>
-          <PrimaryButton
+          <SecondaryButton
             fullWidth
             label="Create Trip"
             onPress={() => router.push("/events/create")}
@@ -157,6 +158,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.background,
+    borderWidth: layout.focusedBorderWidth,
+    borderColor: colors.borderStrong,
+    overflow: "hidden",
   },
   greetingGroup: {
     flex: 1,
@@ -167,7 +173,11 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   greeting: {
-    ...typography.headingLarge,
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+  },
+  wordmark: {
+    ...typography.displayLarge,
     color: colors.textPrimary,
   },
   quickActions: {

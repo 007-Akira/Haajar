@@ -1,9 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import type { ComponentProps, JSX } from "react";
-import { StyleSheet, View, type ColorValue } from "react-native";
+import { useEffect, type ComponentProps, type JSX } from "react";
+import { StyleSheet, type ColorValue } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { colors, layout, spacing, typography } from "@/theme";
+import { colors, layout, typography } from "@/theme";
 import { ProtectedRoute } from "@/features/auth";
 import { ProfileCompletionGuard } from "@/features/profile";
 
@@ -18,11 +24,27 @@ function TabIcon({
   color: ColorValue;
   focused: boolean;
 }): JSX.Element {
+  const selectionProgress = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    selectionProgress.value = withTiming(focused ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [focused, selectionProgress]);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + selectionProgress.value * 0.08 }],
+  }));
+  const lineStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: selectionProgress.value }],
+  }));
+
   return (
-    <View style={styles.iconContainer}>
-      <View style={[styles.activeLine, !focused && styles.inactiveLine]} />
+    <Animated.View style={[styles.iconContainer, iconStyle]}>
       <Ionicons color={color} name={name} size={layout.iconSize} />
-    </View>
+      <Animated.View style={[styles.selectionLine, lineStyle]} />
+    </Animated.View>
   );
 }
 
@@ -89,22 +111,26 @@ const styles = StyleSheet.create({
   tabBar: {
     minHeight: layout.tabBarHeight,
     backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: layout.borderWidth,
+    borderTopColor: colors.borderStrong,
+    borderTopWidth: layout.focusedBorderWidth,
+    paddingTop: 0,
   },
   label: {
     ...typography.badge,
   },
   iconContainer: {
     alignItems: "center",
-    gap: spacing.half,
+    justifyContent: "center",
+    minWidth: 64,
+    minHeight: 34,
+    position: "relative",
   },
-  activeLine: {
-    width: layout.iconSize,
+  selectionLine: {
+    position: "absolute",
+    right: 8,
+    bottom: -24,
+    left: 8,
     height: layout.focusedBorderWidth,
     backgroundColor: colors.accent,
-  },
-  inactiveLine: {
-    backgroundColor: colors.transparent,
   },
 });
