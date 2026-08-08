@@ -28,6 +28,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withAndroidReleaseSigning",
       "expo-font",
       [
         "expo-splash-screen",
