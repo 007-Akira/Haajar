@@ -35,7 +35,7 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 2.111.0
+          version: 2.113.0
 
       - name: Show tool versions
         run: |
@@ -60,32 +60,16 @@ jobs:
             exit 1
           fi
 
-      - name: Run schema and RLS assertions
-        run: |
-          supabase test db supabase/tests/database/attendance_schema.test.sql
-          supabase test db supabase/tests/database/registration_schema.test.sql
-          supabase test db supabase/tests/database/push_notification_schema.test.sql
-          supabase test db supabase/tests/database/data_layer.test.sql
-
-      - name: Run registration lifecycle tests
-        run: supabase test db supabase/tests/database/registration_lifecycle.test.sql
-
-      - name: Run hierarchy and attendance lifecycle tests
-        run: |
-          supabase test db supabase/tests/database/hierarchy_lifecycle.test.sql
-          supabase test db supabase/tests/database/attendance_lifecycle.test.sql
-          supabase test db supabase/tests/database/attendance_qr_lifecycle.test.sql
-
-      - name: Run offline and concurrency tests
-        run: |
-          supabase test db supabase/tests/database/offline_attendance_sync.test.sql
-          supabase test db supabase/tests/database/attendance_concurrency.test.sql
+      - name: Run every pgTAP suite
+        run: supabase test db
 
       - name: Write safe failure diagnostics
         if: failure()
         run: |
           mkdir -p /tmp/haajar-db-diagnostics
           docker ps --all --filter "name=supabase_" --format "{{.Names}} {{.Status}}" > /tmp/haajar-db-diagnostics/container-status.txt
+          find supabase/tests -type f -name '*.sql' -print | sort > /tmp/haajar-db-diagnostics/discovered-tests.txt
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort > /tmp/haajar-db-diagnostics/discovered-migrations.txt
           printf '%s\n' "Database workflow failed. Re-run the failing named pgTAP suite locally for TAP output." > /tmp/haajar-db-diagnostics/README.txt
 
       - name: Upload safe failure diagnostics
