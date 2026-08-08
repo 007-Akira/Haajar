@@ -14,7 +14,7 @@ import { SessionProvider } from "@/features/auth";
 import { NotificationProvider } from "@/features/notifications";
 import { QueryProvider } from "@/lib/query";
 import { AndroidBackGuard } from "@/lib/navigation/android-back-guard";
-import { fontAssets } from "@/theme";
+import { colors, fontAssets } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -45,7 +45,7 @@ export default function RootLayout(): JSX.Element | null {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.textPrimary }}>
       <HeroUINativeProvider>
         <QueryProvider>
           <SessionProvider>
@@ -61,7 +61,7 @@ export default function RootLayout(): JSX.Element | null {
                 <Stack.Screen name="join" />
                 <Stack.Screen name="group-requests/[requestId]" />
               </Stack>
-              <StatusBar style="auto" />
+              <StatusBar style="light" />
             </NotificationProvider>
           </SessionProvider>
         </QueryProvider>

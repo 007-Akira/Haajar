@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import type { JSX } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { ScreenContainer } from "@/components";
-import { APP_NAME, APP_NAME_MALAYALAM, APP_TAGLINE, SPLASH_TRANSITION_MS } from "@/constants/app";
+import { APP_NAME, SPLASH_TRANSITION_MS } from "@/constants/app";
 import { useSession } from "@/features/auth/providers/session-provider";
 import { colors, spacing, typography } from "@/theme";
 
@@ -33,10 +34,23 @@ export function SplashScreen(): JSX.Element {
   return (
     <ScreenContainer contentContainerStyle={styles.content} showGrid testID="splash-screen">
       <View accessibilityLabel="Haajar" accessibilityRole="header" style={styles.brand}>
-        <Text style={styles.wordmark}>{APP_NAME}</Text>
-        <Text style={styles.malayalam}>{APP_NAME_MALAYALAM}</Text>
+        <View style={styles.wordmark}>
+          {APP_NAME.toUpperCase()
+            .split("")
+            .map((letter, index) => (
+              <Animated.Text
+                entering={FadeInUp.delay(index * 80)
+                  .duration(240)
+                  .springify()
+                  .damping(18)}
+                key={`${letter}-${index}`}
+                style={styles.letter}
+              >
+                {letter}
+              </Animated.Text>
+            ))}
+        </View>
       </View>
-      <Text style={styles.tagline}>{APP_TAGLINE}</Text>
       <Text accessibilityLiveRegion="polite" style={styles.loading} testID="splash-loading-label">
         [ INITIALISING ]
       </Text>
@@ -49,26 +63,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.lg,
+    backgroundColor: colors.textPrimary,
   },
   brand: {
     alignItems: "center",
     gap: spacing.xs,
   },
   wordmark: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.half,
+  },
+  letter: {
     ...typography.displayLarge,
-    color: colors.textPrimary,
-  },
-  malayalam: {
-    ...typography.headingLarge,
-    color: colors.accent,
-  },
-  tagline: {
-    ...typography.bodyMalayalam,
-    color: colors.textSecondary,
-    textAlign: "center",
+    color: colors.textInverse,
   },
   loading: {
     ...typography.technicalLabel,
-    color: colors.textSecondary,
+    color: colors.surfaceVariant,
   },
 });

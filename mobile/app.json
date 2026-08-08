@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "haajar",
-    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#090909",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
@@ -21,7 +22,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#090909"
       },
       "predictiveBackGestureEnabled": true
     },
@@ -31,9 +32,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#090909"
         }
       ],
       "expo-status-bar",
