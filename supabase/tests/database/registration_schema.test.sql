@@ -136,7 +136,8 @@ select ok(
   'membership QR resolver is security definer'
 );
 select ok(
-  (select proconfig @> array['search_path='] from pg_proc
+  (select exists(select 1 from unnest(proconfig) as config_value
+     where config_value in ('search_path=', 'search_path=""')) from pg_proc
    where oid = 'public.resolve_membership_qr(text, uuid)'::regprocedure),
   'membership QR resolver has an empty fixed search path'
 );

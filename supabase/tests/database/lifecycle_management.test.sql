@@ -20,13 +20,13 @@ select is(has_function_privilege('authenticated','public.archive_group(uuid)','E
 select is(has_function_privilege('authenticated','public.delete_event(uuid)','EXECUTE'),true,'authenticated can call delete event RPC');
 select is(has_function_privilege('authenticated','public.delete_group(uuid)','EXECUTE'),true,'authenticated can call delete group RPC');
 
-select is(proconfig,array['search_path='], 'event archive has an empty fixed search path')
+select ok(exists(select 1 from unnest(proconfig) as config_value where config_value in ('search_path=','search_path=""')), 'event archive has an empty fixed search path')
 from pg_proc where oid='public.archive_event(uuid)'::regprocedure;
-select is(proconfig,array['search_path='], 'group archive has an empty fixed search path')
+select ok(exists(select 1 from unnest(proconfig) as config_value where config_value in ('search_path=','search_path=""')), 'group archive has an empty fixed search path')
 from pg_proc where oid='public.archive_group(uuid)'::regprocedure;
-select is(proconfig,array['search_path='], 'event delete has an empty fixed search path')
+select ok(exists(select 1 from unnest(proconfig) as config_value where config_value in ('search_path=','search_path=""')), 'event delete has an empty fixed search path')
 from pg_proc where oid='public.delete_event(uuid)'::regprocedure;
-select is(proconfig,array['search_path='], 'group delete has an empty fixed search path')
+select ok(exists(select 1 from unnest(proconfig) as config_value where config_value in ('search_path=','search_path=""')), 'group delete has an empty fixed search path')
 from pg_proc where oid='public.delete_group(uuid)'::regprocedure;
 
 select is(has_table_privilege('authenticated','public.events','UPDATE'),false,'direct trip updates are revoked');

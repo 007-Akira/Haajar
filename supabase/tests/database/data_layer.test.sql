@@ -193,8 +193,8 @@ select set_config(
 
 select is(
   (select role from public.group_memberships where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-  'organiser',
-  'create_group assigns Account A the organiser role'
+  'super_organiser',
+  'create_group preserves Account A as the event super organiser'
 );
 select is(
   (

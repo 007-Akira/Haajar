@@ -23,22 +23,22 @@ select is((select parent_group_id from public.groups where id=current_setting('h
   current_setting('ht.category1')::uuid,'operational subgroup has the requested category parent');
 
 select throws_ok(format('update public.groups set parent_group_id=%L::uuid where id=%L::uuid',
-  current_setting('ht.category2'),current_setting('ht.unit1')),'23514',
+  current_setting('ht.category2'),current_setting('ht.unit1')),'23514',null,
   'cross-event category parent is rejected');
 select throws_ok(format('update public.groups set parent_group_id=id where id=%L::uuid',
-  current_setting('ht.unit1')),'23514','self-parent is rejected');
+  current_setting('ht.unit1')),'23514',null,'self-parent is rejected');
 select throws_ok(format($sql$insert into public.groups(event_id,name,created_by,status,group_kind,parent_group_id)
   values(%L::uuid,'Invalid child',%L::uuid,'active','operational',%L::uuid)$sql$,
   current_setting('ht.event1'),'23000000-0000-4000-8000-000000000001',current_setting('ht.unit1')),
-  '23514','an operational group cannot be used as a parent');
+  '23514',null,'an operational group cannot be used as a parent');
 select throws_ok(format('update public.groups set parent_group_id=%L::uuid where id=%L::uuid',
-  current_setting('ht.unit1'),current_setting('ht.category1')),'23514',
+  current_setting('ht.unit1'),current_setting('ht.category1')),'23514',null,
   'a category-to-child cycle is rejected');
 
 select set_config('request.jwt.claim.sub','23000000-0000-4000-8000-000000000002',true);
 set local role authenticated;
 select throws_ok(format('select public.create_category_group(%L::uuid,%L,null)',
-  current_setting('ht.event1'),'Forbidden Category'),'42501',
+  current_setting('ht.event1'),'Forbidden Category'),'42501',null,
   'an unrelated user cannot create a category');
 reset role;
 
@@ -48,7 +48,7 @@ select set_config('ht.membership',(select id::text from public.group_memberships
 select set_config('request.jwt.claim.sub','23000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
 select throws_ok(format('select * from public.transfer_operational_group_membership(%L::uuid,%L::uuid)',
-  current_setting('ht.membership'),current_setting('ht.category2')),'22023',
+  current_setting('ht.membership'),current_setting('ht.category2')),'22023',null,
   'transfer rejects a non-sibling target');
 reset role;
 

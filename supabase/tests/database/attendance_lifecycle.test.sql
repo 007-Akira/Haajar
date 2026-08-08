@@ -61,9 +61,9 @@ set local role authenticated;
 select lives_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.bus1_unit')),
   'subgroup organiser views own unit');
 select throws_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.bus2_unit')),
-  '42501','subgroup organiser cannot view sibling unit');
+  '42501',null,'subgroup organiser cannot view sibling unit');
 select throws_ok(format('select public.get_roll_call_dashboard(%L::uuid)',current_setting('h.category_session')),
-  '42501','subgroup organiser cannot view category aggregate');
+  '42501',null,'subgroup organiser cannot view category aggregate');
 reset role;
 
 select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000001',true);
@@ -117,7 +117,7 @@ set local role authenticated;
 select throws_ok(format('select public.mark_attendance_manual(%L::uuid,%L::uuid,gen_random_uuid())',
   (select id from public.attendance_units where session_id=current_setting('h.general')::uuid),
   (select event_member_id from public.attendance_unit_roster where session_id=current_setting('h.general')::uuid limit 1)),
-  '42501','unselected event member cannot operate General');
+  '42501',null,'unselected event member cannot operate General');
 reset role;
 
 select set_config('request.jwt.claim.sub','22000000-0000-4000-8000-000000000004',true);

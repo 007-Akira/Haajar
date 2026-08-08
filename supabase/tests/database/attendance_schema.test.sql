@@ -49,7 +49,10 @@ select ok(exists(select 1 from pg_index i join pg_class c on c.oid=i.indexrelid
   and i.indisunique and i.indpred is not null),
   'active operational membership has a concurrency-safe category uniqueness index');
 
-select ok((select bool_and(prosecdef and proconfig @> array['search_path=']) from pg_proc where oid in (
+select ok((select bool_and(prosecdef and exists (
+  select 1 from unnest(proconfig) as setting
+  where setting in ('search_path=', 'search_path=""')
+)) from pg_proc where oid in (
   'public.create_general_attendance_session(uuid,text,text,jsonb)'::regprocedure,
   'public.create_category_attendance_session(uuid,text,text)'::regprocedure,
   'public.set_general_attendance_operator(uuid,uuid,boolean,boolean)'::regprocedure,

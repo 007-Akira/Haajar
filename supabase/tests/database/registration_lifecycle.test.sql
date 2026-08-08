@@ -99,6 +99,7 @@ select throws_ok(
     current_setting('haajar.lifecycle_form_id')::uuid
   )$$,
   '42501',
+  null,
   'an unrelated user cannot publish a registration form'
 );
 reset role;
@@ -136,18 +137,22 @@ select is(
   current_setting('haajar.invitation_token'),
   'reopening the group invitation returns the same active token'
 );
+reset role;
 select isnt(
   (select token_hash from public.group_invitations
    where group_id = current_setting('haajar.lifecycle_group_id')::uuid and status = 'active'),
   current_setting('haajar.invitation_token'),
   'the invitation token is stored only as a hash'
 );
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
 select throws_ok(
   $$select public.save_registration_form_draft(
     current_setting('haajar.lifecycle_form_id')::uuid,
     '[]'::jsonb
   )$$,
   '55000',
+  null,
   'published form structure cannot be edited'
 );
 select throws_ok(
@@ -156,6 +161,7 @@ select throws_ok(
     '[]'::jsonb
   )$$,
   '55000',
+  null,
   'an active member cannot submit another join request'
 );
 reset role;
@@ -170,6 +176,7 @@ select is(
 select throws_ok(
   $$select public.resolve_group_invitation('000000000000000000000000')$$,
   'P0002',
+  null,
   'an invalid invitation cannot expose group data'
 );
 reset role;
@@ -234,6 +241,7 @@ select throws_ok(
     current_setting('haajar.lifecycle_group_id')::uuid, 'pending'
   )$$,
   '42501',
+  null,
   'an unrelated user cannot list group join requests'
 );
 select is(
@@ -276,6 +284,7 @@ select throws_ok(
     current_setting('haajar.self_request_id')::uuid, 'accept', null
   )$$,
   '42501',
+  null,
   'a manager cannot approve their own request'
 );
 select set_config(
@@ -364,6 +373,7 @@ select throws_ok(
        and user_id = '10000000-0000-4000-8000-000000000002')
   )$$,
   '42501',
+  null,
   'an unrelated user cannot retrieve a member QR credential'
 );
 reset role;
@@ -530,6 +540,7 @@ select throws_ok(
        and user_id = '10000000-0000-4000-8000-000000000002')
   )$$,
   '42501',
+  null,
   'a membership owner cannot regenerate their QR through the secured RPC'
 );
 reset role;

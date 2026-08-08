@@ -83,7 +83,7 @@ select throws_ok(format($sql$insert into public.attendance_records(
   values(%L::uuid,%L::uuid,%L::uuid,%L::uuid,'24000000-0000-4000-8000-000000000002',
   '24000000-0000-4000-8000-000000000003','qr',gen_random_uuid())$sql$,
   current_setting('qt.unit'),current_setting('qt.session'),current_setting('qt.event'),current_setting('qt.roster')),
-  '42501','direct attendance insert is blocked by grants and RLS');
+  '42501',null,'direct attendance insert is blocked by grants and RLS');
 reset role;
 
 select set_config('request.jwt.claim.sub','24000000-0000-4000-8000-000000000001',true);
@@ -116,7 +116,7 @@ select is((select result_status from public.sync_offline_attendance(
   'offline sync retry is idempotent');
 reset role;
 
-select set_config('request.jwt.claim.sub','24000000-0000-4000-8000-000000000002',true);
+select set_config('request.jwt.claim.sub','24000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
 do $$ begin
   perform set_config('qt.new_token',(select qr_token from public.regenerate_membership_qr(
@@ -165,7 +165,7 @@ select ok(not exists(select 1 from public.audit_logs
   'plaintext QR token is absent from audit logs');
 select throws_ok(format('select public.get_offline_roll_call_bundle(%L::uuid)',
   (select id from public.attendance_units where session_id=current_setting('qt.general')::uuid)),
-  '42501','General attendance has no offline cache contract');
+  '42501',null,'General attendance has no offline cache contract');
 reset role;
 
 select * from finish();
