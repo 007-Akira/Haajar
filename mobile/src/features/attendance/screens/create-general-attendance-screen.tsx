@@ -182,7 +182,8 @@ export function CreateGeneralAttendanceScreen(): JSX.Element {
       ) : null}
       <PrimaryButton
         fullWidth
-        label="Start Attendance"
+        inkLabel
+        label="Start General Attendance"
         loading={mutation.isPending}
         disabled={mutation.isPending || (count.data ?? 0) === 0}
         onPress={() => void start()}

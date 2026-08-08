@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { SecondaryButton, SectionHeader } from "@/components";
+import { PrimaryButton, SecondaryButton, SectionHeader } from "@/components";
 import { spacing } from "@/theme";
 
 export interface OrganiserActionsProps {
@@ -26,8 +26,9 @@ export function OrganiserActions({
       <View style={styles.secondaryActions}>
         {onStartGeneralAttendance ? (
           <View style={styles.action}>
-            <SecondaryButton
+            <PrimaryButton
               fullWidth
+              inkLabel
               label="Start General Attendance"
               onPress={onStartGeneralAttendance}
               testID="start-general-attendance-button"

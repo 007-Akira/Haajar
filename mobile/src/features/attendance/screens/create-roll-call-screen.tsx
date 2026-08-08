@@ -228,6 +228,7 @@ export function CreateRollCallScreen(): JSX.Element {
           accessibilityLabel="Start roll call with current active roster"
           disabled={createMutation.isPending}
           fullWidth
+          inkLabel
           label="Start Roll Call"
           loading={createMutation.isPending}
           onPress={() => void handleStart()}

@@ -11,6 +11,7 @@ export interface ButtonBaseProps {
   loading?: boolean;
   fullWidth?: boolean;
   leadingIcon?: ReactNode;
+  inkLabel?: boolean;
   testID?: string;
 }
 
@@ -26,6 +27,7 @@ export function ButtonBase({
   loading = false,
   fullWidth = false,
   leadingIcon,
+  inkLabel = false,
   testID,
   variant,
 }: InternalButtonProps): JSX.Element {
@@ -49,11 +51,18 @@ export function ButtonBase({
       testID={testID}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.textInverse : colors.textPrimary} />
+        <ActivityIndicator
+          color={isPrimary && !inkLabel ? colors.textInverse : colors.textPrimary}
+        />
       ) : (
         <View style={styles.content}>
           {leadingIcon}
-          <Text style={[styles.label, isPrimary ? styles.primaryLabel : styles.secondaryLabel]}>
+          <Text
+            style={[
+              styles.label,
+              isPrimary && !inkLabel ? styles.primaryLabel : styles.secondaryLabel,
+            ]}
+          >
             {label.toUpperCase()}
           </Text>
         </View>
