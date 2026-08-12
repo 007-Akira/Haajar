@@ -2,7 +2,7 @@
   "expo": {
     "name": "Haajar",
     "slug": "haajar",
-    "version": "0.9.0-beta.2",
+    "version": "0.9.0-beta.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "haajar",
