@@ -212,7 +212,11 @@ export function CreateGroupScreen(): JSX.Element {
             {submitError}
           </Text>
         ) : null}
-        <Text style={styles.note}>[ YOU WILL JOIN THIS GROUP AS ITS ORGANISER ]</Text>
+        <Text style={styles.note}>
+          {categoryId
+            ? "[ ADMINISTRATION DOES NOT CREATE PARTICIPATION MEMBERSHIP ]"
+            : "[ EVENT SUPER ORGANISER ACCESS APPLIES ]"}
+        </Text>
         <PrimaryButton
           accessibilityLabel="Create group"
           disabled={createGroupMutation.isPending}

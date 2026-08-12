@@ -33,6 +33,7 @@ import type { GroupActionId } from "../config/group-action-config";
 import { useGroup } from "../hooks/use-group";
 import { useGroupMembers } from "../hooks/use-group-members";
 import { useGroupMembership } from "../hooks/use-group-membership";
+import { useGroupAccess } from "../hooks/use-group-access";
 import { useArchiveGroup, useDeleteGroup } from "../hooks/use-group-lifecycle";
 
 type RoleFilter = "all" | UserRole;
@@ -50,14 +51,16 @@ export function GroupDetailsScreen(): JSX.Element {
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
+  const accessQuery = useGroupAccess(groupId);
   const membersQuery = useGroupMembers(groupId);
   const activeRollCallQuery = useActiveRollCall(groupId);
   const eventGroupsQuery = useEventGroups(groupQuery.data?.eventId);
   const archiveMutation = useArchiveGroup();
   const deleteMutation = useDeleteGroup();
+  const isEventAdmin = accessQuery.data === "event_admin";
   const canManageRequests =
-    membershipQuery.data?.status === "active" &&
-    (membershipQuery.data.role === "organiser" || membershipQuery.data.role === "super_organiser");
+    isEventAdmin ||
+    (membershipQuery.data?.status === "active" && membershipQuery.data.role === "organiser");
   const pendingRequestsQuery = usePendingGroupRequests(groupId, canManageRequests);
   const backAction = {
     accessibilityLabel: "Go back to trip details",
@@ -68,10 +71,11 @@ export function GroupDetailsScreen(): JSX.Element {
   const isInitialLoading =
     groupQuery.isLoading ||
     membershipQuery.isLoading ||
+    accessQuery.isLoading ||
     membershipQuery.sessionLoading ||
     activeRollCallQuery.isLoading ||
     (groupQuery.data?.groupKind === "category" && eventGroupsQuery.isLoading) ||
-    (membershipQuery.data?.status === "active" && membersQuery.isLoading);
+    (accessQuery.data !== "unauthorised" && membersQuery.isLoading);
 
   if (isInitialLoading) {
     return (
@@ -91,6 +95,7 @@ export function GroupDetailsScreen(): JSX.Element {
   const failedQuery = [
     groupQuery,
     membershipQuery,
+    accessQuery,
     membersQuery,
     activeRollCallQuery,
     eventGroupsQuery,
@@ -109,6 +114,7 @@ export function GroupDetailsScreen(): JSX.Element {
           onActionPress={() => {
             void groupQuery.refetch();
             void membershipQuery.refetch();
+            void accessQuery.refetch();
             void membersQuery.refetch();
             void activeRollCallQuery.refetch();
             void eventGroupsQuery.refetch();
@@ -120,11 +126,7 @@ export function GroupDetailsScreen(): JSX.Element {
     );
   }
 
-  if (
-    membershipQuery.sessionMissing ||
-    !membershipQuery.data ||
-    membershipQuery.data.status !== "active"
-  ) {
+  if (membershipQuery.sessionMissing || accessQuery.data === "unauthorised" || !accessQuery.data) {
     return (
       <ScreenContainer
         contentContainerStyle={styles.content}
@@ -134,10 +136,10 @@ export function GroupDetailsScreen(): JSX.Element {
         <PageHeader leadingAction={backAction} title="Group" />
         <EmptyState
           actionLabel="Go Back"
-          description="You need an active membership to view this group."
+          description="You do not have membership or event administration access to this group."
           onActionPress={() => router.back()}
           testID="group-details-unauthorised-state"
-          title="Not a group member"
+          title="Group access unavailable"
         />
       </ScreenContainer>
     );
@@ -176,12 +178,20 @@ export function GroupDetailsScreen(): JSX.Element {
       (roleFilter === "all" || role === roleFilter)
     );
   });
-  const userRole = toGroupDisplayRole(membershipQuery.data.role);
+  const hasParticipationMembership = membershipQuery.data?.status === "active";
+  const userRole = isEventAdmin
+    ? "super organiser"
+    : toGroupDisplayRole(membershipQuery.data!.role);
   const isArchived = group.status === "archived";
   const groupRouteParams = { eventId: group.eventId, groupId: group.id };
   const childGroups = (eventGroupsQuery.data ?? []).filter(
     (candidate) => candidate.parentGroupId === group.id
   );
+  const displayedMemberCount =
+    group.groupKind === "category"
+      ? ((eventGroupsQuery.data ?? []).find((candidate) => candidate.id === group.id)
+          ?.activeMemberCount ?? 0)
+      : members.length;
   const isRefreshing = [
     groupQuery,
     membershipQuery,
@@ -194,6 +204,7 @@ export function GroupDetailsScreen(): JSX.Element {
     void Promise.all([
       groupQuery.refetch(),
       membershipQuery.refetch(),
+      accessQuery.refetch(),
       membersQuery.refetch(),
       activeRollCallQuery.refetch(),
       eventGroupsQuery.refetch(),
@@ -394,8 +405,10 @@ export function GroupDetailsScreen(): JSX.Element {
         </View>
         <View style={styles.summaryMetadata}>
           <StatusBadge status={isArchived ? "archived" : "active"} />
-          <Text style={styles.memberCount}>{`${members.length} ACTIVE MEMBERS`}</Text>
-          <Text style={styles.membershipStatus}>[ MEMBERSHIP ACTIVE ]</Text>
+          <Text style={styles.memberCount}>{`${displayedMemberCount} ACTIVE MEMBERS`}</Text>
+          <Text style={styles.membershipStatus}>
+            {hasParticipationMembership ? "[ MEMBERSHIP ACTIVE ]" : "[ EVENT ADMIN ACCESS ]"}
+          </Text>
         </View>
       </View>
 
@@ -413,14 +426,14 @@ export function GroupDetailsScreen(): JSX.Element {
         />
       ) : null}
 
-      {group.groupKind === "operational" ? (
+      {group.groupKind === "operational" && hasParticipationMembership ? (
         <View style={styles.ticketPreview} testID="membership-ticket-preview">
           <View style={styles.ticketCopy}>
             <Text style={styles.prototypeTitle}>YOUR MEMBERSHIP TICKET</Text>
             <Text style={styles.description}>{group.eventName ?? "Trip"}</Text>
             <Text
               style={styles.memberCount}
-            >{`REF ${membershipQuery.data.id.slice(0, 8).toUpperCase()}`}</Text>
+            >{`REF ${membershipQuery.data!.id.slice(0, 8).toUpperCase()}`}</Text>
           </View>
           <SecondaryButton
             accessibilityLabel="Open your membership QR"
@@ -564,11 +577,42 @@ export function GroupDetailsScreen(): JSX.Element {
             )
           ) : (
             <EmptyState
-              description="Active members added to this group will appear here."
+              actionLabel={canManageRequests ? "Add Trip Members" : undefined}
+              description="Assign existing trip members or invite people who still need to join."
+              onActionPress={
+                canManageRequests
+                  ? () =>
+                      router.push({
+                        pathname: "/events/[eventId]/groups/[groupId]/members/add" as never,
+                        params: groupRouteParams,
+                      })
+                  : undefined
+              }
               testID="group-members-empty"
-              title="No active members"
+              title="No members yet"
             />
           )}
+          {canManageRequests ? (
+            <View style={styles.filters} testID="member-management-actions">
+              <PrimaryButton
+                fullWidth
+                label="Add Trip Members"
+                onPress={() =>
+                  router.push({
+                    pathname: "/events/[eventId]/groups/[groupId]/members/add" as never,
+                    params: groupRouteParams,
+                  })
+                }
+                testID="add-trip-members"
+              />
+              <SecondaryButton
+                fullWidth
+                label="Invite New Members"
+                onPress={() => handleGroupAction("share-invitation")}
+                testID="invite-new-members"
+              />
+            </View>
+          ) : null}
         </View>
       )}
 

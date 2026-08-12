@@ -1311,6 +1311,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      assign_event_member_to_operational_group: {
+        Args: { target_operational_group_id: string; target_user_id: string };
+        Returns: string;
+      };
       archive_event: { Args: { target_event_id: string }; Returns: string };
       archive_group: { Args: { target_group_id: string }; Returns: string };
       can_view_attendance_session: {
@@ -1474,6 +1478,7 @@ export type Database = {
         Args: { target_group_id: string };
         Returns: string;
       };
+      get_group_access: { Args: { target_group_id: string }; Returns: string };
       get_join_request_status: {
         Args: { target_request_id: string };
         Returns: Json;
@@ -1548,6 +1553,46 @@ export type Database = {
           membership_id: string;
           phone: string;
           user_id: string;
+        }[];
+      };
+      list_event_groups_with_participation_counts: {
+        Args: { target_event_id: string };
+        Returns: {
+          id: string;
+          event_id: string;
+          name: string;
+          description: string | null;
+          status: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          group_kind: string;
+          parent_group_id: string | null;
+          active_member_count: number;
+        }[];
+      };
+      list_group_members_secure: {
+        Args: { target_group_id: string };
+        Returns: {
+          membership_id: string;
+          user_id: string;
+          role: string;
+          status: string;
+          approved_at: string | null;
+          joined_at: string;
+          full_name: string | null;
+          phone: string | null;
+        }[];
+      };
+      list_operational_group_assignment_candidates: {
+        Args: { target_operational_group_id: string };
+        Returns: {
+          user_id: string;
+          full_name: string | null;
+          phone: string | null;
+          sibling_group_id: string | null;
+          sibling_group_name: string | null;
+          sibling_membership_id: string | null;
         }[];
       };
       list_group_join_requests: {

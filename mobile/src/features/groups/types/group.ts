@@ -77,4 +77,15 @@ export interface GroupMember {
   profile: Pick<ProfileRow, "id" | "full_name" | "phone"> | null;
 }
 
+export type GroupAccess = "member" | "event_admin" | "unauthorised";
+
+export interface OperationalGroupAssignmentCandidate {
+  userId: string;
+  fullName: string | null;
+  phone: string | null;
+  siblingGroupId: string | null;
+  siblingGroupName: string | null;
+  siblingMembershipId: string | null;
+}
+
 export type GroupMembershipRole = GroupMembershipRow["role"];

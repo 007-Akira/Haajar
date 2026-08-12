@@ -9,6 +9,8 @@ import type {
   GroupSummary,
   UserGroupSummary,
   UserGroupOverview,
+  GroupAccess,
+  OperationalGroupAssignmentCandidate,
 } from "../types/group";
 
 export interface ListEventGroupsParameters {
@@ -83,7 +85,22 @@ export async function listMyGroupOverview(): Promise<UserGroupOverview> {
   };
 }
 
-function toSummary(group: Tables<"groups">): GroupSummary {
+function toSummary(
+  group:
+    | Tables<"groups">
+    | {
+        id: string;
+        event_id: string;
+        name: string;
+        description: string | null;
+        status: string;
+        created_by: string;
+        created_at: string;
+        updated_at: string;
+        group_kind?: string;
+        parent_group_id?: string | null;
+      }
+): GroupSummary {
   const hierarchy = group as Tables<"groups"> & {
     group_kind?: "category" | "operational";
     parent_group_id?: string | null;
@@ -93,11 +110,11 @@ function toSummary(group: Tables<"groups">): GroupSummary {
     eventId: group.event_id,
     name: group.name,
     description: group.description,
-    status: group.status,
+    status: group.status as GroupSummary["status"],
     createdBy: group.created_by,
     createdAt: group.created_at,
     updatedAt: group.updated_at,
-    groupKind: hierarchy.group_kind ?? "operational",
+    groupKind: (hierarchy.group_kind ?? "operational") as GroupSummary["groupKind"],
     parentGroupId: hierarchy.parent_group_id ?? null,
   };
 }
@@ -108,12 +125,9 @@ export async function listEventGroups({
   eventRole,
 }: ListEventGroupsParameters): Promise<EventGroupSummary[]> {
   const supabase = getSupabaseClient();
-  const groupsResult = await supabase
-    .from("groups")
-    .select("*")
-    .eq("event_id", eventId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
+  const groupsResult = await supabase.rpc("list_event_groups_with_participation_counts", {
+    target_event_id: eventId,
+  });
 
   if (groupsResult.error) throwSupabaseError(groupsResult.error, "listEventGroups.groups");
   if (groupsResult.data.length === 0) return [];
@@ -129,10 +143,8 @@ export async function listEventGroups({
     throwSupabaseError(membershipsResult.error, "listEventGroups.memberships");
   }
 
-  const memberCounts = new Map<string, number>();
   const rolesByGroup = new Map<string, EventGroupSummary["currentRole"]>();
   for (const membership of membershipsResult.data) {
-    memberCounts.set(membership.group_id, (memberCounts.get(membership.group_id) ?? 0) + 1);
     if (membership.user_id === userId) rolesByGroup.set(membership.group_id, membership.role);
   }
 
@@ -142,7 +154,7 @@ export async function listEventGroups({
       eventRole === "super_organiser"
         ? "super_organiser"
         : (rolesByGroup.get(group.id) ?? "member"),
-    activeMemberCount: memberCounts.get(group.id) ?? 0,
+    activeMemberCount: Number(group.active_member_count ?? 0),
   }));
 }
 
@@ -209,40 +221,47 @@ export async function getGroup({ groupId }: GetGroupParameters): Promise<GroupDe
 export async function listGroupMembers({
   groupId,
 }: ListGroupMembersParameters): Promise<GroupMember[]> {
-  const supabase = getSupabaseClient();
-  const membershipsResult = await supabase
-    .from("group_memberships")
-    .select("*")
-    .eq("group_id", groupId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
+  const membershipsResult = await getSupabaseClient().rpc("list_group_members_secure", {
+    target_group_id: groupId,
+  });
 
   if (membershipsResult.error) {
     throwSupabaseError(membershipsResult.error, "listGroupMembers.memberships");
   }
-  if (membershipsResult.data.length === 0) return [];
-
-  const profilesResult = await supabase
-    .from("profiles")
-    .select("id, full_name, phone")
-    .in(
-      "id",
-      membershipsResult.data.map((membership) => membership.user_id)
-    );
-
-  if (profilesResult.error) {
-    throwSupabaseError(profilesResult.error, "listGroupMembers.profiles");
-  }
-
-  const profilesById = new Map(profilesResult.data.map((profile) => [profile.id, profile]));
   return membershipsResult.data.map((membership) => ({
-    membershipId: membership.id,
+    membershipId: membership.membership_id,
     userId: membership.user_id,
     role: membership.role,
     status: membership.status,
     approvedAt: membership.approved_at,
-    joinedAt: membership.created_at,
-    profile: profilesById.get(membership.user_id) ?? null,
+    joinedAt: membership.joined_at,
+    profile: { id: membership.user_id, full_name: membership.full_name, phone: membership.phone },
+  }));
+}
+
+export async function getGroupAccess(groupId: string): Promise<GroupAccess> {
+  const { data, error } = await getSupabaseClient().rpc("get_group_access", {
+    target_group_id: groupId,
+  });
+  if (error) throwSupabaseError(error, "getGroupAccess");
+  return data as GroupAccess;
+}
+
+export async function listOperationalGroupAssignmentCandidates(
+  groupId: string
+): Promise<OperationalGroupAssignmentCandidate[]> {
+  const { data, error } = await getSupabaseClient().rpc(
+    "list_operational_group_assignment_candidates",
+    { target_operational_group_id: groupId }
+  );
+  if (error) throwSupabaseError(error, "listOperationalGroupAssignmentCandidates");
+  return data.map((row) => ({
+    userId: row.user_id,
+    fullName: row.full_name,
+    phone: row.phone,
+    siblingGroupId: row.sibling_group_id,
+    siblingGroupName: row.sibling_group_name,
+    siblingMembershipId: row.sibling_membership_id,
   }));
 }
 
@@ -250,29 +269,8 @@ export async function getGroupMember({
   groupId,
   membershipId,
 }: GetGroupMemberParameters): Promise<GroupMember | null> {
-  const { data: membership, error: membershipError } = await getSupabaseClient()
-    .from("group_memberships")
-    .select("*")
-    .eq("id", membershipId)
-    .eq("group_id", groupId)
-    .maybeSingle();
-  if (membershipError) throwSupabaseError(membershipError, "getGroupMember.membership");
-  if (!membership) return null;
-
-  const { data: profile, error: profileError } = await getSupabaseClient()
-    .from("profiles")
-    .select("id, full_name, phone")
-    .eq("id", membership.user_id)
-    .maybeSingle();
-  if (profileError) throwSupabaseError(profileError, "getGroupMember.profile");
-
-  return {
-    membershipId: membership.id,
-    userId: membership.user_id,
-    role: membership.role,
-    status: membership.status,
-    approvedAt: membership.approved_at,
-    joinedAt: membership.created_at,
-    profile,
-  };
+  return (
+    (await listGroupMembers({ groupId })).find((member) => member.membershipId === membershipId) ??
+    null
+  );
 }

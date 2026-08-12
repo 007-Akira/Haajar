@@ -52,6 +52,31 @@ export interface ChangeGroupMemberRoleResult {
   qrRotated: boolean;
 }
 
+export type AssignmentResult =
+  | "assigned"
+  | "already_member"
+  | "sibling_membership_exists"
+  | "not_event_member"
+  | "archived"
+  | "unauthorised"
+  | "invalid_group"
+  | "not_found";
+
+export async function assignEventMemberToOperationalGroup(
+  groupId: string,
+  userId: string
+): Promise<AssignmentResult> {
+  const { data, error } = await getSupabaseClient().rpc(
+    "assign_event_member_to_operational_group",
+    {
+      target_operational_group_id: groupId,
+      target_user_id: userId,
+    }
+  );
+  if (error) throwSupabaseError(error, "assignEventMemberToOperationalGroup");
+  return data as AssignmentResult;
+}
+
 export async function transferOperationalGroupMembership(input: {
   membershipId: string;
   targetGroupId: string;

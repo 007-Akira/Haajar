@@ -31,6 +31,7 @@ import { useChangeGroupMemberRole } from "../hooks/use-change-group-member-role"
 import { useGroup } from "../hooks/use-group";
 import { useGroupMember } from "../hooks/use-group-member";
 import { useGroupMembership } from "../hooks/use-group-membership";
+import { useGroupAccess } from "../hooks/use-group-access";
 
 export function GroupMemberDetailsScreen(): JSX.Element {
   const router = useRouter();
@@ -42,6 +43,7 @@ export function GroupMemberDetailsScreen(): JSX.Element {
   const { user } = useSession();
   const groupQuery = useGroup(groupId);
   const actorMembershipQuery = useGroupMembership(groupId);
+  const accessQuery = useGroupAccess(groupId);
   const eventMembershipQuery = useEventMembership(eventId);
   const memberQuery = useGroupMember(groupId, membershipId);
   const roleMutation = useChangeGroupMemberRole();
@@ -57,6 +59,7 @@ export function GroupMemberDetailsScreen(): JSX.Element {
   const loading =
     groupQuery.isLoading ||
     actorMembershipQuery.isLoading ||
+    accessQuery.isLoading ||
     eventMembershipQuery.isLoading ||
     memberQuery.isLoading;
   if (loading) {
@@ -68,9 +71,13 @@ export function GroupMemberDetailsScreen(): JSX.Element {
     );
   }
 
-  const failedQuery = [groupQuery, actorMembershipQuery, eventMembershipQuery, memberQuery].find(
-    (query) => query.isError
-  );
+  const failedQuery = [
+    groupQuery,
+    actorMembershipQuery,
+    accessQuery,
+    eventMembershipQuery,
+    memberQuery,
+  ].find((query) => query.isError);
   if (failedQuery) {
     return (
       <ScreenContainer showGrid testID="group-member-details-error">
@@ -85,6 +92,7 @@ export function GroupMemberDetailsScreen(): JSX.Element {
           onActionPress={() => {
             void groupQuery.refetch();
             void actorMembershipQuery.refetch();
+            void accessQuery.refetch();
             void eventMembershipQuery.refetch();
             void memberQuery.refetch();
           }}
@@ -98,7 +106,7 @@ export function GroupMemberDetailsScreen(): JSX.Element {
   const actorMembership = actorMembershipQuery.data;
   const eventMembership = eventMembershipQuery.data;
   const member = memberQuery.data;
-  if (!group || !member || actorMembership?.status !== "active") {
+  if (!group || !member || accessQuery.data === "unauthorised" || !accessQuery.data) {
     return (
       <ScreenContainer showGrid testID="group-member-details-unavailable">
         <PageHeader leadingAction={backAction} title="Member Details" />
@@ -113,8 +121,8 @@ export function GroupMemberDetailsScreen(): JSX.Element {
   }
 
   const policy = getRoleManagementPolicy({
-    actorRole: actorMembership.role,
-    actorStatus: actorMembership.status,
+    actorRole: actorMembership?.role ?? null,
+    actorStatus: accessQuery.data === "event_admin" ? "active" : (actorMembership?.status ?? null),
     actorUserId: user?.id ?? null,
     actorIsEventSuperOrganiser:
       eventMembership?.status === "active" && eventMembership.role === "super_organiser",

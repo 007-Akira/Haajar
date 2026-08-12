@@ -11,6 +11,8 @@ import {
   ScreenContainer,
   SectionHeader,
   SegmentedTabs,
+  PrimaryButton,
+  SecondaryButton,
   TextField,
   type UserRole,
 } from "@/components";
@@ -21,6 +23,7 @@ import { colors, layout, spacing } from "@/theme";
 import { useGroup } from "../hooks/use-group";
 import { useGroupMembers } from "../hooks/use-group-members";
 import { useGroupMembership } from "../hooks/use-group-membership";
+import { useGroupAccess } from "../hooks/use-group-access";
 
 type Filter = "all" | UserRole;
 const tabs: { label: string; value: Filter }[] = [
@@ -38,6 +41,7 @@ export function GroupMembersScreen(): JSX.Element {
   const [filter, setFilter] = useState<Filter>("all");
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
+  const accessQuery = useGroupAccess(groupId);
   const membersQuery = useGroupMembers(groupId);
   const backAction = {
     accessibilityLabel: "Go back to group",
@@ -45,15 +49,26 @@ export function GroupMembersScreen(): JSX.Element {
     onPress: () => router.back(),
     testID: "group-members-back",
   };
-  if (groupQuery.isLoading || membershipQuery.isLoading || membersQuery.isLoading)
+  if (
+    groupQuery.isLoading ||
+    membershipQuery.isLoading ||
+    accessQuery.isLoading ||
+    membersQuery.isLoading
+  )
     return (
       <ScreenContainer scroll showGrid testID="group-members-loading">
         <PageHeader leadingAction={backAction} title="Members" />
         <LoadingSkeleton lines={layout.skeletonDefaultLines} />
       </ScreenContainer>
     );
-  if (groupQuery.isError || membershipQuery.isError || membersQuery.isError) {
-    const error = groupQuery.error ?? membershipQuery.error ?? membersQuery.error;
+  if (
+    groupQuery.isError ||
+    membershipQuery.isError ||
+    accessQuery.isError ||
+    membersQuery.isError
+  ) {
+    const error =
+      groupQuery.error ?? membershipQuery.error ?? accessQuery.error ?? membersQuery.error;
     return (
       <ScreenContainer showGrid testID="group-members-error">
         <PageHeader leadingAction={backAction} title="Members" />
@@ -70,19 +85,22 @@ export function GroupMembersScreen(): JSX.Element {
       </ScreenContainer>
     );
   }
-  if (membershipQuery.data?.status !== "active")
+  if (accessQuery.data === "unauthorised" || !accessQuery.data)
     return (
       <ScreenContainer showGrid testID="group-members-unauthorised">
         <PageHeader leadingAction={backAction} title="Members" />
         <EmptyState
           actionLabel="Go Back"
-          description="An active group membership is required."
+          description="Membership or event administration access is required."
           onActionPress={() => router.back()}
           title="Access unavailable"
         />
       </ScreenContainer>
     );
   const members = membersQuery.data ?? [];
+  const canManage =
+    accessQuery.data === "event_admin" ||
+    (membershipQuery.data?.status === "active" && membershipQuery.data.role === "organiser");
   const query = search.trim().toLowerCase();
   const filtered = members.filter((member) => {
     const name = member.profile?.full_name ?? "";
@@ -123,6 +141,32 @@ export function GroupMembersScreen(): JSX.Element {
         value={filter}
       />
       <SectionHeader description={`${members.length} active memberships`} title="Group Directory" />
+      {canManage && groupQuery.data?.groupKind === "operational" ? (
+        <View style={styles.actions} testID="manage-member-actions">
+          <PrimaryButton
+            fullWidth
+            label="Add Trip Members"
+            onPress={() =>
+              router.push({
+                pathname: "/events/[eventId]/groups/[groupId]/members/add" as never,
+                params: { eventId, groupId },
+              })
+            }
+            testID="manage-add-trip-members"
+          />
+          <SecondaryButton
+            fullWidth
+            label="Invite New Members"
+            onPress={() =>
+              router.push({
+                pathname: "/events/[eventId]/groups/[groupId]/invite" as never,
+                params: { eventId, groupId },
+              })
+            }
+            testID="manage-invite-new-members"
+          />
+        </View>
+      ) : null}
       {members.length === 0 ? (
         <EmptyState
           description="Members will appear after their requests are approved."
@@ -162,5 +206,6 @@ export function GroupMembersScreen(): JSX.Element {
 }
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing["2xl"] },
+  actions: { gap: spacing.sm },
   list: { gap: spacing.sm },
 });
