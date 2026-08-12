@@ -3,6 +3,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { sanitizeNotificationRoute } from "../src/features/notifications/config/notification-routing";
+import {
+  classifyTokenFailure,
+  resolveEasProjectId,
+  safePushRegistrationMessage,
+  toPushPermissionState,
+} from "../src/features/notifications/config/push-registration-contract";
 
 const eventId = "10000000-0000-4000-8000-000000000001";
 const groupId = "20000000-0000-4000-8000-000000000002";
@@ -105,8 +111,56 @@ test("registration is authenticated RPC-only and persists no push token", () => 
   assert.match(serviceSource, /\.rpc\("revoke_push_device"/);
   assert.match(serviceSource, /getExpoPushTokenAsync/);
   assert.doesNotMatch(serviceSource, /setItemAsync\([^,]+,\s*token/);
-  assert.doesNotMatch(serviceSource, /console\.(log|debug|info|warn|error)/);
+  assert.doesNotMatch(
+    serviceSource,
+    /console\.(log|debug|info|warn|error)\([^\n]*(token|push_token)/i
+  );
   assert.doesNotMatch(serviceSource, /AsyncStorage/);
+});
+
+test("EAS project ID resolution prefers the native verified ID and fails when absent", () => {
+  const verified = "2766c8f7-998f-4c73-8c3a-96ffcfd5b51d";
+  assert.equal(resolveEasProjectId(verified, "fallback"), verified);
+  assert.equal(resolveEasProjectId(undefined, verified), verified);
+  assert.equal(resolveEasProjectId(undefined, undefined), null);
+  assert.match(serviceSource, /getEasProjectId/);
+  assert.match(serviceSource, /missing_project_id/);
+});
+
+test("permission state distinguishes unrequested, granted, and denied", () => {
+  assert.equal(toPushPermissionState({ granted: false, status: "undetermined" }), "not_requested");
+  assert.equal(toPushPermissionState({ granted: true, status: "granted" }), "enabled");
+  assert.equal(toPushPermissionState({ granted: false, status: "denied" }), "denied");
+  assert.match(profileSettingsSource, /state === "denied"[\s\S]*?"DISABLED"/);
+  assert.match(profileSettingsSource, /label="OPEN SETTINGS"/);
+  assert.match(profileSettingsSource, /Linking\.openSettings/);
+});
+
+test("token, network, configuration, and backend failures remain distinct and retryable", () => {
+  assert.equal(classifyTokenFailure(new Error("FCM FirebaseApp missing")), "configuration_error");
+  assert.equal(classifyTokenFailure(new Error("Network request failed")), "network_failure");
+  assert.equal(
+    classifyTokenFailure(new Error("provider rejected token request")),
+    "expo_token_failure"
+  );
+  assert.match(serviceSource, /backend_registration_failure/);
+  assert.match(profileSettingsSource, /onPress=\{\(\) => void enable\(\)\}/);
+  assert.match(profileSettingsSource, /registrationFailed \? "TRY AGAIN"/);
+  assert.equal(
+    safePushRegistrationMessage("backend_registration_failure"),
+    "Notifications are allowed, but this device could not be registered. Try again."
+  );
+});
+
+test("successful registration sets Enabled and diagnostics never receive the token", () => {
+  assert.match(serviceSource, /diagnose\("registered"\)/);
+  assert.match(serviceSource, /return "enabled"/);
+  assert.match(serviceSource, /function diagnose\(stage: string\)/);
+  assert.doesNotMatch(serviceSource, /diagnose\(\s*(token|pushToken|push_token)\s*\)/);
+  assert.doesNotMatch(
+    providerSource,
+    /query(Client)?\.(setQueryData|setQueriesData)[^\n]*(token|push)/i
+  );
 });
 
 test("permission is requested only from the explicit profile action", () => {

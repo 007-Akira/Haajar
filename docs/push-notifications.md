@@ -11,12 +11,20 @@ database preference level and are not exposed as a mobile setting yet.
 3. Configure the Expo/EAS project ID in the EAS project so development and production builds can
    request an Expo push token. Push notifications require a physical device and a development or
    production build; Expo Go is not supported by this setup.
-4. Create a random `PUSH_WORKER_SECRET` as a Supabase Edge Function secret. Never use this value in
+4. For Android package `app.haajar.mobile`, create/link a Firebase Android app, download its
+   `google-services.json`, upload it as an EAS file secret named `GOOGLE_SERVICES_JSON`, and let
+   `mobile/app.config.ts` expose that temporary build path through `expo.android.googleServicesFile`.
+   Upload a Firebase service
+   account key with the Firebase Cloud Messaging API Admin role as the project's EAS FCM V1 push
+   credential. As of 2026-08-12 the linked EAS project has neither an FCM V1 credential nor a
+   checked-in/build-configured Google services file; Android token generation cannot work until
+   both are configured. Never place the service-account JSON in Expo `extra` or the JS bundle.
+5. Create a random `PUSH_WORKER_SECRET` as a Supabase Edge Function secret. Never use this value in
    the mobile app.
-5. Deploy `send-push-notifications` without gateway JWT verification. The function authenticates
+6. Deploy `send-push-notifications` without gateway JWT verification. The function authenticates
    scheduled calls with the `x-haajar-worker-secret` header and uses the platform-provided
    `SUPABASE_SERVICE_ROLE_KEY` only inside the server runtime.
-6. Invoke the function from a trusted scheduler at a short interval. Store the worker secret in
+7. Invoke the function from a trusted scheduler at a short interval. Store the worker secret in
    that scheduler's secret store, not in source control or notification tables.
 
 Example deployment commands (replace placeholders through the shell environment, not source):

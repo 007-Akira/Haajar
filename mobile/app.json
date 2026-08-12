@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "app.haajar.mobile",
-      "versionCode": 5,
+      "versionCode": 6,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
