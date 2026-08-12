@@ -74,6 +74,17 @@ const inboxApiSource = readFileSync(
   new URL("../src/features/notifications/api/notification-queries.ts", import.meta.url),
   "utf8"
 );
+const foregroundAlertApiSource = readFileSync(
+  new URL("../src/features/notifications/api/foreground-attendance-alerts.ts", import.meta.url),
+  "utf8"
+);
+const foregroundAlertMigrationSource = readFileSync(
+  new URL(
+    "../../supabase/migrations/20260812000300_foreground_attendance_alerts.sql",
+    import.meta.url
+  ),
+  "utf8"
+);
 
 test("notification taps accept only the operational route allowlist", () => {
   assert.equal(sanitizeNotificationRoute(`/events/${eventId}`), `/events/${eventId}`);
@@ -176,6 +187,24 @@ test("Firebase-free beta hides remote push registration from Profile", () => {
     "utf8"
   );
   assert.doesNotMatch(profileSource, /PushNotificationSettings|Roll-call notifications/);
+});
+
+test("foreground attendance starts use authorised realtime and an actionable in-app banner", () => {
+  assert.match(foregroundAlertMigrationSource, /supabase_realtime.*attendance_sessions/s);
+  assert.match(foregroundAlertMigrationSource, /can_view_attendance_session/);
+  assert.match(foregroundAlertMigrationSource, /get_attendance_alert_context/);
+  assert.match(foregroundAlertApiSource, /table: "attendance_sessions"/);
+  assert.match(foregroundAlertApiSource, /event: "INSERT"/);
+  assert.match(providerSource, /foreground-attendance-banner/);
+  assert.match(providerSource, /Attendance started/);
+  assert.match(providerSource, /router\.push\(alert\.route/);
+});
+
+test("local attendance notification is best-effort and never requests permission", () => {
+  assert.match(providerSource, /getPermissionsAsync/);
+  assert.match(providerSource, /permission\.granted/);
+  assert.match(providerSource, /scheduleNotificationAsync/);
+  assert.doesNotMatch(providerSource, /requestPermissionsAsync|getExpoPushTokenAsync|push_token/);
 });
 
 test("sign-out revokes this app instance before ending the session", () => {

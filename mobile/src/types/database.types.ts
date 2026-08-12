@@ -1449,6 +1449,7 @@ export type Database = {
           total_roster: number;
         }[];
       };
+      get_attendance_alert_context: { Args: { target_session_id: string }; Returns: Json };
       get_event_delete_eligibility: {
         Args: { target_event_id: string };
         Returns: string;
