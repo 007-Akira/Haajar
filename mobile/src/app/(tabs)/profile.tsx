@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { PageHeader, ScreenContainer, SecondaryButton } from "@/components";
 import { useSession } from "@/features/auth";
-import { PushNotificationSettings } from "@/features/notifications";
 import { colors, spacing, typography } from "@/theme";
 
 export default function ProfileRoute(): JSX.Element {
@@ -38,7 +37,6 @@ export default function ProfileRoute(): JSX.Element {
         <Text style={styles.label}>[ PHONE ]</Text>
         <Text style={styles.value}>{profile?.phone}</Text>
       </View>
-      <PushNotificationSettings />
       {error ? (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {error}

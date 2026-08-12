@@ -166,8 +166,16 @@ test("successful registration sets Enabled and diagnostics never receive the tok
 test("permission is requested only from the explicit profile action", () => {
   assert.match(profileSettingsSource, /requestAndRegisterPushDevice/);
   assert.doesNotMatch(providerSource, /requestPermissionsAsync/);
-  assert.match(providerSource, /addPushTokenListener/);
+  assert.doesNotMatch(providerSource, /addPushTokenListener|registerCurrentExpoPushToken/);
   assert.match(providerSource, /configureAndroidNotificationChannel/);
+});
+
+test("Firebase-free beta hides remote push registration from Profile", () => {
+  const profileSource = readFileSync(
+    new URL("../src/app/(tabs)/profile.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.doesNotMatch(profileSource, /PushNotificationSettings|Roll-call notifications/);
 });
 
 test("sign-out revokes this app instance before ending the session", () => {
