@@ -11,8 +11,9 @@ import {
 } from "../config/group-action-config";
 
 export interface ActiveGroupRollCall {
+  totalRoster: number;
   presentCount: number;
-  pendingSyncCount?: number;
+  remainingCount: number;
 }
 
 export interface GroupPrimaryActionsProps {
@@ -58,7 +59,7 @@ export function GroupPrimaryActions({
       ? {
           primary: {
             id: activeRollCall ? ("active-roll-call" as const) : ("start-roll-call" as const),
-            label: activeRollCall ? "Open Attendance" : "Start Category Attendance",
+            label: activeRollCall ? "OPEN CATEGORY ATTENDANCE" : "START CATEGORY ATTENDANCE",
           },
           priority: [],
           more: [
@@ -77,51 +78,57 @@ export function GroupPrimaryActions({
             ),
             showsRollCallState: false,
           }
-        : !activeRollCall && role !== "member"
+        : role === "organiser" || role === "super organiser"
           ? {
               ...configuredSections,
-              primary: { id: "view-members" as const, label: "View Members" },
-              priority: [],
-              more: withoutOperationalAttendance(configuredSections.more).filter(
-                (action) => action.id !== "view-members"
-              ),
-              showsRollCallState: false,
+              primary: {
+                id: activeRollCall ? ("active-roll-call" as const) : ("start-roll-call" as const),
+                label: activeRollCall ? "OPEN SUBGROUP ATTENDANCE" : "START SUBGROUP ATTENDANCE",
+              },
+              showsRollCallState: true,
             }
           : configuredSections;
 
   return (
     <View style={styles.container} testID={testID}>
       <SectionHeader
-        description="Available actions for your role in this group."
-        title="Group actions"
+        description={
+          sections.showsRollCallState
+            ? "Start attendance when you're ready to begin roll call for this group."
+            : "Available actions for your role in this group."
+        }
+        title={sections.showsRollCallState ? "Attendance" : "Group actions"}
       />
 
       {sections.showsRollCallState ? (
         activeRollCall ? (
           <View
-            accessibilityLabel={`${activeRollCall.presentCount} present, ${activeRollCall.pendingSyncCount} pending sync`}
+            accessibilityLabel={`${activeRollCall.totalRoster} total, ${activeRollCall.presentCount} present, ${activeRollCall.remainingCount} remaining`}
             style={styles.rollCallState}
             testID="active-roll-call-state"
           >
+            <Text style={styles.attendanceStatus}>Attendance active</Text>
+            <View style={styles.metric}>
+              <Text style={styles.metricValue}>{activeRollCall.totalRoster}</Text>
+              <Text style={styles.metricLabel}>TOTAL</Text>
+            </View>
             <View style={styles.metric}>
               <Text style={styles.metricValue}>{activeRollCall.presentCount}</Text>
               <Text style={styles.metricLabel}>PRESENT</Text>
             </View>
-            {activeRollCall.pendingSyncCount !== undefined ? (
-              <View style={styles.metric}>
-                <Text style={styles.metricValue}>{activeRollCall.pendingSyncCount}</Text>
-                <Text style={styles.metricLabel}>PENDING SYNC</Text>
-              </View>
-            ) : null}
+            <View style={styles.metric}>
+              <Text style={styles.metricValue}>{activeRollCall.remainingCount}</Text>
+              <Text style={styles.metricLabel}>REMAINING</Text>
+            </View>
           </View>
         ) : (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={styles.noActiveMessage}
-            testID="no-active-roll-call-message"
-          >
-            No active roll call
-          </Text>
+          <View style={styles.noActiveMessage} testID="no-active-attendance-state">
+            <Text style={styles.attendanceStatus}>No active attendance</Text>
+            <Text style={styles.attendanceHelp}>
+              Start attendance when you are ready to begin roll call for this{" "}
+              {groupKind === "category" ? "category" : "subgroup"}.
+            </Text>
+          </View>
         )
       ) : null}
 
@@ -177,6 +184,7 @@ const styles = StyleSheet.create({
   },
   rollCallState: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     padding: spacing.md,
     backgroundColor: colors.accentSoft,
@@ -188,6 +196,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.half,
   },
+  attendanceStatus: { ...typography.bodyMedium, color: colors.textPrimary, width: "100%" },
+  attendanceHelp: { ...typography.body, color: colors.textSecondary },
   metricValue: {
     ...typography.headingMedium,
     color: colors.textPrimary,
@@ -197,7 +207,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   noActiveMessage: {
-    ...typography.bodyMedium,
     padding: spacing.md,
     color: colors.textSecondary,
     backgroundColor: colors.surface,

@@ -20,6 +20,7 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 
 import { useCreateGroup } from "../hooks/use-create-group";
 import { useGroup } from "../hooks/use-group";
+import { groupNameMutationError, validateGroupName } from "../config/group-name-validation";
 
 export function CreateGroupScreen(): JSX.Element {
   const params = useLocalSearchParams<{ eventId: string; categoryId?: string; groupId?: string }>();
@@ -34,7 +35,10 @@ export function CreateGroupScreen(): JSX.Element {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const nameError = submitted && !name.trim() ? "Enter a group name." : undefined;
+  const [nameTouched, setNameTouched] = useState(false);
+  const [backendNameError, setBackendNameError] = useState<string>();
+  const nameError =
+    (submitted || nameTouched ? validateGroupName(name) : undefined) ?? backendNameError;
   const backAction = {
     accessibilityLabel: "Go back to trip details",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -46,6 +50,7 @@ export function CreateGroupScreen(): JSX.Element {
     if (submissionLock.current) return;
 
     setSubmitted(true);
+    setNameTouched(true);
     createGroupMutation.reset();
     if (!eventId || !name.trim()) return;
 
@@ -65,7 +70,8 @@ export function CreateGroupScreen(): JSX.Element {
       } else {
         router.replace({ pathname: "/events/[eventId]", params: { eventId } });
       }
-    } catch {
+    } catch (error) {
+      setBackendNameError(groupNameMutationError(error, categoryId ? "operational" : "category"));
       return;
     } finally {
       submissionLock.current = false;
@@ -144,11 +150,12 @@ export function CreateGroupScreen(): JSX.Element {
     );
   }
 
-  const submitError = createGroupMutation.isError
-    ? isAppError(createGroupMutation.error)
-      ? createGroupMutation.error.message
-      : userSafeErrorMessages.UNKNOWN_ERROR
-    : null;
+  const submitError =
+    createGroupMutation.isError && !backendNameError
+      ? isAppError(createGroupMutation.error)
+        ? createGroupMutation.error.message
+        : userSafeErrorMessages.UNKNOWN_ERROR
+      : null;
 
   return (
     <ScreenContainer
@@ -171,7 +178,11 @@ export function CreateGroupScreen(): JSX.Element {
           autoCapitalize="words"
           error={nameError}
           label={categoryId ? "Operational group name" : "Category name"}
-          onChangeText={setName}
+          onBlur={() => setNameTouched(true)}
+          onChangeText={(value) => {
+            setName(value);
+            setBackendNameError(undefined);
+          }}
           placeholder="Bus 2"
           required
           returnKeyType="next"

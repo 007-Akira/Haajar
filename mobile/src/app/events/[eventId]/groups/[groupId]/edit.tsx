@@ -13,6 +13,11 @@ import {
 } from "@/components";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembership } from "@/features/groups/hooks/use-group-membership";
+import { useGroupAccess } from "@/features/groups/hooks/use-group-access";
+import {
+  groupNameMutationError,
+  validateGroupName,
+} from "@/features/groups/config/group-name-validation";
 import { useUpdateGroup } from "@/features/groups/hooks/use-group-lifecycle";
 import { colors, layout, spacing } from "@/theme";
 
@@ -21,12 +26,13 @@ export default function EditGroupRoute(): JSX.Element {
   const router = useRouter();
   const group = useGroup(groupId);
   const membership = useGroupMembership(groupId);
+  const access = useGroupAccess(groupId);
   const back = {
     accessibilityLabel: "Go back",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
     onPress: () => router.back(),
   };
-  if (group.isLoading || membership.isLoading)
+  if (group.isLoading || membership.isLoading || access.isLoading)
     return (
       <ScreenContainer>
         <PageHeader leadingAction={back} title="Edit Group" />
@@ -34,6 +40,7 @@ export default function EditGroupRoute(): JSX.Element {
       </ScreenContainer>
     );
   const allowed =
+    access.data === "event_admin" ||
     membership.data?.role === "super_organiser" ||
     (group.data?.groupKind === "operational" && membership.data?.role === "organiser");
   if (!group.data || !allowed)
@@ -60,6 +67,11 @@ function EditGroupForm({
   const mutation = useUpdateGroup();
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");
+  const [submitted, setSubmitted] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const [backendNameError, setBackendNameError] = useState<string>();
+  const nameError =
+    (submitted || nameTouched ? validateGroupName(name) : undefined) ?? backendNameError;
   return (
     <ScreenContainer
       keyboardSafe
@@ -80,7 +92,13 @@ function EditGroupForm({
         label="Group name"
         required
         value={name}
-        onChangeText={setName}
+        error={nameError}
+        onBlur={() => setNameTouched(true)}
+        onChangeText={(value) => {
+          setName(value);
+          setBackendNameError(undefined);
+          mutation.reset();
+        }}
         testID="edit-group-name"
       />
       <TextField
@@ -95,15 +113,25 @@ function EditGroupForm({
         label="Save Group"
         loading={mutation.isPending}
         disabled={!name.trim() || mutation.isPending}
-        onPress={() =>
+        onPress={() => {
+          setSubmitted(true);
+          setNameTouched(true);
+          if (validateGroupName(name)) return;
           mutation.mutate(
             { groupId: group.id, name, description },
             {
               onSuccess: onBack,
-              onError: (error) => dialog.alert("Group not updated", error.message),
+              onError: (error) => {
+                const duplicate = groupNameMutationError(
+                  error,
+                  group.groupKind === "category" ? "category" : "operational"
+                );
+                if (duplicate) setBackendNameError(duplicate);
+                else dialog.alert("Group not updated", error.message);
+              },
             }
-          )
-        }
+          );
+        }}
         testID="save-group-edit"
       />
     </ScreenContainer>

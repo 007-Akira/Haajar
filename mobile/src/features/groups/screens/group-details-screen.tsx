@@ -49,6 +49,7 @@ export function GroupDetailsScreen(): JSX.Element {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const groupQuery = useGroup(groupId);
   const membershipQuery = useGroupMembership(groupId);
   const accessQuery = useGroupAccess(groupId);
@@ -465,7 +466,11 @@ export function GroupDetailsScreen(): JSX.Element {
           <GroupPrimaryActions
             activeRollCall={
               activeRollCallQuery.data
-                ? { presentCount: activeRollCallQuery.data.presentCount ?? 0 }
+                ? {
+                    totalRoster: activeRollCallQuery.data.totalRoster ?? 0,
+                    presentCount: activeRollCallQuery.data.presentCount ?? 0,
+                    remainingCount: activeRollCallQuery.data.remainingCount ?? 0,
+                  }
                 : undefined
             }
             onActionPress={handleGroupAction}
@@ -623,7 +628,10 @@ export function GroupDetailsScreen(): JSX.Element {
             accessibilityState={{ expanded: groupSettingsOpen }}
             onPress={() => {
               setGroupSettingsOpen((open) => !open);
-              if (groupSettingsOpen) setDeleteConfirmation("");
+              if (groupSettingsOpen) {
+                setDeleteConfirmation("");
+                setDeleteConfirmationOpen(false);
+              }
             }}
             style={({ pressed }) => [styles.settingsToggle, pressed && styles.settingsPressed]}
             testID="group-settings-toggle"
@@ -636,11 +644,24 @@ export function GroupDetailsScreen(): JSX.Element {
             <Text style={styles.settingsToggleLabel}>GROUP SETTINGS</Text>
           </Pressable>
           {groupSettingsOpen ? (
-            <View style={styles.dangerZone} testID="group-lifecycle-controls">
+            <View style={styles.settingsPanel} testID="group-lifecycle-controls">
               <SectionHeader
                 title="Group Settings"
-                description="Archive or permanently delete this group. These changes are checked by the server."
+                description="Edit or archive this group. Lifecycle changes are checked by the server."
               />
+              {!isArchived ? (
+                <SecondaryButton
+                  fullWidth
+                  label="Edit Group"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/events/[eventId]/groups/[groupId]/edit" as never,
+                      params: groupRouteParams,
+                    })
+                  }
+                  testID="settings-edit-group-action"
+                />
+              ) : null}
               {!isArchived ? (
                 <SecondaryButton
                   fullWidth
@@ -651,26 +672,49 @@ export function GroupDetailsScreen(): JSX.Element {
                 />
               ) : null}
               {canDeleteLifecycle ? (
-                <>
-                  <Text style={styles.destructiveCopy}>
-                    Permanent deletion only succeeds when this group has no children or required
-                    history.
-                  </Text>
-                  <TextField
-                    label={`Type ${group.name} to confirm`}
-                    value={deleteConfirmation}
-                    onChangeText={setDeleteConfirmation}
-                    testID="delete-group-confirmation"
+                <View style={styles.dangerZone} testID="group-danger-zone">
+                  <SectionHeader
+                    title="Danger Zone"
+                    description="Permanent deletion cannot be undone."
                   />
-                  <SecondaryButton
-                    fullWidth
-                    label="Delete Group Permanently"
-                    disabled={deleteConfirmation !== group.name || deleteMutation.isPending}
-                    loading={deleteMutation.isPending}
-                    onPress={deleteCurrentGroup}
-                    testID="delete-group-action"
-                  />
-                </>
+                  {!deleteConfirmationOpen ? (
+                    <SecondaryButton
+                      fullWidth
+                      label={
+                        group.groupKind === "category"
+                          ? "DELETE CATEGORY PERMANENTLY"
+                          : "DELETE OPERATIONAL GROUP PERMANENTLY"
+                      }
+                      onPress={() => setDeleteConfirmationOpen(true)}
+                      testID="reveal-delete-group-confirmation"
+                    />
+                  ) : (
+                    <>
+                      <Text style={styles.destructiveCopy}>
+                        Permanent deletion only succeeds when this group has no children or required
+                        history.
+                      </Text>
+                      <TextField
+                        label={`TYPE "${group.name}" TO CONFIRM`}
+                        value={deleteConfirmation}
+                        onChangeText={setDeleteConfirmation}
+                        testID="delete-group-confirmation"
+                      />
+                      <SecondaryButton
+                        fullWidth
+                        label={
+                          group.groupKind === "category"
+                            ? "DELETE CATEGORY PERMANENTLY"
+                            : "DELETE OPERATIONAL GROUP PERMANENTLY"
+                        }
+                        disabled={deleteConfirmation !== group.name || deleteMutation.isPending}
+                        loading={deleteMutation.isPending}
+                        onPress={deleteCurrentGroup}
+                        testID="delete-group-action"
+                      />
+                    </>
+                  )}
+                </View>
               ) : null}
             </View>
           ) : null}
@@ -779,6 +823,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
   },
+  settingsPanel: { alignSelf: "stretch", gap: spacing.md },
   settingsSection: { alignItems: "flex-start", gap: spacing.sm },
   settingsToggle: {
     minHeight: layout.minimumTouchTarget,

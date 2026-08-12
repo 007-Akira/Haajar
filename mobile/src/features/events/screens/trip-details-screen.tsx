@@ -43,6 +43,7 @@ export function TripDetailsScreen(): JSX.Element {
   const deleteMutation = useDeleteEvent();
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [tripSettingsOpen, setTripSettingsOpen] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const backAction = {
     accessibilityLabel: "Go back",
     icon: <Ionicons color={colors.textPrimary} name="arrow-back" size={layout.iconSize} />,
@@ -342,7 +343,10 @@ export function TripDetailsScreen(): JSX.Element {
             accessibilityState={{ expanded: tripSettingsOpen }}
             onPress={() => {
               setTripSettingsOpen((open) => !open);
-              if (tripSettingsOpen) setDeleteConfirmation("");
+              if (tripSettingsOpen) {
+                setDeleteConfirmation("");
+                setDeleteConfirmationOpen(false);
+              }
             }}
             style={({ pressed }) => [styles.settingsToggle, pressed && styles.settingsPressed]}
             testID="trip-settings-toggle"
@@ -355,11 +359,19 @@ export function TripDetailsScreen(): JSX.Element {
             <Text style={styles.settingsToggleLabel}>TRIP SETTINGS</Text>
           </Pressable>
           {tripSettingsOpen ? (
-            <View style={styles.dangerZone} testID="trip-lifecycle-controls">
+            <View style={styles.settingsPanel} testID="trip-lifecycle-controls">
               <SectionHeader
                 title="Trip Settings"
-                description="Archive or permanently delete this trip. These changes are permission checked by the server."
+                description="Edit or archive this trip. Lifecycle changes are checked by the server."
               />
+              {event.status === "active" ? (
+                <SecondaryButton
+                  fullWidth
+                  label="Edit Trip"
+                  onPress={() => router.push(`/events/${event.id}/edit` as Href)}
+                  testID="settings-edit-trip-action"
+                />
+              ) : null}
               {event.status === "active" ? (
                 <SecondaryButton
                   fullWidth
@@ -369,23 +381,40 @@ export function TripDetailsScreen(): JSX.Element {
                   testID="archive-trip-action"
                 />
               ) : null}
-              <Text style={styles.destructiveCopy}>
-                Permanent deletion only succeeds for an unused trip and cannot be undone.
-              </Text>
-              <TextField
-                label={`Type ${event.name} to confirm`}
-                value={deleteConfirmation}
-                onChangeText={setDeleteConfirmation}
-                testID="delete-trip-confirmation"
-              />
-              <SecondaryButton
-                fullWidth
-                label="Delete Trip Permanently"
-                disabled={deleteConfirmation !== event.name || deleteMutation.isPending}
-                loading={deleteMutation.isPending}
-                onPress={deleteTrip}
-                testID="delete-trip-action"
-              />
+              <View style={styles.dangerZone} testID="trip-danger-zone">
+                <SectionHeader
+                  title="Danger Zone"
+                  description="Permanent deletion cannot be undone."
+                />
+                {!deleteConfirmationOpen ? (
+                  <SecondaryButton
+                    fullWidth
+                    label="DELETE TRIP PERMANENTLY"
+                    onPress={() => setDeleteConfirmationOpen(true)}
+                    testID="reveal-delete-trip-confirmation"
+                  />
+                ) : (
+                  <>
+                    <Text style={styles.destructiveCopy}>
+                      Permanent deletion only succeeds for an unused trip and cannot be undone.
+                    </Text>
+                    <TextField
+                      label={`TYPE "${event.name}" TO CONFIRM`}
+                      value={deleteConfirmation}
+                      onChangeText={setDeleteConfirmation}
+                      testID="delete-trip-confirmation"
+                    />
+                    <SecondaryButton
+                      fullWidth
+                      label="DELETE TRIP PERMANENTLY"
+                      disabled={deleteConfirmation !== event.name || deleteMutation.isPending}
+                      loading={deleteMutation.isPending}
+                      onPress={deleteTrip}
+                      testID="delete-trip-action"
+                    />
+                  </>
+                )}
+              </View>
             </View>
           ) : null}
         </View>
@@ -434,6 +463,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
   },
+  settingsPanel: { alignSelf: "stretch", gap: spacing.md },
   settingsSection: { alignItems: "flex-start", gap: spacing.sm },
   settingsToggle: {
     minHeight: layout.minimumTouchTarget,

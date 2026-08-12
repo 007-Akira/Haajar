@@ -128,5 +128,6 @@ test("category and inactive subgroup states do not expose operational attendance
   assert.match(actions, /role === "super organiser"/);
   assert.match(actions, /withoutOperationalAttendance/);
   assert.match(actions, /groupKind === "category"[\s\S]*?priority: \[\]/);
-  assert.match(actions, /!activeRollCall[\s\S]*?showsRollCallState: false/);
+  assert.match(actions, /START SUBGROUP ATTENDANCE/);
+  assert.match(actions, /OPEN SUBGROUP ATTENDANCE/);
 });
